@@ -76,7 +76,10 @@ export default function BookingWizardPage() {
             <WizardProgress current={state.step} />
 
             <Container maxWidth="sm" sx={{ py: 2.5 }}>
-                <Stack direction="row" sx={{ mb: 1, minHeight: 40, alignItems: 'center' }}>
+                <Stack direction="row" sx={{
+                    display: { xs: canGoBack ? 'flex' : 'none', sm: 'flex' },
+                    mb: 1, minHeight: 40, alignItems: 'center',
+                }}>
                     {canGoBack && (
                         <IconButton onClick={handleBack} aria-label="Назад" edge="start">
                             <ArrowBackIcon />
