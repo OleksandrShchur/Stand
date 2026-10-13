@@ -27,7 +27,7 @@ export interface MyShiftDto {
     locationAddress?: string | null;
     startTime: string;
     endTime: string;
-    cancelToken?: string;
+    cancelToken: string;
 }
 
 export interface SlotAvailabilityDto {

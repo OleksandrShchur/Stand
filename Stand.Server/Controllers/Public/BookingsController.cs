@@ -13,6 +13,15 @@ namespace Stand.Server.Controllers.Public;
 [Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
 public sealed class BookingsController(IBookingService bookings) : ControllerBase
 {
+    [HttpGet("mine")]
+    public async Task<IActionResult> GetMine(CancellationToken ct)
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+
+        return Ok(await bookings.GetMyUpcomingShiftsAsync(userId, ct));
+    }
+
     /// <summary>Books a shift immediately, checking capacity within the insert transaction.</summary>
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateBookingRequestDto request, CancellationToken ct)
