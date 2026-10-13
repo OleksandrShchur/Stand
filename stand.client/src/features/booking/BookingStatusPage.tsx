@@ -14,7 +14,9 @@ import {
     DialogContentText,
     DialogTitle,
     Divider,
+    IconButton,
     Stack,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -22,6 +24,7 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import EventIcon from '@mui/icons-material/Event';
 import EventNoteIcon from '@mui/icons-material/EventNote';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -97,6 +100,20 @@ export default function BookingStatusPage() {
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
             <Container maxWidth="sm" sx={{ pt: 1, pb: 3 }}>
+                {!justBooked && (
+                    <Stack direction="row" sx={{ mb: 1, minHeight: 44, alignItems: 'center' }}>
+                        <Tooltip title={bookingCopy.back}>
+                            <IconButton
+                                onClick={() => navigate('/my-shifts')}
+                                aria-label={bookingCopy.back}
+                                edge="start"
+                                sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}
+                            >
+                                <ArrowBackIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                )}
                 {loading && <LoadingState label="Завантажуємо запис…" />}
                 {error && !loading && <ErrorState message={error} onRetry={load} />}
 

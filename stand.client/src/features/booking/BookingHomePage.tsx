@@ -59,7 +59,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                             )}
                             <Divider sx={{ mt: 2, mb: 1 }} />
                             <Button fullWidth endIcon={<ArrowForwardIcon />} onClick={() => navigate('/my-shifts')}>
-                                {bookingCopy.seeAllShifts}
+                                {bookingCopy.seeAllShifts}{!loading && !error ? ` (${shifts.length})` : ''}
                             </Button>
                         </CardContent>
                     </Card>
