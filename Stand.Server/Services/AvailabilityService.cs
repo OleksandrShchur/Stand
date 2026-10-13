@@ -37,16 +37,27 @@ public sealed class AvailabilityService(
             .Select(d => d.Date)
             .ToListAsync(ct);
 
+        var pastDates = await db.AvailableDates
+            .Where(d => d.IsActive && d.Date < min)
+            .Select(d => d.Date)
+            .Union(db.Bookings
+                .Where(b => b.Date < min && b.Status == "Confirmed")
+                .Select(b => b.Date))
+            .OrderBy(d => d)
+            .ToListAsync(ct);
+
         return new CalendarDto(
             dates.Select(d => d.ToString("yyyy-MM-dd")).ToList(),
             min.ToString("yyyy-MM-dd"),
-            max.ToString("yyyy-MM-dd"));
+            max.ToString("yyyy-MM-dd"),
+            pastDates.Select(d => d.ToString("yyyy-MM-dd")).ToList());
     }
 
-    public async Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct)
+    public async Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct, DateOnly? date = null)
     {
         return await db.Locations
-            .Where(l => l.IsActive)
+            .Where(l => l.IsActive || (date != null && date < clock.TodayLocal &&
+                l.Bookings.Any(b => b.Date == date && b.Status == "Confirmed")))
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.Name)
             .Select(l => new LocationDto(l.Id, l.Name, l.Address, l.Capacity))
@@ -82,7 +93,8 @@ public sealed class AvailabilityService(
             throw new NotFoundAppException(ErrorCodes.LocationNotFound, "Локацію не знайдено.");
         }
 
-        if (!location.IsActive)
+        if (!location.IsActive && !(date < min &&
+            await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed", ct)))
         {
             throw new ValidationAppException("Ця локація зараз недоступна.", ErrorCodes.LocationInactive);
         }
@@ -130,7 +142,7 @@ public sealed class AvailabilityService(
                 IsFull: isBlocked || isTooSoon || remaining <= 0,
                 IsBlocked: isBlocked,
                 IsTooSoon: isTooSoon,
-                IsBookable: isDateBookable && slot.IsActive && !isBlocked && !isTooSoon && remaining > 0,
+                IsBookable: isDateBookable && location.IsActive && slot.IsActive && !isBlocked && !isTooSoon && remaining > 0,
                 Participants: participantsBySlot[slot.Id]
                     .Select(b => new ShiftParticipantDto(b.FirstName, b.LastName)).ToList()));
         }

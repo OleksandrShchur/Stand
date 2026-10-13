@@ -22,12 +22,14 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import EventIcon from '@mui/icons-material/Event';
 import BrandHeader from '../../components/BrandHeader';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import { ApiError } from '../../api/client';
 import type { BookingSummaryDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
+import { bookingCopy } from './bookingCopy';
 
 export default function BookingStatusPage() {
     const { cancelToken = '' } = useParams();
@@ -70,6 +72,31 @@ export default function BookingStatusPage() {
         navigator.clipboard?.writeText(window.location.href).then(() => setCopied(true));
     };
 
+    const downloadIcs = () => {
+        if (!booking) return;
+        const safeDate = booking.date.replaceAll('-', '');
+        const start = `${safeDate}T${booking.startTime.replace(':', '')}00`;
+        const end = `${safeDate}T${booking.endTime.replace(':', '')}00`;
+        const body = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'BEGIN:VEVENT',
+            `SUMMARY:${bookingCopy.shift}: ${booking.locationName}`,
+            `DTSTART:${start}`,
+            `DTEND:${end}`,
+            `LOCATION:${[booking.locationName, booking.locationAddress].filter(Boolean).join(', ')}`,
+            `DESCRIPTION:${bookingCopy.cancellationNote}`,
+            'END:VEVENT',
+            'END:VCALENDAR',
+        ].join('\r\n');
+        const href = URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = `stand-${booking.publicNumber}.ics`;
+        link.click();
+        URL.revokeObjectURL(href);
+    };
+
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
@@ -82,7 +109,7 @@ export default function BookingStatusPage() {
                         {justBooked && booking.status === 'Confirmed' && (
                             <Box sx={{ textAlign: 'center', py: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 700 }}>Запис підтверджено!</Typography>
+                                <Typography variant="h5" sx={{ fontWeight: 700 }}>{bookingCopy.success}</Typography>
                                 <Typography variant="body2" color="text.secondary">
                                     Дякуємо, що долучаєтесь до чергування.
                                 </Typography>
@@ -140,20 +167,26 @@ export default function BookingStatusPage() {
                         </Card>
 
                         {booking.status === 'Confirmed' && (
-                            <Button
-                                variant="outlined"
-                                color="error"
-                                size="large"
-                                startIcon={<CancelOutlinedIcon />}
-                                onClick={() => setConfirmOpen(true)}
-                            >
-                                Скасувати запис
-                            </Button>
+                            <Stack spacing={1}>
+                                {justBooked && (
+                                    <Button variant="outlined" size="large" startIcon={<EventIcon />} onClick={downloadIcs}>
+                                        {bookingCopy.addToCalendar}
+                                    </Button>
+                                )}
+                                <Button
+                                    variant="outlined"
+                                    color="error"
+                                    size="large"
+                                    startIcon={<CancelOutlinedIcon />}
+                                    onClick={() => setConfirmOpen(true)}
+                                >
+                                    Скасувати запис
+                                </Button>
+                            </Stack>
                         )}
 
-                        <Button variant="text" onClick={() => navigate('/')}>
-                            Записатись ще раз
-                        </Button>
+                        <Button variant="contained" onClick={() => navigate('/')}>{bookingCopy.myShiftsButton}</Button>
+                        <Button variant="text" onClick={() => navigate('/')}>{bookingCopy.bookMore}</Button>
                     </Stack>
                 )}
             </Container>

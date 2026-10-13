@@ -14,12 +14,13 @@ public interface IAvailabilityService
 
     Task<CalendarDto> GetCalendarAsync(CancellationToken ct);
 
-    Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct);
+    Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct, DateOnly? date = null);
 
     /// <summary>
     /// Returns shift availability and confirmed participants for any date + location.
     /// Booking eligibility is reported separately; browsing does not require a bookable date.
-    /// Throws AppException if the location is not found/active.
+    /// Inactive locations remain viewable for past dates with confirmed bookings.
+    /// Throws AppException if the location is not found or is unavailable for browsing.
     /// </summary>
     Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct);
 

@@ -1,6 +1,7 @@
-import { Alert, Box, CircularProgress, Typography } from '@mui/material';
+import { Alert, Box, Button, CircularProgress, Skeleton, Stack, Typography } from '@mui/material';
+import { bookingCopy } from '../features/booking/bookingCopy';
 
-export function LoadingState({ label = 'Завантаження…' }: { label?: string }) {
+export function LoadingState({ label = 'Завантаження...' }: { label?: string }) {
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 6 }}>
             <CircularProgress color="primary" />
@@ -13,16 +14,12 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
     return (
         <Alert
             severity="error"
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 1 }}
             action={
                 onRetry ? (
-                    <Typography
-                        variant="button"
-                        onClick={onRetry}
-                        sx={{ cursor: 'pointer', fontWeight: 700, textDecoration: 'underline', pr: 1 }}
-                    >
-                        Повторити
-                    </Typography>
+                    <Button size="small" color="inherit" onClick={onRetry} sx={{ fontWeight: 700 }}>
+                        {bookingCopy.retry}
+                    </Button>
                 ) : undefined
             }
         >
@@ -36,5 +33,15 @@ export function EmptyState({ message }: { message: string }) {
         <Box sx={{ py: 5, textAlign: 'center' }}>
             <Typography variant="body1" color="text.secondary">{message}</Typography>
         </Box>
+    );
+}
+
+export function SkeletonList({ rows = 3 }: { rows?: number }) {
+    return (
+        <Stack spacing={1.25} aria-label="Завантаження">
+            {Array.from({ length: rows }, (_, index) => (
+                <Skeleton key={index} variant="rounded" height={index === 0 ? 72 : 84} />
+            ))}
+        </Stack>
     );
 }
