@@ -13,15 +13,16 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Divider,
+    IconButton,
     Stack,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import EventIcon from '@mui/icons-material/Event';
-import EventNoteIcon from '@mui/icons-material/EventNote';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import AddIcon from '@mui/icons-material/Add';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -30,6 +31,7 @@ import type { BookingSummaryDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
+import { pagePadding, sectionGap } from '../../layoutSpacing';
 
 export default function BookingStatusPage() {
     const { cancelToken = '' } = useParams();
@@ -68,40 +70,29 @@ export default function BookingStatusPage() {
             });
     };
 
-    const downloadIcs = () => {
-        if (!booking) return;
-        const safeDate = booking.date.replaceAll('-', '');
-        const start = `${safeDate}T${booking.startTime.replace(':', '')}00`;
-        const end = `${safeDate}T${booking.endTime.replace(':', '')}00`;
-        const body = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'BEGIN:VEVENT',
-            `SUMMARY:${bookingCopy.shift}: ${booking.locationName}`,
-            `DTSTART:${start}`,
-            `DTEND:${end}`,
-            `LOCATION:${[booking.locationName, booking.locationAddress].filter(Boolean).join(', ')}`,
-            `DESCRIPTION:${bookingCopy.cancellationNote}`,
-            'END:VEVENT',
-            'END:VCALENDAR',
-        ].join('\r\n');
-        const href = URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
-        const link = document.createElement('a');
-        link.href = href;
-        link.download = `stand-${booking.publicNumber}.ics`;
-        link.click();
-        URL.revokeObjectURL(href);
-    };
-
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={{ pt: 1, pb: 3 }}>
+            <Container maxWidth="sm" sx={pagePadding}>
+                {!justBooked && (
+                    <Stack direction="row" sx={{ mb: 1, minHeight: 44, alignItems: 'center' }}>
+                        <Tooltip title={bookingCopy.back}>
+                            <IconButton
+                                onClick={() => navigate('/my-shifts')}
+                                aria-label={bookingCopy.back}
+                                edge="start"
+                                sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}
+                            >
+                                <ArrowBackIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                )}
                 {loading && <LoadingState label="Завантажуємо запис…" />}
                 {error && !loading && <ErrorState message={error} onRetry={load} />}
 
                 {booking && !loading && (
-                    <Stack spacing={2.5}>
+                    <Stack spacing={sectionGap}>
                         {justBooked && booking.status === 'Confirmed' && (
                             <Box sx={{ textAlign: 'center', pt: 0, pb: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
@@ -118,46 +109,29 @@ export default function BookingStatusPage() {
 
                         <Card variant="outlined">
                             <CardContent>
-                                <Stack direction="row" sx={{ mb: 1.5, justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <Typography variant="overline" color="text.secondary">Номер запису</Typography>
+                                <Stack direction="row" sx={{ mb: 2, justifyContent: 'flex-end' }}>
                                     <Chip
                                         size="small"
                                         label={statusLabel(booking.status)}
                                         color={statusColor(booking.status)}
                                     />
                                 </Stack>
-                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, letterSpacing: 0.5 }}>
-                                    {booking.publicNumber}
-                                </Typography>
-
-                                <Divider sx={{ mb: 2 }} />
-
                                 <Stack spacing={1.25}>
                                     <Row label="Дата" value={formatDateFull(booking.date)} />
                                     <Row label="Час" value={`${booking.startTime}–${booking.endTime}`} />
                                     <Row label="Локація" value={booking.locationName} />
                                     {booking.locationAddress && <Row label="Адреса" value={booking.locationAddress} />}
-                                    {booking.firstName && (
-                                        <Row label="Ім'я" value={`${booking.firstName} ${booking.lastName ?? ''}`} />
-                                    )}
-                                    {booking.phone && <Row label="Телефон" value={booking.phone} />}
-                                    {booking.comment && <Row label="Коментар" value={booking.comment} />}
                                 </Stack>
                             </CardContent>
                         </Card>
 
                         <Stack spacing={1}>
-                            <Button variant="contained" fullWidth startIcon={<EventNoteIcon />} sx={{ minHeight: 48 }} onClick={() => {
+                            <Button variant="contained" fullWidth startIcon={<HomeOutlinedIcon />} sx={{ minHeight: 48 }} onClick={() => {
                                 clearWizardState();
-                                navigate('/my-shifts');
+                                navigate('/');
                             }}>
-                                {bookingCopy.myShiftsButton}
+                                {bookingCopy.home}
                             </Button>
-                            {booking.status === 'Confirmed' && (
-                                <Button variant="outlined" fullWidth startIcon={<EventIcon />} sx={{ minHeight: 48 }} onClick={downloadIcs}>
-                                    {bookingCopy.addToCalendar}
-                                </Button>
-                            )}
                             <Button variant="text" fullWidth startIcon={<AddIcon />} sx={{ minHeight: 48 }} onClick={() => navigate('/', { state: { startBooking: true } })}>
                                 {bookingCopy.bookMore}
                             </Button>

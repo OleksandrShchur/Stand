@@ -7,6 +7,7 @@ import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateM
 import type { LocationDto } from '../../../api/types';
 import { formatDateFull } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
+import { listGap } from '../../../layoutSpacing';
 
 export default function LocationStep({ date, onSelect }: { date: string; onSelect: (location: LocationDto) => void }) {
     const [loading, setLoading] = useState(true);
@@ -31,12 +32,12 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
     return (
         <Box>
             <Typography variant="h5" sx={{ mb: 0.5 }}>{bookingCopy.selectLocation}</Typography>
-            <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" sx={{ mb: { xs: 1.5, sm: 2.5 } }} />
+            <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" sx={{ mb: 2 }} />
 
             {locations.length === 0 ? (
                 <EmptyState message="Локації тимчасово недоступні." />
             ) : (
-                <Stack spacing={{ xs: 0.75, sm: 1.25 }}>
+                <Stack spacing={listGap}>
                     {locations.map((location) => {
                         return (
                             <Card key={location.id} variant="outlined" sx={{

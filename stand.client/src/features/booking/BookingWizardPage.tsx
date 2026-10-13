@@ -14,6 +14,7 @@ import { clearWizardState, initialWizardState, loadWizardState, saveWizardState,
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
 import { bookingCopy } from './bookingCopy';
 import { todayIso } from '../../utils/date';
+import { pagePadding } from '../../layoutSpacing';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
@@ -90,9 +91,9 @@ export default function BookingWizardPage() {
         navigate(`/booking/${summary.cancelToken}`, { state: { justBooked: true } });
     };
 
-    const canGoBack = state.step !== 'date';
     const handleBack = () => {
-        if (state.step === 'location') backToDate();
+        if (state.step === 'date') returnHome();
+        else if (state.step === 'location') backToDate();
         else if (state.step === 'time') backToLocation();
         else if (state.step === 'contact' || state.step === 'details') backToTime();
     };
@@ -110,18 +111,16 @@ export default function BookingWizardPage() {
             <BrandHeader />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
-            <Container maxWidth="sm" sx={{ py: 2.5 }}>
+            <Container maxWidth="sm" sx={pagePadding}>
                 <Stack direction="row" sx={{
                     mb: 1,
                     minHeight: 44,
                     alignItems: 'center',
                     justifyContent: 'space-between',
                 }}>
-                    {canGoBack && (
-                        <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
-                            <ArrowBackIcon />
-                        </IconButton>
-                    )}
+                    <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
+                        <ArrowBackIcon />
+                    </IconButton>
                     <Button
                         onClick={returnHome}
                         startIcon={<HomeOutlinedIcon />}

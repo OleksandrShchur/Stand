@@ -7,6 +7,7 @@ import type { SlotAvailabilityDto } from '../../../api/types';
 import { formatDateFull, todayIso } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
+import { listGap } from '../../../layoutSpacing';
 
 export default function TimeStep({ date, locationId, locationName, selectedSlotId, conflictMessage, onSelect }: {
     date: string;
@@ -37,7 +38,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     return (
         <Box>
             <Typography variant="h5" sx={{ mb: 0.5 }}>{bookingCopy.selectTime}</Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2.5, flexWrap: 'wrap' }}>
+            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
                 <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
                 <Chip label={locationName} size="small" variant="outlined" />
                 {readOnly && <Chip label={bookingCopy.readOnly} size="small" variant="outlined" />}
@@ -56,7 +57,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
             {slots.length === 0 ? (
                 <EmptyState message={bookingCopy.noSlotsForDate} />
             ) : (
-                <Stack spacing={1.25}>
+                <Stack spacing={listGap}>
                     {slots.map((slot) => (
                         <SlotCard
                             key={slot.timeSlotId}
