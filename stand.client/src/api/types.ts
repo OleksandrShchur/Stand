@@ -18,6 +18,8 @@ export interface SlotAvailabilityDto {
     isBlocked: boolean;
     /** Slot starts sooner than the configured min lead time (e.g. +1 hour). */
     isTooSoon: boolean;
+    isBookable: boolean;
+    participants: { firstName: string | null; lastName: string | null }[];
 }
 
 export interface CalendarDto {

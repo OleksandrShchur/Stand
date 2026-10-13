@@ -8,6 +8,8 @@ public sealed record LocationDto(int Id, string Name, string? Address, int Capac
 
 public sealed record TimeSlotDto(int Id, string StartTime, string EndTime);
 
+public sealed record ShiftParticipantDto(string? FirstName, string? LastName);
+
 /// <summary>A time slot's availability for a specific date + location.</summary>
 public sealed record SlotAvailabilityDto(
     int TimeSlotId,
@@ -19,7 +21,9 @@ public sealed record SlotAvailabilityDto(
     bool IsFull,
     bool IsBlocked,
     /// <summary>True when the slot starts sooner than the configured min lead time from now.</summary>
-    bool IsTooSoon);
+    bool IsTooSoon,
+    bool IsBookable,
+    List<ShiftParticipantDto> Participants);
 
 public sealed record CalendarDto(
     List<string> BookableDates, // yyyy-MM-dd, within today..+horizon and admin-enabled

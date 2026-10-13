@@ -72,7 +72,9 @@ public sealed class AvailabilityService(
 
     public async Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct)
     {
-        await EnsureDateBookableAsync(date, ct);
+        var (min, max) = GetBookableWindow();
+        var isDateBookable = date >= min && date <= max &&
+            await db.AvailableDates.AnyAsync(d => d.Date == date && d.IsActive, ct);
 
         var location = await db.Locations.FirstOrDefaultAsync(l => l.Id == locationId, ct);
         if (location is null)
@@ -86,7 +88,7 @@ public sealed class AvailabilityService(
         }
 
         var timeSlots = await db.TimeSlots
-            .Where(t => t.IsActive)
+            .Where(t => t.IsActive || t.Bookings.Any(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed"))
             .OrderBy(t => t.SortOrder)
             .ToListAsync(ct);
 
@@ -97,6 +99,12 @@ public sealed class AvailabilityService(
         var blockedSet = blockedTimeSlotIds.ToHashSet();
 
         var now = clock.UtcNow;
+        var participants = await db.Bookings
+            .Where(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed")
+            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
+            .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName })
+            .ToListAsync(ct);
+        var participantsBySlot = participants.ToLookup(b => b.TimeSlotId);
         var bookedCounts = await db.Bookings
             .Where(b => b.Date == date && b.LocationId == locationId &&
                         (b.Status == "Confirmed" || (b.Status == "Held" && b.HoldExpiresAtUtc > now)))
@@ -121,7 +129,10 @@ public sealed class AvailabilityService(
                 remaining,
                 IsFull: isBlocked || isTooSoon || remaining <= 0,
                 IsBlocked: isBlocked,
-                IsTooSoon: isTooSoon));
+                IsTooSoon: isTooSoon,
+                IsBookable: isDateBookable && slot.IsActive && !isBlocked && !isTooSoon && remaining > 0,
+                Participants: participantsBySlot[slot.Id]
+                    .Select(b => new ShiftParticipantDto(b.FirstName, b.LastName)).ToList()));
         }
 
         return result;

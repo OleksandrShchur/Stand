@@ -37,7 +37,7 @@ export default function TimeStep({
     useEffect(load, [date, locationId]);
 
     const handleSelect = (slot: SlotAvailabilityDto) => {
-        if (slot.isFull || slot.isTooSoon || holding !== null) return;
+        if (!slot.isBookable || holding !== null) return;
         setHoldError(null);
         setHolding(slot.timeSlotId);
         publicApi
@@ -75,19 +75,22 @@ export default function TimeStep({
             ) : (
                 <Stack spacing={1.25}>
                     {slots.map((slot) => {
-                        const unavailable = slot.isFull || slot.isTooSoon;
+                        const unavailable = !slot.isBookable;
                         const disabled = unavailable || holding !== null;
                         const isThisHolding = holding === slot.timeSlotId;
                         const statusLabel = isThisHolding
                             ? 'Утримуємо…'
                             : slot.isTooSoon
                                 ? 'Недоступно'
-                                : slot.isFull
+                                : slot.isFull && !slot.isBlocked && !slot.isTooSoon
                                     ? 'Зайнято'
+                                    : !slot.isBookable
+                                        ? 'Недоступно'
                                     : `Вільно ${slot.remaining}/${slot.capacity}`;
                         return (
+                            <Box key={slot.timeSlotId}>
                             <Button
-                                key={slot.timeSlotId}
+                                fullWidth
                                 variant={unavailable ? 'outlined' : 'contained'}
                                 color={unavailable ? 'inherit' : 'primary'}
                                 disabled={disabled && !isThisHolding}
@@ -114,6 +117,20 @@ export default function TimeStep({
                                     />
                                 </Box>
                             </Button>
+                            <Box sx={{ px: 1, pt: 1, pb: 0.5 }}>
+                                {slot.participants.length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary">Немає записаних учасників.</Typography>
+                                ) : (
+                                    <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
+                                        {slot.participants.map((participant, index) => (
+                                            <Typography component="li" variant="body2" key={index} sx={{ overflowWrap: 'anywhere' }}>
+                                                {[participant.firstName, participant.lastName].filter(Boolean).join(' ') || 'Учасник'}
+                                            </Typography>
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
+                            </Box>
                         );
                     })}
                 </Stack>
