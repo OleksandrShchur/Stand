@@ -90,9 +90,9 @@ export default function BookingWizardPage() {
         navigate(`/booking/${summary.cancelToken}`, { state: { justBooked: true } });
     };
 
-    const canGoBack = state.step !== 'date';
     const handleBack = () => {
-        if (state.step === 'location') backToDate();
+        if (state.step === 'date') returnHome();
+        else if (state.step === 'location') backToDate();
         else if (state.step === 'time') backToLocation();
         else if (state.step === 'contact' || state.step === 'details') backToTime();
     };
@@ -117,11 +117,9 @@ export default function BookingWizardPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                 }}>
-                    {canGoBack && (
-                        <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
-                            <ArrowBackIcon />
-                        </IconButton>
-                    )}
+                    <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
+                        <ArrowBackIcon />
+                    </IconButton>
                     <Button
                         onClick={returnHome}
                         startIcon={<HomeOutlinedIcon />}
