@@ -9,7 +9,7 @@ import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
-import { groupShiftsByDate } from './shiftGroups';
+import { getClosestShifts } from './closestShifts';
 
 export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     };
     useEffect(load, []);
 
-    const preview = groupShiftsByDate(shifts).slice(0, 2);
+    const preview = getClosestShifts(shifts);
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -44,18 +44,14 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                             )}
                             {!loading && !error && (
                                 <Stack spacing={2} divider={<Divider />}>
-                                    {preview.map((group) => {
-                                        const first = group.shifts[0];
+                                    {preview.map((shift) => {
                                         return (
-                                            <Box key={group.date}>
-                                                <Typography sx={{ fontWeight: 800 }}>{formatDateFull(group.date)}</Typography>
-                                                <Typography sx={{ fontWeight: 700 }}>{first.startTime}-{first.endTime}</Typography>
+                                            <Box key={shift.id}>
+                                                <Typography sx={{ fontWeight: 800 }}>{formatDateFull(shift.date)}</Typography>
+                                                <Typography sx={{ fontWeight: 700 }}>{shift.startTime}-{shift.endTime}</Typography>
                                                 <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                                                    {first.locationName}{first.locationAddress ? `, ${first.locationAddress}` : ''}
+                                                    {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
                                                 </Typography>
-                                                {group.shifts.length > 1 && (
-                                                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>{bookingCopy.moreShiftsOnDate(group.shifts.length - 1)}</Typography>
-                                                )}
                                             </Box>
                                         );
                                     })}

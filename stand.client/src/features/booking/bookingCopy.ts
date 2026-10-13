@@ -8,7 +8,6 @@ export const bookingCopy = {
     shift: 'Зміна',
     myShifts: 'Мої найближчі зміни',
     seeAllShifts: 'Переглянути всі',
-    moreShiftsOnDate: (count: number) => `Ще змін цього дня: ${count}`,
     upcomingCount: (count: number) => `Майбутніх змін: ${count}`,
     dateFilter: 'Дата',
     clearDateFilter: 'Очистити дату',
