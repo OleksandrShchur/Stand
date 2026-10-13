@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Avatar, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Avatar, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
@@ -56,7 +56,6 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     if (error) return <ErrorState message={error} onRetry={load} />;
     if (!slot) return null;
 
-    const occupiedAfterConfirm = Math.min(slot.booked + (canConfirm ? 1 : 0), slot.capacity);
     const participants = [
         ...slot.participants.map((participant) => ({
             name: [participant.firstName, participant.lastName].filter(Boolean).join(' ') || 'Учасник',
@@ -70,8 +69,11 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
             <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
             <Card variant="outlined">
                 <CardContent>
-                    <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
-                        {formatDateFull(date)} · {slot.startTime}-{slot.endTime}
+                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                        {formatDateFull(date)}
+                    </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, whiteSpace: 'nowrap' }}>
+                        {slot.startTime}-{slot.endTime}
                     </Typography>
                     <Typography sx={{ fontWeight: 800, overflowWrap: 'anywhere' }}>{locationName}</Typography>
                     {locationAddress && <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{locationAddress}</Typography>}
@@ -84,15 +86,12 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                                     {participant.isCurrentUser ? <CheckIcon sx={{ fontSize: 16 }} /> : participant.name[0]?.toUpperCase()}
                                 </Avatar>
                                 <Typography variant="body2" sx={{ fontWeight: participant.isCurrentUser ? 800 : 500 }}>
-                                    {participant.name}{participant.isCurrentUser ? ` (${bookingCopy.you})` : ''}
+                                    {participant.name}
                                 </Typography>
                             </Stack>
                         ))}
                     </Stack>
 
-                    <Alert severity="info" sx={{ mt: 2, borderRadius: 1 }}>
-                        {canConfirm ? `Після підтвердження: ${bookingCopy.occupancy(occupiedAfterConfirm, slot.capacity)}` : bookingCopy.occupancy(slot.booked, slot.capacity)}
-                    </Alert>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
                         {canConfirm ? bookingCopy.cancellationNote : bookingCopy.readOnly}
                     </Typography>
