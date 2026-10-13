@@ -21,8 +21,7 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import EventIcon from '@mui/icons-material/Event';
-import EventNoteIcon from '@mui/icons-material/EventNote';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
@@ -70,31 +69,6 @@ export default function BookingStatusPage() {
                 setCancelling(false);
                 setConfirmOpen(false);
             });
-    };
-
-    const downloadIcs = () => {
-        if (!booking) return;
-        const safeDate = booking.date.replaceAll('-', '');
-        const start = `${safeDate}T${booking.startTime.replace(':', '')}00`;
-        const end = `${safeDate}T${booking.endTime.replace(':', '')}00`;
-        const body = [
-            'BEGIN:VCALENDAR',
-            'VERSION:2.0',
-            'BEGIN:VEVENT',
-            `SUMMARY:${bookingCopy.shift}: ${booking.locationName}`,
-            `DTSTART:${start}`,
-            `DTEND:${end}`,
-            `LOCATION:${[booking.locationName, booking.locationAddress].filter(Boolean).join(', ')}`,
-            `DESCRIPTION:${bookingCopy.cancellationNote}`,
-            'END:VEVENT',
-            'END:VCALENDAR',
-        ].join('\r\n');
-        const href = URL.createObjectURL(new Blob([body], { type: 'text/calendar;charset=utf-8' }));
-        const link = document.createElement('a');
-        link.href = href;
-        link.download = `stand-${booking.publicNumber}.ics`;
-        link.click();
-        URL.revokeObjectURL(href);
     };
 
     return (
@@ -165,17 +139,12 @@ export default function BookingStatusPage() {
                         </Card>
 
                         <Stack spacing={1}>
-                            <Button variant="contained" fullWidth startIcon={<EventNoteIcon />} sx={{ minHeight: 48 }} onClick={() => {
+                            <Button variant="contained" fullWidth startIcon={<HomeOutlinedIcon />} sx={{ minHeight: 48 }} onClick={() => {
                                 clearWizardState();
-                                navigate('/my-shifts');
+                                navigate('/');
                             }}>
-                                {bookingCopy.myShiftsButton}
+                                {bookingCopy.home}
                             </Button>
-                            {booking.status === 'Confirmed' && (
-                                <Button variant="outlined" fullWidth startIcon={<EventIcon />} sx={{ minHeight: 48 }} onClick={downloadIcs}>
-                                    {bookingCopy.addToCalendar}
-                                </Button>
-                            )}
                             <Button variant="text" fullWidth startIcon={<AddIcon />} sx={{ minHeight: 48 }} onClick={() => navigate('/', { state: { startBooking: true } })}>
                                 {bookingCopy.bookMore}
                             </Button>
