@@ -13,7 +13,6 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Divider,
     IconButton,
     Stack,
     Tooltip,
@@ -110,30 +109,18 @@ export default function BookingStatusPage() {
 
                         <Card variant="outlined">
                             <CardContent>
-                                <Stack direction="row" sx={{ mb: 1.5, justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <Typography variant="overline" color="text.secondary">Номер запису</Typography>
+                                <Stack direction="row" sx={{ mb: 2, justifyContent: 'flex-end' }}>
                                     <Chip
                                         size="small"
                                         label={statusLabel(booking.status)}
                                         color={statusColor(booking.status)}
                                     />
                                 </Stack>
-                                <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, letterSpacing: 0.5 }}>
-                                    {booking.publicNumber}
-                                </Typography>
-
-                                <Divider sx={{ mb: 2 }} />
-
                                 <Stack spacing={1.25}>
                                     <Row label="Дата" value={formatDateFull(booking.date)} />
                                     <Row label="Час" value={`${booking.startTime}–${booking.endTime}`} />
                                     <Row label="Локація" value={booking.locationName} />
                                     {booking.locationAddress && <Row label="Адреса" value={booking.locationAddress} />}
-                                    {booking.firstName && (
-                                        <Row label="Ім'я" value={`${booking.firstName} ${booking.lastName ?? ''}`} />
-                                    )}
-                                    {booking.phone && <Row label="Телефон" value={booking.phone} />}
-                                    {booking.comment && <Row label="Коментар" value={booking.comment} />}
                                 </Stack>
                             </CardContent>
                         </Card>
