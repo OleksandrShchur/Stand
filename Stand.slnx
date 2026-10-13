@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="stand.client/stand.client.esproj">
+    <Build />
+    <Deploy />
+  </Project>
+  <Project Path="Stand.DbMigrator/Stand.DbMigrator.csproj" />
+  <Project Path="Stand.Server/Stand.Server.csproj" />
+</Solution>

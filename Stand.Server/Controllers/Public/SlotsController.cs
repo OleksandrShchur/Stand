@@ -1,0 +1,23 @@
+using Microsoft.AspNetCore.Mvc;
+using Stand.Server.Common;
+using Stand.Server.Services;
+
+namespace Stand.Server.Controllers.Public;
+
+[ApiController]
+[Route("api/slots")]
+public sealed class SlotsController(IAvailabilityService availability) : ControllerBase
+{
+    /// <summary>Time slots for a given date + location, with remaining capacity.</summary>
+    [HttpGet]
+    public async Task<IActionResult> Get([FromQuery] string date, [FromQuery] int locationId, CancellationToken ct)
+    {
+        if (!DateOnly.TryParse(date, out var parsedDate))
+        {
+            throw new ValidationAppException("Некоректна дата.");
+        }
+
+        var result = await availability.GetSlotsAsync(parsedDate, locationId, ct);
+        return Ok(result);
+    }
+}
