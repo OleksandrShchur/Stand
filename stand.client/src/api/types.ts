@@ -28,19 +28,6 @@ export interface CalendarDto {
     latestBookableDate: string;
 }
 
-export interface HoldResponseDto {
-    holdToken: string;
-    expiresAtUtc: string;
-    secondsRemaining: number;
-    date: string;
-    locationId: number;
-    locationName: string;
-    locationAddress?: string | null;
-    timeSlotId: number;
-    startTime: string;
-    endTime: string;
-}
-
 export interface BookingSummaryDto {
     publicNumber: string;
     cancelToken: string;

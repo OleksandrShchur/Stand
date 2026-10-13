@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stand.Server.Auth;
@@ -12,33 +13,19 @@ namespace Stand.Server.Controllers.Public;
 [Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
 public sealed class BookingsController(IBookingService bookings) : ControllerBase
 {
-    /// <summary>
-    /// Soft-holds a seat for the given date/location/time for <see cref="Options.BookingOptions.HoldDurationMinutes"/>
-    /// minutes. Returns a hold token used to confirm the booking with contact details.
-    /// </summary>
-    [HttpPost("hold")]
-    public async Task<IActionResult> Hold([FromBody] HoldRequestDto request, CancellationToken ct)
+    /// <summary>Books a shift immediately, checking capacity within the insert transaction.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateBookingRequestDto request, CancellationToken ct)
     {
         if (!DateOnly.TryParse(request.Date, out var date))
         {
             throw new ValidationAppException("Некоректна дата.");
         }
 
-        var result = await bookings.HoldAsync(date, request.LocationId, request.TimeSlotId, ct);
-        return Ok(result);
-    }
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
 
-    /// <summary>Confirms a held booking by attaching contact details before the hold expires.</summary>
-    [HttpPost("confirm")]
-    public async Task<IActionResult> Confirm([FromBody] ConfirmRequestDto request, CancellationToken ct)
-    {
-        if (!Guid.TryParse(request.HoldToken, out var holdToken))
-        {
-            throw new ValidationAppException("Некоректний токен утримання.", ErrorCodes.HoldNotFound);
-        }
-
-        var result = await bookings.ConfirmAsync(
-            holdToken, request.FirstName, request.LastName, request.Phone, request.Comment, ct);
+        var result = await bookings.BookAsync(date, request.LocationId, request.TimeSlotId, userId, ct);
         return Ok(result);
     }
 

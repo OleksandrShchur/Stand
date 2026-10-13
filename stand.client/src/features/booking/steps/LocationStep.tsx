@@ -37,24 +37,28 @@ export default function LocationStep({
     return (
         <Box>
             <Typography variant="h5" sx={{ mb: 0.5 }}>Оберіть локацію</Typography>
-            <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" sx={{ mb: 2.5 }} />
+            <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" sx={{ mb: { xs: 1.5, sm: 2.5 } }} />
 
             {locations.length === 0 ? (
                 <EmptyState message="Локації тимчасово недоступні." />
             ) : (
-                <Stack spacing={1.25}>
+                <Stack spacing={{ xs: 0.75, sm: 1.25 }}>
                     {locations.map((loc) => (
-                        <Card key={loc.id} variant="outlined" sx={{ borderColor: 'divider' }}>
-                            <CardActionArea onClick={() => onSelect(loc)} sx={{ p: 0.5 }}>
-                                <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                    <PlaceOutlinedIcon color="primary" />
-                                    <Box sx={{ flex: 1 }}>
-                                        <Typography variant="body1" sx={{ fontWeight: 700 }}>{loc.name}</Typography>
+                        <Card key={loc.id} variant="outlined" sx={{ borderColor: 'divider', borderRadius: { xs: 1, sm: 2 } }}>
+                            <CardActionArea onClick={() => onSelect(loc)} sx={{ p: { xs: 0, sm: 0.5 }, minHeight: 56 }}>
+                                <CardContent sx={{
+                                    display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 },
+                                    px: { xs: 1.5, sm: 2 }, py: { xs: 1, sm: 2 },
+                                    '&:last-child': { pb: { xs: 1, sm: 2 } },
+                                }}>
+                                    <PlaceOutlinedIcon color="primary" sx={{ fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
+                                    <Box sx={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                                        <Typography variant="body1" sx={{ fontWeight: 700, fontSize: { xs: 14, sm: 16 } }}>{loc.name}</Typography>
                                         {loc.address && (
-                                            <Typography variant="body2" color="text.secondary">{loc.address}</Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: 12, sm: 14 } }}>{loc.address}</Typography>
                                         )}
                                     </Box>
-                                    <ChevronRightIcon color="action" />
+                                    <ChevronRightIcon color="action" sx={{ fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
                                 </CardContent>
                             </CardActionArea>
                         </Card>

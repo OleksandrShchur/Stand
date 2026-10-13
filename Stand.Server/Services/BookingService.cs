@@ -21,8 +21,20 @@ public sealed class BookingService(
 
     private readonly BookingOptions _options = options.Value;
 
-    public async Task<HoldResponseDto> HoldAsync(DateOnly date, int locationId, int timeSlotId, CancellationToken ct)
+    public async Task<BookingSummaryDto> BookAsync(
+        DateOnly date, int locationId, int timeSlotId,
+        int authorizedUserId, CancellationToken ct)
     {
+        var user = await db.AuthorizedUsers.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
+            ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+        var fn = user.FirstName.Trim();
+        var ln = user.LastName.Trim();
+        if (fn.Length is < 1 or > 100 || ln.Length is < 1 or > 100)
+            throw new ValidationAppException("Зверніться до адміністратора, щоб заповнити ім'я та прізвище у вашому профілі.");
+        var phone = PhoneNormalizer.TryNormalize(user.Phone)
+            ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
+
         await availability.EnsureDateBookableAsync(date, ct);
 
         var location = await db.Locations.FirstOrDefaultAsync(l => l.Id == locationId, ct)
@@ -53,13 +65,16 @@ public sealed class BookingService(
                 ErrorCodes.SlotTooSoon);
         }
 
-        // Serialize concurrent hold attempts for the same (date, location, timeSlot) using a
-        // row-level lock held for the duration of the transaction, so the capacity check and
-        // the insert are atomic across concurrent requests.
+        // The capacity check and confirmed insert share a lock to prevent overbooking.
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var now = clock.UtcNow;
         var activeCount = await CountActiveWithLockAsync(date, locationId, timeSlotId, now, ct);
+
+        if (await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId &&
+            b.TimeSlotId == timeSlotId && b.Phone == phone && b.Status != "Cancelled", ct))
+            throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
+                "З цим номером телефону вже є запис на цю дату, локацію та час.");
 
         if (activeCount >= location.Capacity)
         {
@@ -67,115 +82,32 @@ public sealed class BookingService(
             throw new ConflictAppException(ErrorCodes.SlotFull, "На цей час вже немає вільних місць (Зайнято).");
         }
 
-        var holdExpiresAt = now.AddMinutes(_options.HoldDurationMinutes);
         var booking = new Booking
         {
             PublicNumber = BookingNumberGenerator.Generate(date),
             LocationId = locationId,
             Date = date,
             TimeSlotId = timeSlotId,
-            Status = "Held",
-            HoldExpiresAtUtc = holdExpiresAt,
+            Status = "Confirmed",
+            FirstName = fn,
+            LastName = ln,
+            Phone = phone,
+            ConfirmedAtUtc = now,
+            Location = location,
+            TimeSlot = timeSlot,
         };
 
         db.Bookings.Add(booking);
-        await db.SaveChangesAsync(ct);
-        await tx.CommitAsync(ct);
-
-        return new HoldResponseDto(
-            booking.CancelToken.ToString(),
-            holdExpiresAt.ToString("O"),
-            SecondsRemaining: (int)Math.Max(0, (holdExpiresAt - now).TotalSeconds),
-            date.ToString("yyyy-MM-dd"),
-            location.Id,
-            location.Name,
-            location.Address,
-            timeSlot.Id,
-            timeSlot.StartTime.ToString("HH:mm"),
-            timeSlot.EndTime.ToString("HH:mm"));
-    }
-
-    public async Task<BookingSummaryDto> ConfirmAsync(
-        Guid holdToken, string firstName, string lastName, string phoneRaw, string? comment, CancellationToken ct)
-    {
-        var fn = (firstName ?? string.Empty).Trim();
-        var ln = (lastName ?? string.Empty).Trim();
-        var cm = string.IsNullOrWhiteSpace(comment) ? null : comment.Trim();
-
-        if (fn.Length is < 1 or > 100)
-        {
-            throw new ValidationAppException("Вкажіть коректне ім'я (до 100 символів).");
-        }
-
-        if (ln.Length is < 1 or > 100)
-        {
-            throw new ValidationAppException("Вкажіть коректне прізвище (до 100 символів).");
-        }
-
-        if (cm is { Length: > 500 })
-        {
-            throw new ValidationAppException("Коментар не повинен перевищувати 500 символів.");
-        }
-
-        var phone = Services.PhoneNormalizer.TryNormalize(phoneRaw)
-            ?? throw new ValidationAppException(
-                "Введіть коректний український номер телефону у форматі +380XXXXXXXXX.", ErrorCodes.InvalidPhone);
-
-        var booking = await db.Bookings
-            .Include(b => b.Location)
-            .Include(b => b.TimeSlot)
-            .FirstOrDefaultAsync(b => b.CancelToken == holdToken, ct)
-            ?? throw new NotFoundAppException(ErrorCodes.HoldNotFound, "Утримання місця не знайдено. Почніть спочатку.");
-
-        if (booking.Status == "Confirmed")
-        {
-            // Double-submit protection: return the existing confirmation idempotently.
-            return ToSummary(booking);
-        }
-
-        if (booking.Status == "Cancelled")
-        {
-            throw new ConflictAppException(ErrorCodes.HoldExpired, "Час утримання місця минув. Оберіть час ще раз.");
-        }
-
-        var now = clock.UtcNow;
-        if (booking.HoldExpiresAtUtc is null || booking.HoldExpiresAtUtc <= now)
-        {
-            booking.Status = "Cancelled";
-            booking.CancelledAtUtc = now;
-            await db.SaveChangesAsync(ct);
-            throw new ConflictAppException(ErrorCodes.HoldExpired, "Час утримання місця минув. Оберіть час ще раз.");
-        }
-
-        var duplicate = await db.Bookings.AnyAsync(b =>
-            b.Id != booking.Id &&
-            b.Phone == phone &&
-            b.Date == booking.Date &&
-            b.LocationId == booking.LocationId &&
-            b.TimeSlotId == booking.TimeSlotId &&
-            b.Status != "Cancelled", ct);
-        if (duplicate)
-        {
-            throw new ConflictAppException(
-                ErrorCodes.DuplicatePhoneSlot, "З цим номером телефону вже є запис на цю дату, локацію та час.");
-        }
-
-        booking.FirstName = fn;
-        booking.LastName = ln;
-        booking.Phone = phone;
-        booking.Comment = cm;
-        booking.Status = "Confirmed";
-        booking.ConfirmedAtUtc = now;
-
         try
         {
             await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException ex) when (IsUniqueViolation(ex))
         {
-            throw new ConflictAppException(
-                ErrorCodes.DuplicatePhoneSlot, "З цим номером телефону вже є запис на цю дату, локацію та час.");
+            throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
+                "З цим номером телефону вже є запис на цю дату, локацію та час.");
         }
+        await tx.CommitAsync(ct);
 
         return ToSummary(booking);
     }

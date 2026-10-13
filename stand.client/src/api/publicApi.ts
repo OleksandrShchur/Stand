@@ -2,7 +2,6 @@ import { api } from './client';
 import type {
     BookingSummaryDto,
     CalendarDto,
-    HoldResponseDto,
     LocationDto,
     PublicUserMeDto,
     SlotAvailabilityDto,
@@ -22,11 +21,8 @@ export const publicApi = {
     getSlots: (date: string, locationId: number) =>
         api.get<SlotAvailabilityDto[]>(`/api/slots?date=${encodeURIComponent(date)}&locationId=${locationId}`),
 
-    hold: (date: string, locationId: number, timeSlotId: number) =>
-        api.post<HoldResponseDto>('/api/bookings/hold', { date, locationId, timeSlotId }),
-
-    confirm: (holdToken: string, firstName: string, lastName: string, phone: string, comment: string) =>
-        api.post<BookingSummaryDto>('/api/bookings/confirm', { holdToken, firstName, lastName, phone, comment }),
+    book: (date: string, locationId: number, timeSlotId: number) =>
+        api.post<BookingSummaryDto>('/api/bookings', { date, locationId, timeSlotId }),
 
     getByCancelToken: (cancelToken: string) =>
         api.get<BookingSummaryDto>(`/api/bookings/${cancelToken}`),

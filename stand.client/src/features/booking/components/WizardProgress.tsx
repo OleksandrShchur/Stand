@@ -5,11 +5,11 @@ const STEPS: { key: WizardStep; label: string }[] = [
     { key: 'date', label: 'Дата' },
     { key: 'location', label: 'Локація' },
     { key: 'time', label: 'Час' },
-    { key: 'contact', label: 'Контакти' },
+    { key: 'contact', label: 'Підтвердження' },
 ];
 
 export default function WizardProgress({ current }: { current: WizardStep }) {
-    const currentIndex = STEPS.findIndex((s) => s.key === current);
+    const currentIndex = STEPS.findIndex((s) => s.key === (current === 'details' ? 'contact' : current));
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 2, pt: 2 }}>
@@ -31,7 +31,7 @@ export default function WizardProgress({ current }: { current: WizardStep }) {
                             fontWeight: i === currentIndex ? 700 : 500,
                         }}
                     >
-                        {s.label}
+                        {s.key === 'contact' && current === 'details' ? 'Чергування' : s.label}
                     </Typography>
                 </Box>
             ))}
