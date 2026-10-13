@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Box, Button, Container, Fade, IconButton, Stack } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
@@ -17,13 +17,21 @@ import { todayIso } from '../../utils/date';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
-    const [showHome, setShowHome] = useState(() => loadWizardState().step === 'date' && !loadWizardState().date);
-    const [state, setState] = useState<WizardState>(() => loadWizardState());
+    const location = useLocation();
+    const startBooking = Boolean((location.state as { startBooking?: boolean } | null)?.startBooking);
+    const [showHome, setShowHome] = useState(() => !startBooking && loadWizardState().step === 'date' && !loadWizardState().date);
+    const [state, setState] = useState<WizardState>(() => startBooking ? initialWizardState : loadWizardState());
     const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 
     useEffect(() => {
         saveWizardState(state);
     }, [state]);
+
+    useEffect(() => {
+        if (startBooking) {
+            navigate(location.pathname, { replace: true, state: null });
+        }
+    }, [startBooking, location.pathname, navigate]);
 
     const start = () => {
         setState(initialWizardState);

@@ -14,15 +14,14 @@ import {
     DialogContentText,
     DialogTitle,
     Divider,
-    IconButton,
-    Snackbar,
     Stack,
     Typography,
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import EventIcon from '@mui/icons-material/Event';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import AddIcon from '@mui/icons-material/Add';
 import BrandHeader from '../../components/BrandHeader';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -30,6 +29,7 @@ import { ApiError } from '../../api/client';
 import type { BookingSummaryDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
+import { clearWizardState } from './wizardState';
 
 export default function BookingStatusPage() {
     const { cancelToken = '' } = useParams();
@@ -42,7 +42,6 @@ export default function BookingStatusPage() {
     const [booking, setBooking] = useState<BookingSummaryDto | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
     const [cancelling, setCancelling] = useState(false);
-    const [copied, setCopied] = useState(false);
 
     const load = () => {
         setLoading(true);
@@ -57,6 +56,7 @@ export default function BookingStatusPage() {
     useEffect(load, [cancelToken]);
 
     const handleCancel = () => {
+        if (cancelling) return;
         setCancelling(true);
         publicApi
             .cancel(cancelToken)
@@ -66,10 +66,6 @@ export default function BookingStatusPage() {
                 setCancelling(false);
                 setConfirmOpen(false);
             });
-    };
-
-    const copyLink = () => {
-        navigator.clipboard?.writeText(window.location.href).then(() => setCopied(true));
     };
 
     const downloadIcs = () => {
@@ -100,14 +96,14 @@ export default function BookingStatusPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={{ py: 3 }}>
+            <Container maxWidth="sm" sx={{ pt: 1, pb: 3 }}>
                 {loading && <LoadingState label="Завантажуємо запис…" />}
                 {error && !loading && <ErrorState message={error} onRetry={load} />}
 
                 {booking && !loading && (
                     <Stack spacing={2.5}>
                         {justBooked && booking.status === 'Confirmed' && (
-                            <Box sx={{ textAlign: 'center', py: 1.5 }}>
+                            <Box sx={{ textAlign: 'center', pt: 0, pb: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
                                 <Typography variant="h5" sx={{ fontWeight: 700 }}>{bookingCopy.success}</Typography>
                                 <Typography variant="body2" color="text.secondary">
@@ -150,48 +146,42 @@ export default function BookingStatusPage() {
                             </CardContent>
                         </Card>
 
-                        <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
-                            <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Box sx={{ flex: 1 }}>
-                                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                        Збережіть це посилання
-                                    </Typography>
-                                    <Typography variant="caption" color="text.secondary">
-                                        За ним можна переглянути або скасувати запис пізніше.
-                                    </Typography>
-                                </Box>
-                                <IconButton onClick={copyLink} aria-label="Скопіювати посилання" color="primary">
-                                    <ContentCopyIcon />
-                                </IconButton>
-                            </CardContent>
-                        </Card>
+                        <Stack spacing={1}>
+                            <Button variant="contained" fullWidth startIcon={<EventNoteIcon />} sx={{ minHeight: 48 }} onClick={() => {
+                                clearWizardState();
+                                navigate('/');
+                            }}>
+                                {bookingCopy.myShiftsButton}
+                            </Button>
+                            {booking.status === 'Confirmed' && (
+                                <Button variant="outlined" fullWidth startIcon={<EventIcon />} sx={{ minHeight: 48 }} onClick={downloadIcs}>
+                                    {bookingCopy.addToCalendar}
+                                </Button>
+                            )}
+                            <Button variant="text" fullWidth startIcon={<AddIcon />} sx={{ minHeight: 48 }} onClick={() => navigate('/', { state: { startBooking: true } })}>
+                                {bookingCopy.bookMore}
+                            </Button>
+                        </Stack>
 
                         {booking.status === 'Confirmed' && (
-                            <Stack spacing={1}>
-                                {justBooked && (
-                                    <Button variant="outlined" size="large" startIcon={<EventIcon />} onClick={downloadIcs}>
-                                        {bookingCopy.addToCalendar}
-                                    </Button>
-                                )}
+                            <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1, textAlign: 'center' }}>
                                 <Button
-                                    variant="outlined"
+                                    variant="text"
                                     color="error"
-                                    size="large"
                                     startIcon={<CancelOutlinedIcon />}
+                                    disabled={cancelling}
+                                    sx={{ minHeight: 44 }}
                                     onClick={() => setConfirmOpen(true)}
                                 >
-                                    Скасувати запис
+                                    {bookingCopy.cancelBooking}
                                 </Button>
-                            </Stack>
+                            </Box>
                         )}
-
-                        <Button variant="contained" onClick={() => navigate('/')}>{bookingCopy.myShiftsButton}</Button>
-                        <Button variant="text" onClick={() => navigate('/')}>{bookingCopy.bookMore}</Button>
                     </Stack>
                 )}
             </Container>
 
-            <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)}>
+            <Dialog open={confirmOpen} onClose={() => { if (!cancelling) setConfirmOpen(false); }}>
                 <DialogTitle>Скасувати запис?</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
@@ -199,20 +189,13 @@ export default function BookingStatusPage() {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setConfirmOpen(false)}>Ні, залишити</Button>
+                    <Button disabled={cancelling} onClick={() => setConfirmOpen(false)}>Ні, залишити</Button>
                     <Button color="error" variant="contained" disabled={cancelling} onClick={handleCancel}>
                         {cancelling ? 'Скасовуємо…' : 'Так, скасувати'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            <Snackbar
-                open={copied}
-                autoHideDuration={2500}
-                onClose={() => setCopied(false)}
-                message="Посилання скопійовано"
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-            />
         </Box>
     );
 }

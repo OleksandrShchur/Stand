@@ -8,7 +8,6 @@ import { ErrorState, SkeletonList } from '../../../components/StateMessage';
 import { dateRangeIso, formatDateFull, parseIsoDate, todayIso } from '../../../utils/date';
 import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
-import { mockCalendarAvailability } from '../mockBookingData';
 import { bookingCopy } from '../bookingCopy';
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
@@ -22,7 +21,6 @@ export default function DateStep({ selectedDate, onSelect, onContinue }: {
     const [error, setError] = useState<string | null>(null);
     const [bookable, setBookable] = useState<Set<string>>(new Set());
     const [pastDates, setPastDates] = useState<Set<string>>(new Set());
-    const [remainingByDate, setRemainingByDate] = useState<Map<string, number>>(new Map());
     const [month, setMonth] = useState(() => {
         const today = parseIsoDate(todayIso());
         return new Date(today.getFullYear(), today.getMonth(), 1);
@@ -39,7 +37,6 @@ export default function DateStep({ selectedDate, onSelect, onContinue }: {
                 setToday(todayIso());
                 const firstDate = parseIsoDate(selectedDate ?? cal.earliestBookableDate);
                 setMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
-                setRemainingByDate(new Map(mockCalendarAvailability.map((day) => [day.date, day.remaining])));
             })
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.'))
             .finally(() => setLoading(false));
@@ -97,7 +94,6 @@ export default function DateStep({ selectedDate, onSelect, onContinue }: {
                         readOnly={pastDates.has(date)}
                         isSelected={selectedDate === date}
                         isToday={date === today}
-                        remaining={pastDates.has(date) ? undefined : remainingByDate.get(date)}
                         onSelect={onSelect}
                     />
                 ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}

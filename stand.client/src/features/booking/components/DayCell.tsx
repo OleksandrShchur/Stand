@@ -9,7 +9,6 @@ export default function DayCell({
     readOnly = false,
     isSelected,
     isToday,
-    remaining,
     onSelect,
 }: {
     date: string;
@@ -17,11 +16,10 @@ export default function DayCell({
     readOnly?: boolean;
     isSelected?: boolean;
     isToday: boolean;
-    remaining?: number;
     onSelect: (date: string) => void;
 }) {
     const disabled = !isAvailable;
-    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? `є зміни${remaining !== undefined ? `, ${remaining} вільно` : ''}` : 'немає змін'}`;
+    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є зміни' : 'немає змін'}`;
 
     return (
         <Button
@@ -53,13 +51,7 @@ export default function DayCell({
                 <Typography component="span" sx={{ fontSize: 16, fontWeight: 800, lineHeight: 1.1 }}>
                     {parseIsoDate(date).getDate()}
                 </Typography>
-                {isSelected ? (
-                    <CheckIcon sx={{ fontSize: 13 }} />
-                ) : isAvailable && remaining !== undefined ? (
-                    <Typography component="span" sx={{ fontSize: 10.5, fontWeight: 700, lineHeight: 1.1 }}>
-                        {remaining} вільно
-                    </Typography>
-                ) : null}
+                {isSelected && <CheckIcon sx={{ fontSize: 13 }} />}
             </Box>
             {isToday && (
                 <Box sx={{

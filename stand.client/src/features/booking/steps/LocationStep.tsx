@@ -1,13 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Box, Card, CardActionArea, CardContent, Chip, Stack, Typography } from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { LocationDto } from '../../../api/types';
-import { formatDateFull, todayIso } from '../../../utils/date';
-import { mockLocationAvailability } from '../mockBookingData';
-import StateBadge from '../components/StateBadge';
+import { formatDateFull } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 
 export default function LocationStep({ date, onSelect }: { date: string; onSelect: (location: LocationDto) => void }) {
@@ -27,18 +25,6 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
 
     useEffect(load, [date]);
 
-    const enriched = useMemo(() => locations
-        .map((location) => ({
-            location,
-            availability: mockLocationAvailability.find((item) => item.locationId === location.id) ?? {
-                locationId: location.id,
-                remaining: Math.max(location.capacity, 1),
-                capacity: location.capacity,
-            },
-        }))
-        .sort((a, b) => Number(b.availability.isLastUsed) - Number(a.availability.isLastUsed) || b.availability.remaining - a.availability.remaining),
-    [locations]);
-
     if (loading) return <SkeletonList rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
@@ -47,16 +33,15 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
             <Typography variant="h5" sx={{ mb: 0.5 }}>{bookingCopy.selectLocation}</Typography>
             <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" sx={{ mb: { xs: 1.5, sm: 2.5 } }} />
 
-            {enriched.length === 0 ? (
+            {locations.length === 0 ? (
                 <EmptyState message="Локації тимчасово недоступні." />
             ) : (
                 <Stack spacing={{ xs: 0.75, sm: 1.25 }}>
-                    {enriched.map(({ location, availability }) => {
-                        const isFull = availability.remaining <= 0;
+                    {locations.map((location) => {
                         return (
                             <Card key={location.id} variant="outlined" sx={{
-                                borderColor: isFull ? 'var(--state-full-border)' : 'divider',
-                                bgcolor: isFull ? 'var(--state-full-bg)' : 'background.paper',
+                                borderColor: 'divider',
+                                bgcolor: 'background.paper',
                             }}>
                                 <CardActionArea
                                     onClick={() => onSelect(location)}
@@ -75,14 +60,7 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
                                             {location.address && (
                                                 <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: 12, sm: 14 } }}>{location.address}</Typography>
                                             )}
-                                            {availability.isLastUsed && (
-                                                <Typography variant="caption" sx={{ color: 'primary.dark', fontWeight: 700 }}>Ви були тут</Typography>
-                                            )}
                                         </Box>
-                                        <StateBadge
-                                            label={date < todayIso() ? bookingCopy.readOnly : isFull ? bookingCopy.seatsGone : `${availability.remaining} вільних місць`}
-                                            tone={date < todayIso() ? 'unavailable' : isFull ? 'full' : 'available'}
-                                        />
                                         <ChevronRightIcon color="action" sx={{ fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
                                     </CardContent>
                                 </CardActionArea>

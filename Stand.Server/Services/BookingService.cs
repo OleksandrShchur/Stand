@@ -21,6 +21,45 @@ public sealed class BookingService(
 
     private readonly BookingOptions _options = options.Value;
 
+    public async Task<List<MyShiftDto>> GetMyUpcomingShiftsAsync(int authorizedUserId, CancellationToken ct)
+    {
+        var user = await db.AuthorizedUsers.AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
+            ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+        var phone = PhoneNormalizer.TryNormalize(user.Phone)
+            ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
+
+        var now = clock.NowLocal;
+        var today = DateOnly.FromDateTime(now);
+        var time = TimeOnly.FromDateTime(now);
+        var shifts = await db.Bookings.AsNoTracking()
+            .Where(b => b.Phone == phone && b.Status == "Confirmed" &&
+                (b.Date > today || (b.Date == today && b.TimeSlot.EndTime > time)))
+            .OrderBy(b => b.Date)
+            .ThenBy(b => b.TimeSlot.StartTime)
+            .ThenBy(b => b.Id)
+            .Select(b => new
+            {
+                b.Id,
+                b.Date,
+                LocationName = b.Location.Name,
+                LocationAddress = b.Location.Address,
+                b.TimeSlot.StartTime,
+                b.TimeSlot.EndTime,
+                b.CancelToken,
+            })
+            .ToListAsync(ct);
+
+        return shifts.Select(b => new MyShiftDto(
+            b.Id,
+            b.Date.ToString("yyyy-MM-dd"),
+            b.LocationName,
+            b.LocationAddress,
+            b.StartTime.ToString("HH:mm"),
+            b.EndTime.ToString("HH:mm"),
+            b.CancelToken.ToString())).ToList();
+    }
+
     public async Task<BookingSummaryDto> BookAsync(
         DateOnly date, int locationId, int timeSlotId,
         int authorizedUserId, CancellationToken ct)
