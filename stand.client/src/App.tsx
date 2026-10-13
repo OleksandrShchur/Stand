@@ -1,6 +1,7 @@
 ﻿import { Navigate, Route, Routes } from 'react-router-dom';
 import BookingWizardPage from './features/booking/BookingWizardPage';
 import BookingStatusPage from './features/booking/BookingStatusPage';
+import MyShiftsPage from './features/booking/MyShiftsPage';
 import { AdminAuthProvider } from './features/admin/AdminAuthContext';
 import AdminLoginPage from './features/admin/AdminLoginPage';
 import AdminLayout from './features/admin/AdminLayout';
@@ -25,6 +26,16 @@ function App() {
                     <PublicAuthProvider>
                         <ProtectedPublicRoute>
                             <BookingWizardPage />
+                        </ProtectedPublicRoute>
+                    </PublicAuthProvider>
+                }
+            />
+            <Route
+                path="/my-shifts"
+                element={
+                    <PublicAuthProvider>
+                        <ProtectedPublicRoute>
+                            <MyShiftsPage />
                         </ProtectedPublicRoute>
                     </PublicAuthProvider>
                 }
