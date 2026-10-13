@@ -55,7 +55,7 @@ const theme = createTheme({
         button: { fontWeight: 600, textTransform: 'none' },
     },
     shape: {
-        borderRadius: 14,
+        borderRadius: 8,
     },
     spacing: 8,
     components: {
@@ -63,9 +63,10 @@ const theme = createTheme({
             defaultProps: { disableElevation: true },
             styleOverrides: {
                 root: {
-                    borderRadius: 12,
+                    borderRadius: 8,
                     paddingTop: 10,
                     paddingBottom: 10,
+                    minHeight: 44,
                 },
                 sizeLarge: {
                     paddingTop: 14,
@@ -77,21 +78,21 @@ const theme = createTheme({
         MuiCard: {
             styleOverrides: {
                 root: {
-                    borderRadius: 16,
+                    borderRadius: 8,
                 },
             },
         },
         MuiPaper: {
             styleOverrides: {
                 rounded: {
-                    borderRadius: 16,
+                    borderRadius: 8,
                 },
             },
         },
         MuiChip: {
             styleOverrides: {
                 root: {
-                    borderRadius: 10,
+                    borderRadius: 8,
                     fontWeight: 600,
                 },
             },
@@ -107,6 +108,29 @@ const theme = createTheme({
             styleOverrides: {
                 body: {
                     backgroundColor: '#F5F8F5',
+                    '--state-available-bg': '#EAF6EF',
+                    '--state-available-border': '#2F7D57',
+                    '--state-available-text': '#173B2A',
+                    '--state-selected-bg': '#1E4A37',
+                    '--state-selected-text': '#FFFFFF',
+                    '--state-unavailable-text': '#6B7280',
+                    '--state-full-bg': '#EEF1EF',
+                    '--state-full-border': '#CBD5CF',
+                    '--state-full-text': '#4B5563',
+                    '--state-mine-border': '#207A4F',
+                    '--state-mine-text': '#155C3A',
+                },
+                '*:focus-visible': {
+                    outline: '3px solid #7FB69A',
+                    outlineOffset: 2,
+                },
+                '@media (prefers-reduced-motion: reduce)': {
+                    '*, *::before, *::after': {
+                        animationDuration: '0.01ms !important',
+                        animationIterationCount: '1 !important',
+                        scrollBehavior: 'auto !important',
+                        transitionDuration: '0.01ms !important',
+                    },
                 },
             },
         },

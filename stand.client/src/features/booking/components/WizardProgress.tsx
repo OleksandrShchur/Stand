@@ -1,4 +1,5 @@
-import { Box, Typography } from '@mui/material';
+import { Box, ButtonBase, Typography } from '@mui/material';
+import CheckIcon from '@mui/icons-material/Check';
 import type { WizardStep } from '../wizardState';
 
 const STEPS: { key: WizardStep; label: string }[] = [
@@ -8,33 +9,57 @@ const STEPS: { key: WizardStep; label: string }[] = [
     { key: 'contact', label: 'Підтвердження' },
 ];
 
-export default function WizardProgress({ current }: { current: WizardStep }) {
+export default function WizardProgress({ current, onNavigate }: { current: WizardStep; onNavigate?: (step: WizardStep) => void }) {
     const currentIndex = STEPS.findIndex((s) => s.key === (current === 'details' ? 'contact' : current));
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 2, pt: 2 }}>
-            {STEPS.map((s, i) => (
-                <Box key={s.key} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
-                    <Box
+            {STEPS.map((s, i) => {
+                const completed = i < currentIndex;
+                const active = i === currentIndex;
+                const clickable = completed && Boolean(onNavigate);
+
+                return (
+                    <ButtonBase
+                        key={s.key}
+                        disabled={!clickable}
+                        onClick={() => onNavigate?.(s.key)}
+                        aria-current={active ? 'step' : undefined}
                         sx={{
-                            width: '100%',
-                            height: 5,
-                            borderRadius: 3,
-                            backgroundColor: i <= currentIndex ? 'primary.main' : 'divider',
-                            transition: 'background-color 0.3s ease',
-                        }}
-                    />
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            color: i === currentIndex ? 'primary.main' : 'text.secondary',
-                            fontWeight: i === currentIndex ? 700 : 500,
+                            flex: 1,
+                            minHeight: 44,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: 0.5,
+                            cursor: clickable ? 'pointer' : 'default',
                         }}
                     >
-                        {s.key === 'contact' && current === 'details' ? 'Чергування' : s.label}
-                    </Typography>
-                </Box>
-            ))}
+                        <Box
+                            sx={{
+                                width: '100%',
+                                height: active ? 7 : 5,
+                                borderRadius: 3,
+                                backgroundColor: i <= currentIndex ? 'primary.main' : 'divider',
+                            }}
+                        />
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.25,
+                                color: active || completed ? 'primary.dark' : 'text.secondary',
+                                fontWeight: active ? 800 : 700,
+                                fontSize: 12,
+                            }}
+                        >
+                            {completed && <CheckIcon sx={{ fontSize: 13 }} />}
+                            {s.label}
+                        </Typography>
+                    </ButtonBase>
+                );
+            })}
         </Box>
     );
 }

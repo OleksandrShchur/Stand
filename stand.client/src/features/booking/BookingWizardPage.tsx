@@ -8,18 +8,30 @@ import DateStep from './steps/DateStep';
 import LocationStep from './steps/LocationStep';
 import TimeStep from './steps/TimeStep';
 import ShiftDetailsStep from './steps/ShiftDetailsStep';
-import { clearWizardState, loadWizardState, saveWizardState, type WizardState } from './wizardState';
+import BookingHomePage from './BookingHomePage';
+import { clearWizardState, initialWizardState, loadWizardState, saveWizardState, type WizardState, type WizardStep } from './wizardState';
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
+import { bookingCopy } from './bookingCopy';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
+    const [showHome, setShowHome] = useState(() => loadWizardState().step === 'date' && !loadWizardState().date);
     const [state, setState] = useState<WizardState>(() => loadWizardState());
+    const [conflictMessage, setConflictMessage] = useState<string | null>(null);
 
     useEffect(() => {
         saveWizardState(state);
     }, [state]);
 
-    const selectDate = (date: string) => setState({ step: 'location', date });
+    const start = () => {
+        setState(initialWizardState);
+        setShowHome(false);
+    };
+
+    const selectDate = (date: string) => {
+        setConflictMessage(null);
+        setState({ step: 'location', date });
+    };
 
     const selectLocation = (location: LocationDto) =>
         setState((s) => ({
@@ -28,6 +40,9 @@ export default function BookingWizardPage() {
             locationId: location.id,
             locationName: location.name,
             locationAddress: location.address,
+            timeSlotId: undefined,
+            startTime: undefined,
+            endTime: undefined,
         }));
 
     const selectTime = (slot: SlotAvailabilityDto) =>
@@ -39,16 +54,19 @@ export default function BookingWizardPage() {
             endTime: slot.endTime,
         }));
 
-    const backToDate = () => setState({ step: 'date' });
+    const backToDate = () => setState({ step: 'date', date: state.date });
     const backToLocation = () => setState((s) => ({ step: 'location', date: s.date }));
-    const backToTime = () =>
+    const backToTime = (message?: string) => {
+        setConflictMessage(message ?? null);
         setState((s) => ({
             step: 'time',
             date: s.date,
             locationId: s.locationId,
             locationName: s.locationName,
             locationAddress: s.locationAddress,
+            timeSlotId: s.timeSlotId,
         }));
+    };
 
     const onConfirmed = (summary: { cancelToken: string }) => {
         clearWizardState();
@@ -62,18 +80,28 @@ export default function BookingWizardPage() {
         else if (state.step === 'contact' || state.step === 'details') backToTime();
     };
 
+    const goToStep = (step: WizardStep) => {
+        if (step === 'date') backToDate();
+        if (step === 'location' && state.date) backToLocation();
+        if (step === 'time' && state.date && state.locationId) backToTime();
+    };
+
+    if (showHome) return <BookingHomePage onStart={start} />;
+
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <WizardProgress current={state.step} />
+            <WizardProgress current={state.step} onNavigate={goToStep} />
 
             <Container maxWidth="sm" sx={{ py: 2.5 }}>
                 <Stack direction="row" sx={{
                     display: { xs: canGoBack ? 'flex' : 'none', sm: 'flex' },
-                    mb: 1, minHeight: 40, alignItems: 'center',
+                    mb: 1,
+                    minHeight: 44,
+                    alignItems: 'center',
                 }}>
                     {canGoBack && (
-                        <IconButton onClick={handleBack} aria-label="Назад" edge="start">
+                        <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
                             <ArrowBackIcon />
                         </IconButton>
                     )}
@@ -81,7 +109,7 @@ export default function BookingWizardPage() {
 
                 <Fade in key={state.step} timeout={250}>
                     <Box>
-                        {state.step === 'date' && <DateStep onSelect={selectDate} />}
+                        {state.step === 'date' && <DateStep selectedDate={state.date} onSelect={selectDate} />}
 
                         {state.step === 'location' && state.date && (
                             <LocationStep date={state.date} onSelect={selectLocation} />
@@ -92,6 +120,8 @@ export default function BookingWizardPage() {
                                 date={state.date}
                                 locationId={state.locationId}
                                 locationName={state.locationName}
+                                selectedSlotId={state.timeSlotId}
+                                conflictMessage={conflictMessage}
                                 onSelect={selectTime}
                             />
                         )}

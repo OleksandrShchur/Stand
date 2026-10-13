@@ -7,6 +7,29 @@ export interface LocationDto {
     capacity: number;
 }
 
+export interface CalendarDayAvailabilityDto {
+    date: string;
+    remaining: number;
+    capacity: number;
+}
+
+export interface LocationAvailabilityDto {
+    locationId: number;
+    remaining: number;
+    capacity: number;
+    isLastUsed?: boolean;
+}
+
+export interface MyShiftDto {
+    id: number;
+    date: string;
+    locationName: string;
+    locationAddress?: string | null;
+    startTime: string;
+    endTime: string;
+    cancelToken?: string;
+}
+
 export interface SlotAvailabilityDto {
     timeSlotId: number;
     startTime: string;

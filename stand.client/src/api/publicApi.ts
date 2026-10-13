@@ -3,9 +3,11 @@ import type {
     BookingSummaryDto,
     CalendarDto,
     LocationDto,
+    MyShiftDto,
     PublicUserMeDto,
     SlotAvailabilityDto,
 } from './types';
+import { mockMyShifts } from '../features/booking/mockBookingData';
 
 export const publicApi = {
     login: (phone: string) => api.post<PublicUserMeDto>('/api/auth/login', { phone }),
@@ -29,4 +31,10 @@ export const publicApi = {
 
     cancel: (cancelToken: string) =>
         api.post<BookingSummaryDto>('/api/bookings/cancel', { cancelToken }),
+
+    // TODO [needs API]: replace mocks with GET /api/my-shifts?upcoming=true.
+    getMyUpcomingShifts: async () => mockMyShifts satisfies MyShiftDto[],
+
+    // TODO [needs API]: replace with DELETE /api/bookings/:id.
+    cancelMyShift: async (_bookingId: number) => undefined,
 };
