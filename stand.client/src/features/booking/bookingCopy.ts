@@ -18,6 +18,8 @@ export const bookingCopy = {
     confirmAction: 'Підтвердити запис',
     confirming: 'Підтверджуємо...',
     participants: 'Учасники',
+    participant: 'Учасник',
+    noParticipants: 'Немає призначених учасників',
     you: 'Ви',
     available: 'Доступно',
     selected: 'Обрано',

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, Paper, Stack, Typography } from '@mui/material';
+import { Alert, Box, Chip, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull, formatDateHuman, formatWeekdayShort, todayIso } from '../../../utils/date';
+import { formatDateFull, todayIso } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 
@@ -19,39 +19,23 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [slots, setSlots] = useState<SlotAvailabilityDto[]>([]);
-    const [selected, setSelected] = useState<SlotAvailabilityDto | null>(null);
     const readOnly = date < todayIso();
 
     const load = () => {
         setLoading(true);
         setError(null);
-        publicApi.getSlots(date, locationId).then((nextSlots) => {
-            setSlots(nextSlots);
-            setSelected((current) => nextSlots.find((slot) => slot.timeSlotId === current?.timeSlotId || slot.timeSlotId === selectedSlotId) ?? null);
-        })
+        publicApi.getSlots(date, locationId).then(setSlots)
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити час.'))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, [date, locationId, selectedSlotId]);
+    useEffect(load, [date, locationId]);
 
     if (loading) return <SkeletonList rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
-    const choose = (slot: SlotAvailabilityDto) => {
-        if (readOnly) {
-            onSelect(slot);
-            return;
-        }
-        if (!slot.isBookable) {
-            if (slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon) onSelect(slot);
-            return;
-        }
-        setSelected(slot);
-    };
-
     return (
-        <Box sx={{ pb: selected ? 12 : 0 }}>
+        <Box>
             <Typography variant="h5" sx={{ mb: 0.5 }}>{bookingCopy.selectTime}</Typography>
             <Stack direction="row" spacing={1} sx={{ mb: 2.5, flexWrap: 'wrap' }}>
                 <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
@@ -77,35 +61,12 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                         <SlotCard
                             key={slot.timeSlotId}
                             slot={slot}
-                            selected={selected?.timeSlotId === slot.timeSlotId}
+                            selected={selectedSlotId === slot.timeSlotId}
                             readOnly={readOnly}
-                            onSelect={choose}
+                            onSelect={onSelect}
                         />
                     ))}
                 </Stack>
-            )}
-            {selected && !readOnly && (
-                <Paper
-                    elevation={6}
-                    sx={{
-                        position: 'fixed',
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        zIndex: 10,
-                        borderRadius: '8px 8px 0 0',
-                        borderTop: '1px solid',
-                        borderColor: 'divider',
-                        p: 1.5,
-                    }}
-                >
-                    <Stack direction="row" spacing={1.5} sx={{ maxWidth: 600, mx: 'auto', alignItems: 'center' }}>
-                        <Typography sx={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
-                            {formatWeekdayShort(date)}, {formatDateHuman(date)} · {selected.startTime}-{selected.endTime} · {locationName}
-                        </Typography>
-                        <Button variant="contained" onClick={() => onSelect(selected)}>{bookingCopy.next}</Button>
-                    </Stack>
-                </Paper>
             )}
         </Box>
     );
