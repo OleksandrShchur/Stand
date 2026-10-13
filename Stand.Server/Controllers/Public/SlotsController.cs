@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stand.Server.Auth;
 using Stand.Server.Common;
 using Stand.Server.Services;
 
@@ -6,6 +8,7 @@ namespace Stand.Server.Controllers.Public;
 
 [ApiController]
 [Route("api/slots")]
+[Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
 public sealed class SlotsController(IAvailabilityService availability) : ControllerBase
 {
     /// <summary>Time slots for a given date + location, with remaining capacity.</summary>

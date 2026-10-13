@@ -1,5 +1,9 @@
 namespace Stand.Server.Dtos.Public;
 
+// ---- Auth ----
+public sealed record PublicLoginRequestDto(string Phone);
+public sealed record PublicUserMeDto(int Id, string Phone);
+
 public sealed record LocationDto(int Id, string Name, string? Address, int Capacity);
 
 public sealed record TimeSlotDto(int Id, string StartTime, string EndTime);

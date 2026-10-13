@@ -14,6 +14,8 @@ public partial class StandDbContext : DbContext
 
     public virtual DbSet<AdminUser> AdminUsers { get; set; }
 
+    public virtual DbSet<AuthorizedUser> AuthorizedUsers { get; set; }
+
     public virtual DbSet<AvailableDate> AvailableDates { get; set; }
 
     public virtual DbSet<Booking> Bookings { get; set; }
@@ -34,6 +36,14 @@ public partial class StandDbContext : DbContext
 
             entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())", "DF_AdminUsers_CreatedAtUtc");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_AdminUsers_IsActive");
+        });
+
+        modelBuilder.Entity<AuthorizedUser>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Authoriz__3214EC07F3C8B4A2");
+
+            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())", "DF_AuthorizedUsers_CreatedAtUtc");
+            entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_AuthorizedUsers_IsActive");
         });
 
         modelBuilder.Entity<AvailableDate>(entity =>

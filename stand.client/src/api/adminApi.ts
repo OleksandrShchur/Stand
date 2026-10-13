@@ -2,6 +2,7 @@ import { api } from './client';
 import type {
     AdminMeDto,
     AdminUserDto,
+    AuthorizedUserAdminDto,
     AvailableDateAdminDto,
     BookingAdminDto,
     BookingListResultDto,
@@ -81,6 +82,14 @@ export const adminApi = {
     createUser: (login: string, password: string) => api.post<AdminUserDto>('/api/admin/users', { login, password }),
     enableUser: (id: number) => api.post<AdminUserDto>(`/api/admin/users/${id}/enable`),
     disableUser: (id: number) => api.post<AdminUserDto>(`/api/admin/users/${id}/disable`),
+
+    // Authorized site users
+    listAuthorizedUsers: () => api.get<AuthorizedUserAdminDto[]>('/api/admin/authorized-users'),
+    createAuthorizedUser: (data: { phone: string; firstName: string; lastName: string }) => api.post<AuthorizedUserAdminDto>('/api/admin/authorized-users', data),
+    updateAuthorizedUser: (id: number, data: { phone: string; firstName: string; lastName: string }) => api.put<AuthorizedUserAdminDto>(`/api/admin/authorized-users/${id}`, data),
+    deleteAuthorizedUser: (id: number) => api.del<void>(`/api/admin/authorized-users/${id}`),
+    enableAuthorizedUser: (id: number) => api.post<AuthorizedUserAdminDto>(`/api/admin/authorized-users/${id}/enable`),
+    disableAuthorizedUser: (id: number) => api.post<AuthorizedUserAdminDto>(`/api/admin/authorized-users/${id}/disable`),
 };
 
 export type { BookingAdminDto };

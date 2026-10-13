@@ -11,12 +11,42 @@ import AdminDatesPage from './features/admin/AdminDatesPage';
 import AdminExceptionsPage from './features/admin/AdminExceptionsPage';
 import AdminBookingsPage from './features/admin/AdminBookingsPage';
 import AdminUsersPage from './features/admin/AdminUsersPage';
+import AdminAuthorizedUsersPage from './features/admin/AdminAuthorizedUsersPage';
+import { PublicAuthProvider } from './features/auth/PublicAuthContext';
+import ProtectedPublicRoute from './features/auth/ProtectedPublicRoute';
+import UserLoginPage from './features/auth/UserLoginPage';
 
 function App() {
     return (
         <Routes>
-            <Route path="/" element={<BookingWizardPage />} />
-            <Route path="/booking/:cancelToken" element={<BookingStatusPage />} />
+            <Route
+                path="/"
+                element={
+                    <PublicAuthProvider>
+                        <ProtectedPublicRoute>
+                            <BookingWizardPage />
+                        </ProtectedPublicRoute>
+                    </PublicAuthProvider>
+                }
+            />
+            <Route
+                path="/booking/:cancelToken"
+                element={
+                    <PublicAuthProvider>
+                        <ProtectedPublicRoute>
+                            <BookingStatusPage />
+                        </ProtectedPublicRoute>
+                    </PublicAuthProvider>
+                }
+            />
+            <Route
+                path="/login"
+                element={
+                    <PublicAuthProvider>
+                        <UserLoginPage />
+                    </PublicAuthProvider>
+                }
+            />
 
             <Route
                 path="/admin/*"
@@ -31,6 +61,7 @@ function App() {
                                 <Route path="timeslots" element={<AdminTimeSlotsPage />} />
                                 <Route path="dates" element={<AdminDatesPage />} />
                                 <Route path="exceptions" element={<AdminExceptionsPage />} />
+                                <Route path="authorized-users" element={<AdminAuthorizedUsersPage />} />
                                 <Route path="users" element={<AdminUsersPage />} />
                             </Route>
                         </Routes>

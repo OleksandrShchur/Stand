@@ -4,10 +4,17 @@ import type {
     CalendarDto,
     HoldResponseDto,
     LocationDto,
+    PublicUserMeDto,
     SlotAvailabilityDto,
 } from './types';
 
 export const publicApi = {
+    login: (phone: string) => api.post<PublicUserMeDto>('/api/auth/login', { phone }),
+
+    logout: () => api.post<void>('/api/auth/logout'),
+
+    me: () => api.get<PublicUserMeDto>('/api/auth/me'),
+
     getCalendar: () => api.get<CalendarDto>('/api/calendar'),
 
     getLocations: () => api.get<LocationDto[]>('/api/locations'),

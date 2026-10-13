@@ -57,6 +57,11 @@ export interface BookingSummaryDto {
     cancelledAtUtc?: string | null;
 }
 
+export interface PublicUserMeDto {
+    id: number;
+    phone: string;
+}
+
 // ---- Admin DTOs (mirrors Stand.Server/Dtos/Admin/AdminDtos.cs) ----
 
 export interface AdminMeDto {
@@ -67,6 +72,16 @@ export interface AdminMeDto {
 export interface AdminUserDto {
     id: number;
     login: string;
+    isActive: boolean;
+    createdAtUtc: string;
+    lastLoginAtUtc?: string | null;
+}
+
+export interface AuthorizedUserAdminDto {
+    id: number;
+    phone: string;
+    firstName: string;
+    lastName: string;
     isActive: boolean;
     createdAtUtc: string;
     lastLoginAtUtc?: string | null;
