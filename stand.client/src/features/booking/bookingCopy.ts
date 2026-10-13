@@ -11,6 +11,7 @@ export const bookingCopy = {
     moreShiftsOnDate: (count: number) => `Ще змін цього дня: ${count}`,
     upcomingCount: (count: number) => `Майбутніх змін: ${count}`,
     dateFilter: 'Дата',
+    clearDateFilter: 'Очистити дату',
     locationFilter: 'Локація',
     allDates: 'Усі дати',
     allLocations: 'Усі локації',

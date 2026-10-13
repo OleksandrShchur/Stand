@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { ukUA } from '@mui/x-date-pickers/locales';
+import dayjs from 'dayjs';
+import 'dayjs/locale/uk';
 import AddIcon from '@mui/icons-material/Add';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
@@ -39,7 +45,6 @@ export default function MyShiftsPage() {
     const filtered = shifts.filter((shift) =>
         (!dateFilter || shift.date === dateFilter) &&
         (!locationFilter || shift.locationName === locationFilter));
-    const dates = [...new Set(shifts.map((shift) => shift.date))].sort();
     const locations = [...new Set(shifts.map((shift) => shift.locationName))].sort((a, b) => a.localeCompare(b, 'uk'));
 
     const cancel = () => {
@@ -98,10 +103,29 @@ export default function MyShiftsPage() {
                     )}
                     {!loading && !error && shifts.length > 0 && (
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-                            <TextField select fullWidth size="small" label={bookingCopy.dateFilter} value={dateFilter} onChange={(event) => setDateFilter(event.target.value)}>
-                                <MenuItem value="">{bookingCopy.allDates}</MenuItem>
-                                {dates.map((date) => <MenuItem key={date} value={date}>{formatDateFull(date)}</MenuItem>)}
-                            </TextField>
+                            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="uk" localeText={ukUA.components.MuiLocalizationProvider.defaultProps.localeText}>
+                                <DatePicker
+                                    label={bookingCopy.dateFilter}
+                                    format="DD.MM.YYYY"
+                                    value={dateFilter ? dayjs(dateFilter) : null}
+                                    onChange={(value, context) => {
+                                        if (context.validationError === null) setDateFilter(value?.format('YYYY-MM-DD') ?? '');
+                                    }}
+                                    localeText={{
+                                        fieldDayPlaceholder: () => 'dd',
+                                        fieldMonthPlaceholder: () => 'MM',
+                                        fieldYearPlaceholder: () => 'yyyy',
+                                        clearButtonLabel: bookingCopy.clearDateFilter,
+                                    }}
+                                    slotProps={{
+                                        textField: { fullWidth: true, size: 'small', sx: { minWidth: 0 } },
+                                        field: { clearable: true },
+                                        openPickerButton: { sx: { minWidth: 44, minHeight: 44 } },
+                                        clearButton: { sx: { minWidth: 44, minHeight: 44 } },
+                                        actionBar: { actions: ['clear', 'cancel', 'accept'] },
+                                    }}
+                                />
+                            </LocalizationProvider>
                             <TextField select fullWidth size="small" label={bookingCopy.locationFilter} value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
                                 <MenuItem value="">{bookingCopy.allLocations}</MenuItem>
                                 {locations.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
