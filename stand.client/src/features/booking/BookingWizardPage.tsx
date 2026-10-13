@@ -13,6 +13,7 @@ import BookingHomePage from './BookingHomePage';
 import { clearWizardState, initialWizardState, loadWizardState, saveWizardState, type WizardState, type WizardStep } from './wizardState';
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
 import { bookingCopy } from './bookingCopy';
+import { todayIso } from '../../utils/date';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
@@ -38,7 +39,7 @@ export default function BookingWizardPage() {
 
     const selectDate = (date: string) => {
         setConflictMessage(null);
-        setState({ step: 'location', date });
+        setState({ step: 'date', date });
     };
 
     const selectLocation = (location: LocationDto) =>
@@ -56,7 +57,7 @@ export default function BookingWizardPage() {
     const selectTime = (slot: SlotAvailabilityDto) =>
         setState((s) => ({
             ...s,
-            step: slot.isBookable ? 'contact' : 'details',
+            step: slot.isBookable && s.date && s.date >= todayIso() ? 'contact' : 'details',
             timeSlotId: slot.timeSlotId,
             startTime: slot.startTime,
             endTime: slot.endTime,
@@ -124,7 +125,15 @@ export default function BookingWizardPage() {
 
                 <Fade in key={state.step} timeout={250}>
                     <Box>
-                        {state.step === 'date' && <DateStep selectedDate={state.date} onSelect={selectDate} />}
+                        {state.step === 'date' && (
+                            <DateStep
+                                selectedDate={state.date}
+                                onSelect={selectDate}
+                                onContinue={() => {
+                                    if (state.date) setState((s) => ({ ...s, step: 'location' }));
+                                }}
+                            />
+                        )}
 
                         {state.step === 'location' && state.date && (
                             <LocationStep date={state.date} onSelect={selectLocation} />
@@ -153,7 +162,7 @@ export default function BookingWizardPage() {
                                     locationName={state.locationName}
                                     locationAddress={state.locationAddress}
                                     onUnavailable={backToTime}
-                                    onConfirmed={state.step === 'contact' ? onConfirmed : undefined}
+                                    onConfirmed={state.step === 'contact' && state.date >= todayIso() ? onConfirmed : undefined}
                                 />
                             )}
                     </Box>

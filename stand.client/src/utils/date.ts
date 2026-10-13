@@ -32,7 +32,7 @@ export function formatWeekdayShort(iso: string): string {
 
 export function formatDateFull(iso: string): string {
     const date = parseIsoDate(iso);
-    return `${WEEKDAYS_SHORT[date.getDay()]}, ${date.getDate()} ${MONTHS_GENITIVE[date.getMonth()]} ${date.getFullYear()}`;
+    return `${date.toLocaleDateString('uk-UA', { weekday: 'long' })}, ${date.getDate()} ${MONTHS_GENITIVE[date.getMonth()]} ${date.getFullYear()}`;
 }
 
 export function dateRangeIso(startIso: string, endIso: string): string[] {

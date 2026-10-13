@@ -13,19 +13,22 @@ export default function SlotCard({
     slot,
     selected,
     mine,
+    readOnly = false,
     onSelect,
 }: {
     slot: SlotAvailabilityDto;
     selected: boolean;
     mine?: boolean;
+    readOnly?: boolean;
     onSelect: (slot: SlotAvailabilityDto) => void;
 }) {
-    const full = slot.remaining <= 0 || slot.isFull;
-    const unavailable = !slot.isBookable && !mine;
+    const full = slot.remaining <= 0 || (!readOnly && slot.isFull);
+    const canViewFullShift = slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon;
+    const unavailable = !readOnly && !slot.isBookable && !mine && !canViewFullShift;
     const almostFull = slot.isBookable && slot.remaining === 1;
-    const tone = mine ? 'mine' : full ? 'full' : almostFull ? 'warning' : selected ? 'selected' : 'available';
+    const tone = readOnly ? 'unavailable' : mine ? 'mine' : full ? 'full' : almostFull ? 'warning' : selected ? 'selected' : 'available';
     const accent = mine ? 'var(--state-mine-border)' : almostFull ? '#B7791F' : full ? '#9CA3AF' : 'var(--state-available-border)';
-    const badgeLabel = mine
+    const badgeLabel = readOnly ? bookingCopy.pastShift : mine
         ? bookingCopy.youBooked
         : full
             ? bookingCopy.seatsGone
@@ -67,7 +70,7 @@ export default function SlotCard({
                         {showParticipantNames && (
                             <Stack direction="row" spacing={0.75} sx={{ mt: 1, flexWrap: 'wrap' }}>
                                 {slot.participants.length === 0 ? (
-                                    !full && <Typography variant="body2" sx={{ color: selected ? 'rgba(255,255,255,0.82)' : 'text.secondary' }}>{bookingCopy.firstInSlot}</Typography>
+                                    !full && !readOnly && <Typography variant="body2" sx={{ color: selected ? 'rgba(255,255,255,0.82)' : 'text.secondary' }}>{bookingCopy.firstInSlot}</Typography>
                                 ) : slot.participants.map((participant, index) => {
                                     const name = participantName(participant);
                                     return (

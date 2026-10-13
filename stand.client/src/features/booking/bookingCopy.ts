@@ -1,5 +1,10 @@
 export const bookingCopy = {
     home: 'На головну',
+    next: 'Далі',
+    readOnly: 'Лише перегляд',
+    pastShift: 'Зміна завершена',
+    shiftDetails: 'Деталі зміни',
+    occupancy: (occupied: number, capacity: number) => `${occupied} з ${capacity} місць зайнято, ${Math.max(capacity - occupied, 0)} вільно.`,
     shift: 'Зміна',
     myShifts: 'Мої найближчі зміни',
     noUpcomingShifts: 'У вас ще немає записів',

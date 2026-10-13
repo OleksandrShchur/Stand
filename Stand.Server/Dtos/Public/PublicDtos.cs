@@ -28,7 +28,8 @@ public sealed record SlotAvailabilityDto(
 public sealed record CalendarDto(
     List<string> BookableDates, // yyyy-MM-dd, within today..+horizon and admin-enabled
     string EarliestBookableDate,
-    string LatestBookableDate);
+    string LatestBookableDate,
+    List<string> PastDates);
 
 public sealed record BookingSummaryDto(
     string PublicNumber,

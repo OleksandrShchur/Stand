@@ -4,7 +4,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull, formatDateHuman, formatWeekdayShort } from '../../../utils/date';
+import { formatDateFull, formatDateHuman, formatWeekdayShort, todayIso } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 
@@ -20,6 +20,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     const [error, setError] = useState<string | null>(null);
     const [slots, setSlots] = useState<SlotAvailabilityDto[]>([]);
     const [selected, setSelected] = useState<SlotAvailabilityDto | null>(null);
+    const readOnly = date < todayIso();
 
     const load = () => {
         setLoading(true);
@@ -38,7 +39,14 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     const choose = (slot: SlotAvailabilityDto) => {
-        if (!slot.isBookable) return;
+        if (readOnly) {
+            onSelect(slot);
+            return;
+        }
+        if (!slot.isBookable) {
+            if (slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon) onSelect(slot);
+            return;
+        }
         setSelected(slot);
     };
 
@@ -48,6 +56,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
             <Stack direction="row" spacing={1} sx={{ mb: 2.5, flexWrap: 'wrap' }}>
                 <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
                 <Chip label={locationName} size="small" variant="outlined" />
+                {readOnly && <Chip label={bookingCopy.readOnly} size="small" variant="outlined" />}
             </Stack>
             {conflictMessage && (
                 <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
@@ -69,12 +78,13 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                             key={slot.timeSlotId}
                             slot={slot}
                             selected={selected?.timeSlotId === slot.timeSlotId}
+                            readOnly={readOnly}
                             onSelect={choose}
                         />
                     ))}
                 </Stack>
             )}
-            {selected && (
+            {selected && !readOnly && (
                 <Paper
                     elevation={6}
                     sx={{
@@ -93,7 +103,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                         <Typography sx={{ flex: 1, fontSize: 14, fontWeight: 700 }}>
                             {formatWeekdayShort(date)}, {formatDateHuman(date)} · {selected.startTime}-{selected.endTime} · {locationName}
                         </Typography>
-                        <Button variant="contained" onClick={() => onSelect(selected)}>Далі</Button>
+                        <Button variant="contained" onClick={() => onSelect(selected)}>{bookingCopy.next}</Button>
                     </Stack>
                 </Paper>
             )}

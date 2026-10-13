@@ -10,11 +10,11 @@ namespace Stand.Server.Controllers.Public;
 [Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
 public sealed class LocationsController(IAvailabilityService availability) : ControllerBase
 {
-    /// <summary>The global, active list of duty locations (same for every date/time).</summary>
+    /// <summary>Active locations, plus locations with confirmed bookings on a requested past date.</summary>
     [HttpGet]
-    public async Task<IActionResult> Get(CancellationToken ct)
+    public async Task<IActionResult> Get(CancellationToken ct, [FromQuery] DateOnly? date = null)
     {
-        var result = await availability.GetActiveLocationsAsync(ct);
+        var result = await availability.GetActiveLocationsAsync(ct, date);
         return Ok(result);
     }
 }

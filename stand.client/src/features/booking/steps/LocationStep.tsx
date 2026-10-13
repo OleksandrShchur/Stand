@@ -5,7 +5,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { LocationDto } from '../../../api/types';
-import { formatDateFull } from '../../../utils/date';
+import { formatDateFull, todayIso } from '../../../utils/date';
 import { mockLocationAvailability } from '../mockBookingData';
 import StateBadge from '../components/StateBadge';
 import { bookingCopy } from '../bookingCopy';
@@ -19,13 +19,13 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
         setLoading(true);
         setError(null);
         publicApi
-            .getLocations()
+            .getLocations(date)
             .then(setLocations)
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити локації.'))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(load, [date]);
 
     const enriched = useMemo(() => locations
         .map((location) => ({
@@ -59,10 +59,8 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
                                 bgcolor: isFull ? 'var(--state-full-bg)' : 'background.paper',
                             }}>
                                 <CardActionArea
-                                    disabled={isFull}
-                                    aria-disabled={isFull}
                                     onClick={() => onSelect(location)}
-                                    sx={{ p: { xs: 0, sm: 0.5 }, minHeight: 72, cursor: isFull ? 'not-allowed' : 'pointer' }}
+                                    sx={{ p: { xs: 0, sm: 0.5 }, minHeight: 72 }}
                                 >
                                     <CardContent sx={{
                                         display: 'flex',
@@ -82,10 +80,10 @@ export default function LocationStep({ date, onSelect }: { date: string; onSelec
                                             )}
                                         </Box>
                                         <StateBadge
-                                            label={isFull ? bookingCopy.seatsGone : `${availability.remaining} вільних місць`}
-                                            tone={isFull ? 'full' : 'available'}
+                                            label={date < todayIso() ? bookingCopy.readOnly : isFull ? bookingCopy.seatsGone : `${availability.remaining} вільних місць`}
+                                            tone={date < todayIso() ? 'unavailable' : isFull ? 'full' : 'available'}
                                         />
-                                        {!isFull && <ChevronRightIcon color="action" sx={{ fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />}
+                                        <ChevronRightIcon color="action" sx={{ fontSize: { xs: 20, sm: 24 }, flexShrink: 0 }} />
                                     </CardContent>
                                 </CardActionArea>
                             </Card>

@@ -47,6 +47,7 @@ export interface SlotAvailabilityDto {
 
 export interface CalendarDto {
     bookableDates: string[];
+    pastDates?: string[];
     earliestBookableDate: string;
     latestBookableDate: string;
 }

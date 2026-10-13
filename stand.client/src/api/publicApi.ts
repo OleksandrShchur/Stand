@@ -18,7 +18,7 @@ export const publicApi = {
 
     getCalendar: () => api.get<CalendarDto>('/api/calendar'),
 
-    getLocations: () => api.get<LocationDto[]>('/api/locations'),
+    getLocations: (date?: string) => api.get<LocationDto[]>(date ? `/api/locations?date=${encodeURIComponent(date)}` : '/api/locations'),
 
     getSlots: (date: string, locationId: number) =>
         api.get<SlotAvailabilityDto[]>(`/api/slots?date=${encodeURIComponent(date)}&locationId=${locationId}`),

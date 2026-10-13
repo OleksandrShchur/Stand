@@ -1,10 +1,12 @@
 import { Button, Box, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import { formatDateFull, parseIsoDate } from '../../../utils/date';
+import { bookingCopy } from '../bookingCopy';
 
 export default function DayCell({
     date,
     isAvailable,
+    readOnly = false,
     isSelected,
     isToday,
     remaining,
@@ -12,13 +14,14 @@ export default function DayCell({
 }: {
     date: string;
     isAvailable: boolean;
+    readOnly?: boolean;
     isSelected?: boolean;
     isToday: boolean;
     remaining?: number;
     onSelect: (date: string) => void;
 }) {
     const disabled = !isAvailable;
-    const label = `${formatDateFull(date)}, ${isAvailable ? `є вільні місця${remaining !== undefined ? `, ${remaining} вільно` : ''}` : 'недоступно'}`;
+    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? `є зміни${remaining !== undefined ? `, ${remaining} вільно` : ''}` : 'немає змін'}`;
 
     return (
         <Button
@@ -26,6 +29,7 @@ export default function DayCell({
             tabIndex={disabled ? -1 : 0}
             aria-disabled={disabled}
             aria-label={label}
+            aria-pressed={Boolean(isSelected)}
             aria-current={isToday ? 'date' : undefined}
             onClick={() => onSelect(date)}
             sx={{
@@ -38,8 +42,8 @@ export default function DayCell({
                 borderRadius: 1,
                 border: '1px solid',
                 borderColor: isSelected ? 'var(--state-selected-bg)' : isAvailable ? 'var(--state-available-border)' : 'transparent',
-                bgcolor: isSelected ? 'var(--state-selected-bg)' : isAvailable ? 'var(--state-available-bg)' : 'transparent',
-                color: isSelected ? 'var(--state-selected-text)' : isAvailable ? 'var(--state-available-text)' : 'var(--state-unavailable-text)',
+                bgcolor: isSelected ? 'var(--state-selected-bg)' : readOnly ? 'action.hover' : isAvailable ? 'var(--state-available-bg)' : 'transparent',
+                color: isSelected ? 'var(--state-selected-text)' : readOnly ? 'text.primary' : isAvailable ? 'var(--state-available-text)' : 'var(--state-unavailable-text)',
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 '&.Mui-disabled': { color: 'var(--state-unavailable-text)' },
                 '&:focus-visible': { outline: '3px solid #7FB69A', outlineOffset: 2 },

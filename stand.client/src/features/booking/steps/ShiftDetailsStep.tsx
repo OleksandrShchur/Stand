@@ -5,7 +5,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
 import type { BookingSummaryDto, SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull } from '../../../utils/date';
+import { formatDateFull, todayIso } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 
 export default function ShiftDetailsStep({ date, locationId, locationName, locationAddress, timeSlotId, onConfirmed, onUnavailable }: {
@@ -22,6 +22,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     const [slot, setSlot] = useState<SlotAvailabilityDto | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [bookingError, setBookingError] = useState<string | null>(null);
+    const canConfirm = Boolean(onConfirmed) && date >= todayIso();
 
     const load = () => {
         setLoading(true);
@@ -36,7 +37,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     useEffect(load, [date, locationId, timeSlotId]);
 
     const confirm = () => {
-        if (!slot?.isBookable || !onConfirmed || submitting) return;
+        if (!slot?.isBookable || !onConfirmed || !canConfirm || submitting) return;
         setSubmitting(true);
         setBookingError(null);
         publicApi.book(date, locationId, timeSlotId).then(onConfirmed)
@@ -55,18 +56,18 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     if (error) return <ErrorState message={error} onRetry={load} />;
     if (!slot) return null;
 
-    const occupiedAfterConfirm = Math.min(slot.booked + (onConfirmed ? 1 : 0), slot.capacity);
+    const occupiedAfterConfirm = Math.min(slot.booked + (canConfirm ? 1 : 0), slot.capacity);
     const participants = [
         ...slot.participants.map((participant) => ({
             name: [participant.firstName, participant.lastName].filter(Boolean).join(' ') || 'Учасник',
             isCurrentUser: false,
         })),
-        ...(onConfirmed ? [{ name: bookingCopy.you, isCurrentUser: true }] : []),
+        ...(canConfirm ? [{ name: bookingCopy.you, isCurrentUser: true }] : []),
     ];
 
     return (
         <Box>
-            <Typography variant="h5" sx={{ mb: 2 }}>{bookingCopy.confirmHeading}</Typography>
+            <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
             <Card variant="outlined">
                 <CardContent>
                     <Typography variant="h5" sx={{ fontWeight: 800, mb: 1 }}>
@@ -90,16 +91,16 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                     </Stack>
 
                     <Alert severity="info" sx={{ mt: 2, borderRadius: 1 }}>
-                        Після підтвердження: {occupiedAfterConfirm} з {slot.capacity} місць зайнято, {Math.max(slot.capacity - occupiedAfterConfirm, 0)} вільно.
+                        {canConfirm ? `Після підтвердження: ${bookingCopy.occupancy(occupiedAfterConfirm, slot.capacity)}` : bookingCopy.occupancy(slot.booked, slot.capacity)}
                     </Alert>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                        {bookingCopy.cancellationNote}
+                        {canConfirm ? bookingCopy.cancellationNote : bookingCopy.readOnly}
                     </Typography>
                 </CardContent>
             </Card>
 
             {bookingError && <Box sx={{ mt: 2 }}><ErrorState message={bookingError} /></Box>}
-            {onConfirmed && (
+            {canConfirm && (
                 <Box sx={{ mt: 3 }}>
                     {slot.isBookable ? (
                         <Button variant="contained" size="large" fullWidth startIcon={<CheckIcon />} disabled={submitting} onClick={confirm}>

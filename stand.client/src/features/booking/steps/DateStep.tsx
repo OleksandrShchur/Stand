@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
-import { dateRangeIso, parseIsoDate, todayIso } from '../../../utils/date';
+import { dateRangeIso, formatDateFull, parseIsoDate, todayIso } from '../../../utils/date';
 import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
 import { mockCalendarAvailability } from '../mockBookingData';
@@ -13,10 +13,15 @@ import { bookingCopy } from '../bookingCopy';
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
 
-export default function DateStep({ selectedDate, onSelect }: { selectedDate?: string; onSelect: (date: string) => void }) {
+export default function DateStep({ selectedDate, onSelect, onContinue }: {
+    selectedDate?: string;
+    onSelect: (date: string) => void;
+    onContinue: () => void;
+}) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [bookable, setBookable] = useState<Set<string>>(new Set());
+    const [pastDates, setPastDates] = useState<Set<string>>(new Set());
     const [remainingByDate, setRemainingByDate] = useState<Map<string, number>>(new Map());
     const [month, setMonth] = useState(() => {
         const today = parseIsoDate(todayIso());
@@ -30,8 +35,9 @@ export default function DateStep({ selectedDate, onSelect }: { selectedDate?: st
         publicApi.getCalendar()
             .then((cal) => {
                 setBookable(new Set(cal.bookableDates));
+                setPastDates(new Set(cal.pastDates ?? []));
                 setToday(todayIso());
-                const firstDate = parseIsoDate(cal.earliestBookableDate);
+                const firstDate = parseIsoDate(selectedDate ?? cal.earliestBookableDate);
                 setMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
                 setRemainingByDate(new Map(mockCalendarAvailability.map((day) => [day.date, day.remaining])));
             })
@@ -54,13 +60,13 @@ export default function DateStep({ selectedDate, onSelect }: { selectedDate?: st
         setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
     };
 
-    const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()} р.`;
+    const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()}`;
 
     if (loading) return <SkeletonList rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (
-        <Box>
+        <Box sx={{ pb: selectedDate ? 12 : 0 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>{bookingCopy.selectDate}</Typography>
             <Box sx={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 44px', alignItems: 'center', mb: 2 }}>
                 <Tooltip title="Попередній місяць">
@@ -87,19 +93,43 @@ export default function DateStep({ selectedDate, onSelect }: { selectedDate?: st
                     <DayCell
                         key={date}
                         date={date}
-                        isAvailable={bookable.has(date)}
+                        isAvailable={bookable.has(date) || pastDates.has(date)}
+                        readOnly={pastDates.has(date)}
                         isSelected={selectedDate === date}
                         isToday={date === today}
-                        remaining={remainingByDate.get(date)}
+                        remaining={pastDates.has(date) ? undefined : remainingByDate.get(date)}
                         onSelect={onSelect}
                     />
                 ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}
             </Box>
             <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
                 <StateBadge label={bookingCopy.available} tone="available" />
-                <StateBadge label={bookingCopy.selected} tone="selected" />
-                <StateBadge label={bookingCopy.noShifts} tone="unavailable" />
+                <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
             </Stack>
+            {selectedDate && (bookable.has(selectedDate) || pastDates.has(selectedDate)) && (
+                <Paper elevation={6} sx={{
+                    position: 'fixed',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    zIndex: 10,
+                    borderRadius: '8px 8px 0 0',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    p: 1.5,
+                    pb: 'max(12px, env(safe-area-inset-bottom))',
+                }}>
+                    <Stack direction="row" spacing={1.5} sx={{ maxWidth: 600, mx: 'auto', alignItems: 'center' }}>
+                        <Typography sx={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700 }}>
+                            {formatDateFull(selectedDate)}
+                            {pastDates.has(selectedDate) && (
+                                <Typography component="span" sx={{ display: 'block', fontSize: 12, color: 'text.secondary' }}>{bookingCopy.readOnly}</Typography>
+                            )}
+                        </Typography>
+                        <Button variant="contained" onClick={onContinue}>{bookingCopy.next}</Button>
+                    </Stack>
+                </Paper>
+            )}
         </Box>
     );
 }
