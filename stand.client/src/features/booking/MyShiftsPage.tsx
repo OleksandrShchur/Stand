@@ -4,6 +4,7 @@ import { Alert, Box, Button, Card, CardContent, Container, Dialog, DialogActions
 import AddIcon from '@mui/icons-material/Add';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
@@ -62,6 +63,14 @@ export default function MyShiftsPage() {
             <Container maxWidth="sm" sx={{ py: 3 }}>
                 <Stack spacing={2.5}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 44 }}>
+                        <Tooltip title={bookingCopy.back}>
+                            <IconButton aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }} onClick={() => {
+                                clearWizardState();
+                                navigate('/');
+                            }}>
+                                <ArrowBackIcon />
+                            </IconButton>
+                        </Tooltip>
                         <Typography variant="h5" sx={{ whiteSpace: 'nowrap' }}>{bookingCopy.myShiftsButton}</Typography>
                         {!loading && !error && (
                             <Typography variant="body2" color="text.secondary" aria-label={bookingCopy.upcomingCount(shifts.length)}>
@@ -107,7 +116,7 @@ export default function MyShiftsPage() {
                     )}
                     {!loading && !error && filtered.map((shift) => (
                         <Card key={shift.id} variant="outlined">
-                            <CardContent>
+                            <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <Typography sx={{ fontWeight: 800 }}>{formatDateFull(shift.date)}</Typography>
                                     <Typography sx={{ fontWeight: 700 }}>{shift.startTime}-{shift.endTime}</Typography>
