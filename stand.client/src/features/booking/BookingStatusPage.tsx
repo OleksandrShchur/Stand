@@ -149,7 +149,7 @@ export default function BookingStatusPage() {
                         <Stack spacing={1}>
                             <Button variant="contained" fullWidth startIcon={<EventNoteIcon />} sx={{ minHeight: 48 }} onClick={() => {
                                 clearWizardState();
-                                navigate('/');
+                                navigate('/my-shifts');
                             }}>
                                 {bookingCopy.myShiftsButton}
                             </Button>
