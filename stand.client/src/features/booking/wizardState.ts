@@ -1,4 +1,4 @@
-export type WizardStep = 'date' | 'location' | 'time' | 'contact';
+export type WizardStep = 'date' | 'location' | 'time' | 'contact' | 'details';
 
 export interface WizardState {
     step: WizardStep;
@@ -9,11 +9,9 @@ export interface WizardState {
     timeSlotId?: number;
     startTime?: string;
     endTime?: string;
-    holdToken?: string;
-    holdExpiresAtUtc?: string;
 }
 
-const STORAGE_KEY = 'stand.booking.wizard.v1';
+const STORAGE_KEY = 'stand.booking.wizard.v2';
 
 export const initialWizardState: WizardState = { step: 'date' };
 
@@ -22,12 +20,6 @@ export function loadWizardState(): WizardState {
         const raw = sessionStorage.getItem(STORAGE_KEY);
         if (!raw) return initialWizardState;
         const parsed = JSON.parse(raw) as WizardState;
-
-        // If a previously held slot has already expired, drop back to the time step
-        // rather than resurrecting a dead hold.
-        if (parsed.holdExpiresAtUtc && new Date(parsed.holdExpiresAtUtc).getTime() <= Date.now()) {
-            return { ...parsed, step: 'time', holdToken: undefined, holdExpiresAtUtc: undefined };
-        }
 
         return parsed;
     } catch {

@@ -7,9 +7,9 @@ import WizardProgress from './components/WizardProgress';
 import DateStep from './steps/DateStep';
 import LocationStep from './steps/LocationStep';
 import TimeStep from './steps/TimeStep';
-import ContactStep from './steps/ContactStep';
+import ShiftDetailsStep from './steps/ShiftDetailsStep';
 import { clearWizardState, loadWizardState, saveWizardState, type WizardState } from './wizardState';
-import type { LocationDto } from '../../api/types';
+import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
@@ -30,21 +30,13 @@ export default function BookingWizardPage() {
             locationAddress: location.address,
         }));
 
-    const onHeld = (hold: {
-        holdToken: string;
-        expiresAtUtc: string;
-        timeSlotId: number;
-        startTime: string;
-        endTime: string;
-    }) =>
+    const selectTime = (slot: SlotAvailabilityDto) =>
         setState((s) => ({
             ...s,
-            step: 'contact',
-            timeSlotId: hold.timeSlotId,
-            startTime: hold.startTime,
-            endTime: hold.endTime,
-            holdToken: hold.holdToken,
-            holdExpiresAtUtc: hold.expiresAtUtc,
+            step: slot.isBookable ? 'contact' : 'details',
+            timeSlotId: slot.timeSlotId,
+            startTime: slot.startTime,
+            endTime: slot.endTime,
         }));
 
     const backToDate = () => setState({ step: 'date' });
@@ -67,7 +59,7 @@ export default function BookingWizardPage() {
     const handleBack = () => {
         if (state.step === 'location') backToDate();
         else if (state.step === 'time') backToLocation();
-        else if (state.step === 'contact') backToTime();
+        else if (state.step === 'contact' || state.step === 'details') backToTime();
     };
 
     return (
@@ -100,27 +92,23 @@ export default function BookingWizardPage() {
                                 date={state.date}
                                 locationId={state.locationId}
                                 locationName={state.locationName}
-                                onHeld={onHeld}
+                                onSelect={selectTime}
                             />
                         )}
 
-                        {state.step === 'contact' &&
+                        {(state.step === 'contact' || state.step === 'details') &&
                             state.date &&
                             state.locationName &&
-                            state.startTime &&
-                            state.endTime &&
-                            state.holdToken &&
-                            state.holdExpiresAtUtc && (
-                                <ContactStep
-                                    holdToken={state.holdToken}
-                                    expiresAtUtc={state.holdExpiresAtUtc}
+                            state.locationId &&
+                            state.timeSlotId && (
+                                <ShiftDetailsStep
+                                    locationId={state.locationId}
+                                    timeSlotId={state.timeSlotId}
                                     date={state.date}
                                     locationName={state.locationName}
                                     locationAddress={state.locationAddress}
-                                    startTime={state.startTime}
-                                    endTime={state.endTime}
-                                    onExpired={backToTime}
-                                    onConfirmed={onConfirmed}
+                                    onUnavailable={backToTime}
+                                    onConfirmed={state.step === 'contact' ? onConfirmed : undefined}
                                 />
                             )}
                     </Box>

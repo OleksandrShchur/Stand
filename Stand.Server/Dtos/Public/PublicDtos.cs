@@ -30,27 +30,6 @@ public sealed record CalendarDto(
     string EarliestBookableDate,
     string LatestBookableDate);
 
-public sealed record HoldRequestDto(string Date, int LocationId, int TimeSlotId);
-
-public sealed record HoldResponseDto(
-    string HoldToken,
-    string ExpiresAtUtc,
-    int SecondsRemaining,
-    string Date,
-    int LocationId,
-    string LocationName,
-    string? LocationAddress,
-    int TimeSlotId,
-    string StartTime,
-    string EndTime);
-
-public sealed record ConfirmRequestDto(
-    string HoldToken,
-    string FirstName,
-    string LastName,
-    string Phone,
-    string? Comment);
-
 public sealed record BookingSummaryDto(
     string PublicNumber,
     string CancelToken,
@@ -69,3 +48,6 @@ public sealed record BookingSummaryDto(
     string? CancelledAtUtc);
 
 public sealed record CancelRequestDto(string CancelToken);
+
+public sealed record CreateBookingRequestDto(
+    string Date, int LocationId, int TimeSlotId);

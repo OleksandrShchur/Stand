@@ -187,10 +187,12 @@ rate-limited to 5 attempts/minute per IP.
   attempts for the same date/location/time slot are serialized rather than
   racing. This was load-tested with 10 simultaneous requests against a
   capacity-3 slot: exactly 3 succeeded, 7 correctly got `SLOT_FULL`.
-- **Soft hold:** selecting a slot creates a 2-minute hold (`HoldExpiresAtUtc`)
-  before it must be confirmed with contact details; expired holds are
-  excluded from availability checks immediately and are also swept by a
-  background cleanup service.
+- **Immediate booking:** selecting an available slot opens the shift summary
+  and participant list without reserving a place or starting a timer. The final
+  confirm button checks capacity and inserts a confirmed booking using the
+  signed-in user's admin-managed name and phone. Unavailable
+  slots open a read-only final screen with the shift's confirmed participants.
+  The background cleanup service still expires holds created by older versions.
 - **Duplicate prevention:** one active booking per phone number per
   date+location+time slot, enforced both at the application layer (pre-check)
   and by a filtered unique index in SQL (`UQ_Bookings_Phone_Date_Location_TimeSlot`,
@@ -211,8 +213,7 @@ Public (no auth):
 GET  /api/calendar                  Bookable dates in the current window
 GET  /api/locations                 Active locations
 GET  /api/slots?date=&locationId=   Time slots + availability for a day/location
-POST /api/bookings/hold             Create a 2-minute soft hold
-POST /api/bookings/confirm          Attach contact info, confirm the hold
+POST /api/bookings                  Book immediately as the signed-in user
 GET  /api/bookings/{cancelToken}    Look up a booking by its cancel token
 POST /api/bookings/cancel           Cancel a booking by its cancel token
 ```
@@ -250,7 +251,7 @@ GET/POST /api/admin/users                + disable/enable
 ```
 
 Wizard state is persisted to `sessionStorage` so a page refresh mid-flow
-doesn't lose progress, and detects/handles an expired hold gracefully.
+doesn't lose the selected shift. No reservation expires while reviewing the shift.
 
 ---
 
@@ -281,7 +282,7 @@ environment via `appsettings.{Environment}.json` or environment variables
 | 3 | Flow: calendar → location → time slots (with "Вільно x/y" / "Зайнято") → contact form → confirmation + cancel link | ✅ |
 | 4 | Booking only possible on admin-enabled dates, within today…+14 days; same-day slots only if start ≥ now+1h | ✅ enforced server-side in `AvailabilityService`/`BookingService` (`MinLeadTimeMinutes`) |
 | 5 | Capacity enforced correctly under parallel/concurrent requests | ✅ `WITH (UPDLOCK, HOLDLOCK)` transaction; verified with 10 parallel requests → exactly capacity succeed |
-| 6 | Soft hold (2 min) before confirmation, with expiry handling | ✅ `HoldExpiresAtUtc`, excluded from availability, swept by `ExpiredHoldCleanupService` |
+| 6 | Immediate booking with no countdown; unavailable shifts have a read-only final screen | ✅ Capacity is checked on final confirmation |
 | 7 | UA phone validation + normalization | ✅ `PhoneNormalizer` → canonical `+380XXXXXXXXX` |
 | 8 | Duplicate booking prevention (same phone+date+location+time) | ✅ app-level pre-check + filtered unique index backstop |
 | 9 | Admin: cookie auth, sliding 12h / absolute 7d, rate-limited login | ✅ `Program.cs` cookie config + `AddRateLimiter` "login" policy |
