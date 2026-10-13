@@ -13,7 +13,7 @@ export default function WizardProgress({ current, onNavigate }: { current: Wizar
     const currentIndex = STEPS.findIndex((s) => s.key === (current === 'details' ? 'contact' : current));
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 2, pt: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 2, pt: 1, maxWidth: 600, mx: 'auto' }}>
             {STEPS.map((s, i) => {
                 const completed = i < currentIndex;
                 const active = i === currentIndex;

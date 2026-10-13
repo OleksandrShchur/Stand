@@ -33,6 +33,7 @@ import type { BookingSummaryDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
+import { pagePadding, sectionGap } from '../../layoutSpacing';
 
 export default function BookingStatusPage() {
     const { cancelToken = '' } = useParams();
@@ -99,7 +100,7 @@ export default function BookingStatusPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={{ pt: 1, pb: 3 }}>
+            <Container maxWidth="sm" sx={pagePadding}>
                 {!justBooked && (
                     <Stack direction="row" sx={{ mb: 1, minHeight: 44, alignItems: 'center' }}>
                         <Tooltip title={bookingCopy.back}>
@@ -118,7 +119,7 @@ export default function BookingStatusPage() {
                 {error && !loading && <ErrorState message={error} onRetry={load} />}
 
                 {booking && !loading && (
-                    <Stack spacing={2.5}>
+                    <Stack spacing={sectionGap}>
                         {justBooked && booking.status === 'Confirmed' && (
                             <Box sx={{ textAlign: 'center', pt: 0, pb: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />

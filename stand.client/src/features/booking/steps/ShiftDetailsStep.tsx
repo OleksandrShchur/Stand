@@ -100,7 +100,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
 
             {bookingError && <Box sx={{ mt: 2 }}><ErrorState message={bookingError} /></Box>}
             {canConfirm && (
-                <Box sx={{ mt: 3 }}>
+                <Box sx={{ mt: 2 }}>
                     {slot.isBookable ? (
                         <Button variant="contained" size="large" fullWidth startIcon={<CheckIcon />} disabled={submitting} onClick={confirm}>
                             {submitting ? bookingCopy.confirming : bookingCopy.confirmAction}

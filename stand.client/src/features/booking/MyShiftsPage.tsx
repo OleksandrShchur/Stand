@@ -19,6 +19,7 @@ import type { MyShiftDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
+import { pagePadding, sectionGap } from '../../layoutSpacing';
 
 export default function MyShiftsPage() {
     const navigate = useNavigate();
@@ -65,8 +66,8 @@ export default function MyShiftsPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={{ py: 3 }}>
-                <Stack spacing={2.5}>
+            <Container maxWidth="sm" sx={pagePadding}>
+                <Stack spacing={sectionGap}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 44 }}>
                         <Tooltip title={bookingCopy.back}>
                             <IconButton aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }} onClick={() => {

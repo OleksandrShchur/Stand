@@ -14,6 +14,7 @@ import { clearWizardState, initialWizardState, loadWizardState, saveWizardState,
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
 import { bookingCopy } from './bookingCopy';
 import { todayIso } from '../../utils/date';
+import { pagePadding } from '../../layoutSpacing';
 
 export default function BookingWizardPage() {
     const navigate = useNavigate();
@@ -110,7 +111,7 @@ export default function BookingWizardPage() {
             <BrandHeader />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
-            <Container maxWidth="sm" sx={{ py: 2.5 }}>
+            <Container maxWidth="sm" sx={pagePadding}>
                 <Stack direction="row" sx={{
                     mb: 1,
                     minHeight: 44,

@@ -6,6 +6,7 @@ import { useAdminAuth } from './AdminAuthContext';
 import { ApiError } from '../../api/client';
 import { ErrorState } from '../../components/StateMessage';
 import BrandHeader from '../../components/BrandHeader';
+import { pagePadding } from '../../layoutSpacing';
 
 export default function AdminLoginPage() {
     const { login } = useAdminAuth();
@@ -29,10 +30,10 @@ export default function AdminLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="xs" sx={{ py: 6 }}>
+            <Container maxWidth="xs" sx={pagePadding}>
                 <Card variant="outlined">
-                    <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ textAlign: 'center', mb: 2.5 }}>
+                    <CardContent>
+                        <Box sx={{ textAlign: 'center', mb: 2 }}>
                             <LockOutlinedIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 700 }}>Вхід для адміністратора</Typography>
                         </Box>

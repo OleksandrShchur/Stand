@@ -10,6 +10,7 @@ import type { MyShiftDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { getClosestShifts } from './closestShifts';
+import { pagePadding, sectionGap } from '../../layoutSpacing';
 
 export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     const navigate = useNavigate();
@@ -32,8 +33,8 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={{ py: 3 }}>
-                <Stack spacing={2.5}>
+            <Container maxWidth="sm" sx={pagePadding}>
+                <Stack spacing={sectionGap}>
                     <Card variant="outlined">
                         <CardContent>
                             <Typography variant="h5" sx={{ mb: 2 }}>{bookingCopy.myShifts}</Typography>

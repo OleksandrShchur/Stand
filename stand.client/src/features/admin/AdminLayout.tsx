@@ -27,6 +27,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState } from '../../components/StateMessage';
+import { pagePadding } from '../../layoutSpacing';
 
 const DRAWER_WIDTH = 248;
 
@@ -133,7 +134,7 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box sx={{ p: { xs: 2, md: 3 } }}>
+                <Box sx={pagePadding}>
                     <Outlet />
                 </Box>
             </Box>

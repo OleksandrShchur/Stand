@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import PhoneIphoneOutlinedIcon from '@mui/icons-material/PhoneIphoneOutlined';
 import BrandHeader from '../../components/BrandHeader';
+import { pagePadding } from '../../layoutSpacing';
 import { LoadingState } from '../../components/StateMessage';
 import { ApiError } from '../../api/client';
 import { digitsOnly, formatUaPhoneDigits, toUaPhone, uaPhoneValidationError } from '../../utils/phone';
@@ -54,10 +55,10 @@ export default function UserLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="xs" sx={{ py: 6 }}>
+            <Container maxWidth="xs" sx={pagePadding}>
                 <Card variant="outlined">
-                    <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ textAlign: 'center', mb: 2.5 }}>
+                    <CardContent>
+                        <Box sx={{ textAlign: 'center', mb: 2 }}>
                             <PhoneIphoneOutlinedIcon color="primary" sx={{ fontSize: 42, mb: 1 }} />
                             <Typography variant="h5" sx={{ fontWeight: 700 }}>Вхід за номером телефону</Typography>
                         </Box>
