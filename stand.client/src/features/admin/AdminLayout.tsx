@@ -22,6 +22,7 @@ import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined
 import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined';
 import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
+import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
 import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useAdminAuth } from './AdminAuthContext';
@@ -36,6 +37,7 @@ const NAV_ITEMS = [
     { to: '/admin/timeslots', label: 'Часові інтервали', icon: <AccessTimeOutlinedIcon /> },
     { to: '/admin/dates', label: 'Доступні дати', icon: <CalendarMonthOutlinedIcon /> },
     { to: '/admin/exceptions', label: 'Винятки за датою', icon: <EventBusyOutlinedIcon /> },
+    { to: '/admin/authorized-users', label: 'Користувачі сайту', icon: <PersonAddAltOutlinedIcon /> },
     { to: '/admin/users', label: 'Адміністратори', icon: <GroupOutlinedIcon /> },
 ];
 

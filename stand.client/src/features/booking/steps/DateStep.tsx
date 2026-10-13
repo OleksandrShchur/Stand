@@ -1,25 +1,33 @@
 import { useEffect, useState } from 'react';
-import { Box, Paper, Stack, Typography } from '@mui/material';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import { Box, Button, IconButton, Tooltip, Typography } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
-import { LoadingState, ErrorState, EmptyState } from '../../../components/StateMessage';
-import { dateRangeIso, formatDateHuman, formatWeekdayShort } from '../../../utils/date';
+import { LoadingState, ErrorState } from '../../../components/StateMessage';
+import { dateRangeIso, formatDateFull, parseIsoDate, todayIso } from '../../../utils/date';
+
+const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
 
 export default function DateStep({ onSelect }: { onSelect: (date: string) => void }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [bookable, setBookable] = useState<Set<string>>(new Set());
-    const [windowDates, setWindowDates] = useState<string[]>([]);
+    const [month, setMonth] = useState(() => {
+        const today = parseIsoDate(todayIso());
+        return new Date(today.getFullYear(), today.getMonth(), 1);
+    });
+    const [today, setToday] = useState(todayIso());
 
     const load = () => {
         setLoading(true);
         setError(null);
-        publicApi
-            .getCalendar()
+        publicApi.getCalendar()
             .then((cal) => {
                 setBookable(new Set(cal.bookableDates));
-                setWindowDates(dateRangeIso(cal.earliestBookableDate, cal.latestBookableDate));
+                setToday(cal.earliestBookableDate);
+                const firstDate = parseIsoDate(cal.earliestBookableDate);
+                setMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
             })
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.'))
             .finally(() => setLoading(false));
@@ -27,64 +35,71 @@ export default function DateStep({ onSelect }: { onSelect: (date: string) => voi
 
     useEffect(load, []);
 
+    const changeMonth = (offset: number) => {
+        setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+    };
+
+    const year = month.getFullYear();
+    const monthNumber = String(month.getMonth() + 1).padStart(2, '0');
+    const lastDay = new Date(year, month.getMonth() + 1, 0).getDate();
+    const dates = dateRangeIso(`${year}-${monthNumber}-01`, `${year}-${monthNumber}-${lastDay}`);
+    const offset = (month.getDay() + 6) % 7;
+    const cells = Array.from({ length: 42 }, (_, index) => dates[index - offset] ?? null);
+    const monthLabel = month.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' });
+
     if (loading) return <LoadingState label="Завантажуємо доступні дати…" />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (
         <Box>
-            <Typography variant="h5" sx={{ mb: 0.5 }}>Оберіть дату</Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
-                Доступні дні чергування позначені зеленим.
-            </Typography>
-
-            {bookable.size === 0 ? (
-                <EmptyState message="Наразі немає доступних днів для запису. Спробуйте пізніше." />
-            ) : (
-                <Box
-                    sx={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(76px, 1fr))',
-                        gap: 1.25,
-                    }}
-                >
-                    {windowDates.map((date) => {
-                        const isBookable = bookable.has(date);
-                        return (
-                            <Paper
-                                key={date}
-                                elevation={0}
-                                onClick={isBookable ? () => onSelect(date) : undefined}
-                                sx={{
-                                    p: 1.25,
-                                    textAlign: 'center',
-                                    cursor: isBookable ? 'pointer' : 'default',
-                                    border: '1.5px solid',
-                                    borderColor: isBookable ? 'primary.main' : 'divider',
-                                    bgcolor: isBookable ? 'primary.main' : 'background.paper',
-                                    color: isBookable ? 'common.white' : 'text.disabled',
-                                    opacity: isBookable ? 1 : 0.55,
-                                    transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                                    '&:hover': isBookable ? { transform: 'translateY(-2px)', boxShadow: 3 } : undefined,
-                                }}
-                            >
-                                <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, opacity: 0.85 }}>
-                                    {formatWeekdayShort(date)}
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                                    {formatDateHuman(date)}
-                                </Typography>
-                            </Paper>
-                        );
-                    })}
-                </Box>
-            )}
-
-            <Stack direction="row" spacing={1} sx={{ mt: 3, opacity: 0.7, alignItems: 'center' }}>
-                <EventAvailableIcon fontSize="small" color="success" />
-                <Typography variant="caption" color="text.secondary">
-                    Запис можливий на сьогодні (не раніше ніж за годину до початку) та на 14 днів наперед.
+            <Typography variant="h5" sx={{ mb: 2 }}>Оберіть дату</Typography>
+            <Box sx={{ display: 'grid', gridTemplateColumns: '40px minmax(0, 1fr) 40px', alignItems: 'center', mb: 2 }}>
+                <Tooltip title="Попередній місяць">
+                    <IconButton aria-label="Попередній місяць" onClick={() => changeMonth(-1)}>
+                        <ChevronLeftIcon />
+                    </IconButton>
+                </Tooltip>
+                <Typography component="h2" variant="h6" aria-live="polite"
+                    sx={{ textAlign: 'center', textTransform: 'capitalize', fontSize: 18 }}>
+                    {monthLabel}
                 </Typography>
-            </Stack>
+                <Tooltip title="Наступний місяць">
+                    <IconButton aria-label="Наступний місяць" onClick={() => changeMonth(1)}>
+                        <ChevronRightIcon />
+                    </IconButton>
+                </Tooltip>
+            </Box>
+            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: { xs: 0.5, sm: 1 } }}>
+                {WEEKDAYS.map((day) => (
+                    <Typography key={day} variant="caption" color="text.secondary"
+                        sx={{ textAlign: 'center', fontWeight: 600, pb: 0.75 }}>
+                        {day}
+                    </Typography>
+                ))}
+                {cells.map((date, index) => {
+                    if (!date) return <Box key={`empty-${index}`} sx={{ aspectRatio: '1' }} />;
+                    const isBookable = bookable.has(date);
+                    return (
+                        <Button key={date} variant={isBookable ? 'contained' : 'outlined'}
+                            aria-label={`${formatDateFull(date)}${isBookable ? ', доступна для запису' : ''}`}
+                            aria-current={date === today ? 'date' : undefined}
+                            onClick={() => onSelect(date)}
+                            sx={{
+                                minWidth: 0, width: '100%', aspectRatio: '1', p: 0, borderRadius: 1,
+                                fontSize: 16, fontWeight: 600,
+                                color: isBookable ? 'common.white' : 'text.primary',
+                                bgcolor: isBookable ? 'primary.main' : 'background.paper',
+                                borderColor: date === today ? 'primary.main' : 'divider',
+                                '&:hover': {
+                                    bgcolor: isBookable ? 'primary.dark' : 'action.hover',
+                                    borderColor: 'primary.main',
+                                },
+                            }}>
+                            {parseIsoDate(date).getDate()}
+                        </Button>
+                    );
+                })}
+            </Box>
         </Box>
     );
 }

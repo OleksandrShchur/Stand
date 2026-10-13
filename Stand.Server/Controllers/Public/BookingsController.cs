@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Stand.Server.Auth;
 using Stand.Server.Common;
 using Stand.Server.Dtos.Public;
 using Stand.Server.Services;
@@ -7,6 +9,7 @@ namespace Stand.Server.Controllers.Public;
 
 [ApiController]
 [Route("api/bookings")]
+[Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
 public sealed class BookingsController(IBookingService bookings) : ControllerBase
 {
     /// <summary>

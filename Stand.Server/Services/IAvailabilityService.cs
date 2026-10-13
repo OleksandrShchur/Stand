@@ -17,9 +17,9 @@ public interface IAvailabilityService
     Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct);
 
     /// <summary>
-    /// Returns the admin-enabled bookable dates, the active locations and the slot
-    /// availability for a specific date + location. Throws AppException if the date is not
-    /// bookable or the location is not found/active.
+    /// Returns shift availability and confirmed participants for any date + location.
+    /// Booking eligibility is reported separately; browsing does not require a bookable date.
+    /// Throws AppException if the location is not found/active.
     /// </summary>
     Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct);
 

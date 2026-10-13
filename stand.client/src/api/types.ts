@@ -18,6 +18,8 @@ export interface SlotAvailabilityDto {
     isBlocked: boolean;
     /** Slot starts sooner than the configured min lead time (e.g. +1 hour). */
     isTooSoon: boolean;
+    isBookable: boolean;
+    participants: { firstName: string | null; lastName: string | null }[];
 }
 
 export interface CalendarDto {
@@ -57,6 +59,11 @@ export interface BookingSummaryDto {
     cancelledAtUtc?: string | null;
 }
 
+export interface PublicUserMeDto {
+    id: number;
+    phone: string;
+}
+
 // ---- Admin DTOs (mirrors Stand.Server/Dtos/Admin/AdminDtos.cs) ----
 
 export interface AdminMeDto {
@@ -67,6 +74,16 @@ export interface AdminMeDto {
 export interface AdminUserDto {
     id: number;
     login: string;
+    isActive: boolean;
+    createdAtUtc: string;
+    lastLoginAtUtc?: string | null;
+}
+
+export interface AuthorizedUserAdminDto {
+    id: number;
+    phone: string;
+    firstName: string;
+    lastName: string;
     isActive: boolean;
     createdAtUtc: string;
     lastLoginAtUtc?: string | null;

@@ -26,6 +26,7 @@ builder.Services.AddSingleton<IKyivClock, KyivClock>();
 builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
+builder.Services.AddScoped<IPublicUserAuthService, PublicUserAuthService>();
 builder.Services.AddHostedService<ExpiredHoldCleanupService>();
 
 // ---- MVC / API ----
@@ -88,6 +89,47 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 }
             }
         };
+    })
+    .AddCookie(PublicAuthConstants.AuthenticationScheme, options =>
+    {
+        options.Cookie.Name = "stand_user";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+            ? CookieSecurePolicy.SameAsRequest
+            : CookieSecurePolicy.Always;
+        options.ExpireTimeSpan = TimeSpan.FromHours(12);
+        options.SlidingExpiration = true;
+
+        options.Events.OnRedirectToLogin = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = ctx =>
+        {
+            ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnValidatePrincipal = async ctx =>
+        {
+            var idRaw = ctx.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idRaw, out var id))
+            {
+                ctx.RejectPrincipal();
+                await ctx.HttpContext.SignOutAsync(PublicAuthConstants.AuthenticationScheme);
+                return;
+            }
+
+            var db = ctx.HttpContext.RequestServices.GetRequiredService<StandDbContext>();
+            var isActive = await db.AuthorizedUsers.AnyAsync(u => u.Id == id && u.IsActive);
+            if (!isActive)
+            {
+                ctx.RejectPrincipal();
+                await ctx.HttpContext.SignOutAsync(PublicAuthConstants.AuthenticationScheme);
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -102,6 +144,14 @@ builder.Services.AddRateLimiter(options =>
         {
             PermitLimit = 5,
             Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0,
+        }));
+    options.AddPolicy("phone-login", httpContext => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(5),
             QueueLimit = 0,
         }));
 });

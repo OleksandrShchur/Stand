@@ -24,5 +24,6 @@ public static class ErrorCodes
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
     public const string AccountDisabled = "ACCOUNT_DISABLED";
     public const string LoginTaken = "LOGIN_TAKEN";
+    public const string PhoneTaken = "PHONE_TAKEN";
     public const string Conflict = "CONFLICT";
 }
