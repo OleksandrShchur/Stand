@@ -1,4 +1,5 @@
 export const bookingCopy = {
+    home: 'На головну',
     shift: 'Зміна',
     myShifts: 'Мої найближчі зміни',
     noUpcomingShifts: 'У вас ще немає записів',

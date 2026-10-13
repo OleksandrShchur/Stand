@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Container, Fade, IconButton, Stack } from '@mui/material';
+import { Box, Button, Container, Fade, IconButton, Stack } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import BrandHeader from '../../components/BrandHeader';
 import WizardProgress from './components/WizardProgress';
 import DateStep from './steps/DateStep';
@@ -26,6 +27,13 @@ export default function BookingWizardPage() {
     const start = () => {
         setState(initialWizardState);
         setShowHome(false);
+    };
+
+    const returnHome = () => {
+        setState(initialWizardState);
+        setConflictMessage(null);
+        clearWizardState();
+        setShowHome(true);
     };
 
     const selectDate = (date: string) => {
@@ -95,16 +103,23 @@ export default function BookingWizardPage() {
 
             <Container maxWidth="sm" sx={{ py: 2.5 }}>
                 <Stack direction="row" sx={{
-                    display: { xs: canGoBack ? 'flex' : 'none', sm: 'flex' },
                     mb: 1,
                     minHeight: 44,
                     alignItems: 'center',
+                    justifyContent: 'space-between',
                 }}>
                     {canGoBack && (
                         <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
                             <ArrowBackIcon />
                         </IconButton>
                     )}
+                    <Button
+                        onClick={returnHome}
+                        startIcon={<HomeOutlinedIcon />}
+                        sx={{ ml: 'auto', minHeight: 44 }}
+                    >
+                        {bookingCopy.home}
+                    </Button>
                 </Stack>
 
                 <Fade in key={state.step} timeout={250}>
