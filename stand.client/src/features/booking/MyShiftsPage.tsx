@@ -1,7 +1,9 @@
 import ParticipantList from './components/ParticipantList';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableRow, TextField, Tooltip, Typography } from '@mui/material';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import AppDialog from '../../components/AppDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -167,27 +169,44 @@ export default function MyShiftsPage() {
                     </Button>
                 </Stack>
             </Container>
-            <Dialog open={Boolean(shiftToCancel)} onClose={() => { if (!cancelling) setShiftToCancel(null); }}>
-                <DialogTitle>{bookingCopy.cancelHeading}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>{bookingCopy.cancelPrompt}</DialogContentText>
-                    {shiftToCancel && (
-                        <Box>
-                            <Typography sx={{ mt: 1 }}>
-                                {formatDateFull(shiftToCancel.date)} · {shiftToCancel.startTime}-{shiftToCancel.endTime} · {shiftToCancel.locationName}
-                            </Typography>
-                            <ParticipantList participants={shiftToCancel.participants} />
-                        </Box>
-                    )}
-                    {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
-                </DialogContent>
-                <DialogActions>
-                    <Button disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
-                    <Button color="error" variant="contained" disabled={cancelling} onClick={cancel}>
-                        {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <AppDialog
+                open={Boolean(shiftToCancel)}
+                onClose={() => { if (!cancelling) setShiftToCancel(null); }}
+                title={bookingCopy.cancelHeading}
+                icon={<CancelOutlinedIcon color="primary" />}
+                aria-describedby="my-shifts-cancel-description"
+                actions={
+                    <>
+                        <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
+                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
+                            {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
+                        </Button>
+                    </>
+                }
+            >
+                <DialogContentText id="my-shifts-cancel-description">{bookingCopy.cancelPrompt}</DialogContentText>
+                {shiftToCancel && (
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                        <Table size="small" aria-label={bookingCopy.shiftDetails} sx={{ tableLayout: 'fixed', '& .MuiTableCell-root': { border: 0, px: 0, py: 0.5, verticalAlign: 'top' } }}>
+                            <TableBody>
+                                {[
+                                    ['Дата', formatDateFull(shiftToCancel.date)],
+                                    ['Час', `${shiftToCancel.startTime}–${shiftToCancel.endTime}`],
+                                    ['Локація', [shiftToCancel.locationName, shiftToCancel.locationAddress].filter(Boolean).join(', ')],
+                                ].map(([label, value]) => (
+                                    <TableRow key={label}>
+                                        <TableCell component="th" scope="row" sx={{ width: 76, fontWeight: 700 }}>{label}</TableCell>
+                                        <TableCell sx={{ overflowWrap: 'anywhere' }}>{value}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                        <Divider sx={{ mt: 1.5 }} />
+                        <ParticipantList participants={shiftToCancel.participants} dashed />
+                    </Box>
+                )}
+                {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
+            </AppDialog>
         </Box>
     );
 }
