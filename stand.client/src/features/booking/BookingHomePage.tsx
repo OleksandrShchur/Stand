@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -58,7 +57,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                                 </Stack>
                             )}
                             <Divider sx={{ mt: 2, mb: 1 }} />
-                            <Button fullWidth endIcon={<ArrowForwardIcon />} onClick={() => navigate('/my-shifts')}>
+                            <Button variant="outlined" fullWidth onClick={() => navigate('/my-shifts')}>
                                 {bookingCopy.seeAllShifts}{!loading && !error ? ` (${shifts.length})` : ''}
                             </Button>
                         </CardContent>
