@@ -1,7 +1,10 @@
 import ParticipantList from './components/ParticipantList';
+import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
+import AppDialog from '../../components/AppDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -9,15 +12,12 @@ import { ukUA } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
 import AddIcon from '@mui/icons-material/Add';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
-import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
@@ -144,24 +144,19 @@ export default function MyShiftsPage() {
                         <Card key={shift.id} variant="outlined">
                             <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography sx={{ fontWeight: 800 }}>{formatDateFull(shift.date)}</Typography>
-                                    <Typography sx={{ fontWeight: 700 }}>{shift.startTime}-{shift.endTime}</Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                                        {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
-                                    </Typography>
-                                    <ParticipantList participants={shift.participants} />
+                                    <ShiftDetailsTable shift={shift} />
+                                    <Divider sx={{ mt: 1.5 }} />
+                                    <ParticipantList participants={shift.participants} dashed />
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
-                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Button endIcon={<ChevronRightIcon />} onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
-                                    <Tooltip title={bookingCopy.cancelBooking}>
-                                        <IconButton aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} color="error" onClick={() => {
-                                            setCancelError(null);
-                                            setShiftToCancel(shift);
-                                        }} sx={{ minWidth: 44, minHeight: 44 }}>
-                                            <CancelOutlinedIcon />
-                                        </IconButton>
-                                    </Tooltip>
+                                <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
+                                    <Button variant="outlined" onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
+                                    <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
+                                        setCancelError(null);
+                                        setShiftToCancel(shift);
+                                    }} sx={{ minHeight: 44 }}>
+                                        {bookingCopy.cancelBooking}
+                                    </Button>
                                 </Stack>
                             </CardContent>
                         </Card>
@@ -171,27 +166,31 @@ export default function MyShiftsPage() {
                     </Button>
                 </Stack>
             </Container>
-            <Dialog open={Boolean(shiftToCancel)} onClose={() => { if (!cancelling) setShiftToCancel(null); }}>
-                <DialogTitle>{bookingCopy.cancelHeading}</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>{bookingCopy.cancelPrompt}</DialogContentText>
-                    {shiftToCancel && (
-                        <Box>
-                            <Typography sx={{ mt: 1 }}>
-                                {formatDateFull(shiftToCancel.date)} · {shiftToCancel.startTime}-{shiftToCancel.endTime} · {shiftToCancel.locationName}
-                            </Typography>
-                            <ParticipantList participants={shiftToCancel.participants} />
-                        </Box>
-                    )}
-                    {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
-                </DialogContent>
-                <DialogActions>
-                    <Button disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
-                    <Button color="error" variant="contained" disabled={cancelling} onClick={cancel}>
-                        {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <AppDialog
+                open={Boolean(shiftToCancel)}
+                onClose={() => { if (!cancelling) setShiftToCancel(null); }}
+                title={bookingCopy.cancelHeading}
+                icon={<CancelOutlinedIcon color="primary" />}
+                aria-describedby="my-shifts-cancel-description"
+                actions={
+                    <>
+                        <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
+                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
+                            {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
+                        </Button>
+                    </>
+                }
+            >
+                <DialogContentText id="my-shifts-cancel-description">{bookingCopy.cancelPrompt}</DialogContentText>
+                {shiftToCancel && (
+                    <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                        <ShiftDetailsTable shift={shiftToCancel} />
+                        <Divider sx={{ mt: 1.5 }} />
+                        <ParticipantList participants={shiftToCancel.participants} dashed />
+                    </Box>
+                )}
+                {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
+            </AppDialog>
         </Box>
     );
 }

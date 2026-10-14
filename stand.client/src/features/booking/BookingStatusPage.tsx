@@ -9,11 +9,7 @@ import {
     CardContent,
     Chip,
     Container,
-    Dialog,
-    DialogActions,
-    DialogContent,
     DialogContentText,
-    DialogTitle,
     IconButton,
     Stack,
     Tooltip,
@@ -25,6 +21,7 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
+import AppDialog from '../../components/AppDialog';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import { ApiError } from '../../api/client';
@@ -157,20 +154,25 @@ export default function BookingStatusPage() {
                 )}
             </Container>
 
-            <Dialog open={confirmOpen} onClose={() => { if (!cancelling) setConfirmOpen(false); }}>
-                <DialogTitle>Скасувати запис?</DialogTitle>
-                <DialogContent>
-                    <DialogContentText>
-                        Ви впевнені, що хочете скасувати цей запис на чергування? Цю дію неможливо відмінити.
-                    </DialogContentText>
-                </DialogContent>
-                <DialogActions>
-                    <Button disabled={cancelling} onClick={() => setConfirmOpen(false)}>Ні, залишити</Button>
-                    <Button color="error" variant="contained" disabled={cancelling} onClick={handleCancel}>
-                        {cancelling ? 'Скасовуємо…' : 'Так, скасувати'}
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <AppDialog
+                open={confirmOpen}
+                onClose={() => { if (!cancelling) setConfirmOpen(false); }}
+                title={bookingCopy.cancelHeading}
+                icon={<CancelOutlinedIcon color="primary" />}
+                aria-describedby="booking-cancel-description"
+                actions={
+                    <>
+                        <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setConfirmOpen(false)}>{bookingCopy.keepBooking}</Button>
+                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={handleCancel}>
+                            {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
+                        </Button>
+                    </>
+                }
+            >
+                <DialogContentText id="booking-cancel-description">
+                    Ви впевнені, що хочете скасувати цей запис на чергування? Цю дію неможливо відмінити.
+                </DialogContentText>
+            </AppDialog>
 
         </Box>
     );
