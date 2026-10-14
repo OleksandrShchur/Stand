@@ -1,6 +1,7 @@
 import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
-import { useEffect, useState } from 'react';
+import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
@@ -31,7 +32,23 @@ export default function MyShiftsPage() {
     const [cancelling, setCancelling] = useState(false);
     const [cancelError, setCancelError] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState('');
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [datePickerView, setDatePickerView] = useState<'year' | 'month' | 'day'>('day');
+    const [dateSelectionPending, setDateSelectionPending] = useState(false);
+    const dateCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [locationFilter, setLocationFilter] = useState('');
+    const dateToolbarProps = { hidden: false, selectionPending: dateSelectionPending };
+
+    useEffect(() => () => {
+        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+    }, []);
+
+    const closeDatePicker = () => {
+        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+        dateCloseTimer.current = null;
+        setDateSelectionPending(false);
+        setDatePickerOpen(false);
+    };
 
     const load = () => {
         setLoading(true);
@@ -48,6 +65,7 @@ export default function MyShiftsPage() {
         (!dateFilter || shift.date === dateFilter) &&
         (!locationFilter || shift.locationName === locationFilter));
     const locations = [...new Set(shifts.map((shift) => shift.locationName))].sort((a, b) => a.localeCompare(b, 'uk'));
+    const shiftDates = new Set(shifts.map((shift) => shift.date));
 
     const cancel = () => {
         if (!shiftToCancel || cancelling) return;
@@ -109,9 +127,32 @@ export default function MyShiftsPage() {
                                 <DatePicker
                                     label={bookingCopy.dateFilter}
                                     format="DD.MM.YYYY"
+                                    closeOnSelect={false}
+                                    readOnly={dateSelectionPending}
+                                    open={datePickerOpen}
+                                    onOpen={() => setDatePickerOpen(true)}
+                                    onClose={() => { if (!dateSelectionPending) closeDatePicker(); }}
+                                    view={datePickerView}
+                                    onViewChange={(view) => {
+                                        if (dateSelectionPending) return;
+                                        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+                                        dateCloseTimer.current = null;
+                                        setDateSelectionPending(false);
+                                        setDatePickerView(view);
+                                    }}
+                                    slots={{ toolbar: ClosableDatePickerToolbar }}
                                     value={dateFilter ? dayjs(dateFilter) : null}
                                     onChange={(value, context) => {
-                                        if (context.validationError === null) setDateFilter(value?.format('YYYY-MM-DD') ?? '');
+                                        if (dateSelectionPending) return;
+                                        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+                                        dateCloseTimer.current = null;
+                                        setDateSelectionPending(false);
+                                        if (context.validationError !== null) return;
+                                        setDateFilter(value?.format('YYYY-MM-DD') ?? '');
+                                        if (value && datePickerOpen && datePickerView === 'day' && context.source === 'view') {
+                                            setDateSelectionPending(true);
+                                            dateCloseTimer.current = setTimeout(closeDatePicker, 2000);
+                                        }
                                     }}
                                     localeText={{
                                         fieldDayPlaceholder: () => 'dd',
@@ -120,15 +161,38 @@ export default function MyShiftsPage() {
                                         clearButtonLabel: bookingCopy.clearDateFilter,
                                     }}
                                     slotProps={{
-                                        textField: { fullWidth: true, size: 'small', sx: { minWidth: 0 } },
+                                        toolbar: dateToolbarProps,
+                                        textField: {
+                                            fullWidth: true,
+                                            size: 'small',
+                                            sx: { minWidth: 0, cursor: 'pointer' },
+                                            onClick: (event) => {
+                                                if (dateSelectionPending) return;
+                                                if (event.target instanceof Element && event.target.closest('button')) return;
+                                                setDatePickerOpen(true);
+                                            },
+                                        },
                                         field: { clearable: true },
                                         openPickerButton: { sx: { minWidth: 44, minHeight: 44 } },
                                         clearButton: { sx: { minWidth: 44, minHeight: 44 } },
-                                        actionBar: { actions: ['clear', 'cancel', 'accept'] },
+                                        actionBar: { actions: [] },
+                                        day: ({ day }) => {
+                                            const hasShift = shiftDates.has(day.format('YYYY-MM-DD'));
+                                            return hasShift ? {
+                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші зміни`,
+                                                sx: {
+                                                    '&:not(.Mui-selected):not(.Mui-disabled)': {
+                                                        bgcolor: 'var(--state-available-bg)',
+                                                        color: 'var(--state-available-text)',
+                                                        '&:hover': { bgcolor: 'divider' },
+                                                    },
+                                                },
+                                            } : {};
+                                        },
                                     }}
                                 />
                             </LocalizationProvider>
-                            <TextField select fullWidth size="small" label={bookingCopy.locationFilter} value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
+                            <TextField select fullWidth size="small" label={bookingCopy.locationFilter} value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} sx={{ minWidth: 0 }}>
                                 <MenuItem value="">{bookingCopy.allLocations}</MenuItem>
                                 {locations.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                             </TextField>
@@ -141,7 +205,7 @@ export default function MyShiftsPage() {
                         </Box>
                     )}
                     {!loading && !error && filtered.map((shift) => (
-                        <Card key={shift.id} variant="outlined">
+                        <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
                             <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <ShiftDetailsTable shift={shift} />

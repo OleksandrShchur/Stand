@@ -1,6 +1,6 @@
 # UX update: shift booking flow
 
-- Added a home landing screen with "Мої найближчі зміни", empty state, cancel affordance, and a primary "Записатись на зміну" entry point.
+- Added a home landing screen with "Мої найближчі записів", empty state, cancel affordance, and a primary "Записатись на стенд" entry point.
 - Added shared booking state tokens and reusable `StateBadge`, `DayCell`, and `SlotCard` components for available, selected, unavailable, full, mine, and today states.
 - Redesigned the calendar with distinct available/selected/unavailable states, today marker, capacity micro-labels, legend, larger touch targets, and day aria labels.
 - Redesigned location cards to show availability, keep full locations visible but disabled, sort by availability, and show a last-used hint from typed mock data.
