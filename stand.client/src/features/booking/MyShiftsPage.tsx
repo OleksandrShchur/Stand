@@ -162,7 +162,16 @@ export default function MyShiftsPage() {
                                     }}
                                     slotProps={{
                                         toolbar: dateToolbarProps,
-                                        textField: { fullWidth: true, size: 'small', sx: { minWidth: 0 } },
+                                        textField: {
+                                            fullWidth: true,
+                                            size: 'small',
+                                            sx: { minWidth: 0, cursor: 'pointer' },
+                                            onClick: (event) => {
+                                                if (dateSelectionPending) return;
+                                                if (event.target instanceof Element && event.target.closest('button')) return;
+                                                setDatePickerOpen(true);
+                                            },
+                                        },
                                         field: { clearable: true },
                                         openPickerButton: { sx: { minWidth: 44, minHeight: 44 } },
                                         clearButton: { sx: { minWidth: 44, minHeight: 44 } },
@@ -183,7 +192,7 @@ export default function MyShiftsPage() {
                                     }}
                                 />
                             </LocalizationProvider>
-                            <TextField select fullWidth size="small" label={bookingCopy.locationFilter} value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)}>
+                            <TextField select fullWidth size="small" label={bookingCopy.locationFilter} value={locationFilter} onChange={(event) => setLocationFilter(event.target.value)} sx={{ minWidth: 0 }}>
                                 <MenuItem value="">{bookingCopy.allLocations}</MenuItem>
                                 {locations.map((name) => <MenuItem key={name} value={name}>{name}</MenuItem>)}
                             </TextField>
