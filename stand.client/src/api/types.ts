@@ -20,6 +20,11 @@ export interface LocationAvailabilityDto {
     isLastUsed?: boolean;
 }
 
+export interface ShiftParticipantDto {
+    firstName: string | null;
+    lastName: string | null;
+}
+
 export interface MyShiftDto {
     id: number;
     date: string;
@@ -28,6 +33,7 @@ export interface MyShiftDto {
     startTime: string;
     endTime: string;
     cancelToken: string;
+    participants: ShiftParticipantDto[];
 }
 
 export interface SlotAvailabilityDto {
@@ -42,7 +48,7 @@ export interface SlotAvailabilityDto {
     /** Slot starts sooner than the configured min lead time (e.g. +1 hour). */
     isTooSoon: boolean;
     isBookable: boolean;
-    participants: { firstName: string | null; lastName: string | null }[];
+    participants: ShiftParticipantDto[];
 }
 
 export interface CalendarDto {
@@ -55,6 +61,7 @@ export interface CalendarDto {
 export interface BookingSummaryDto {
     publicNumber: string;
     cancelToken: string;
+    participants: ShiftParticipantDto[];
     status: 'Held' | 'Confirmed' | 'Cancelled';
     date: string;
     locationName: string;

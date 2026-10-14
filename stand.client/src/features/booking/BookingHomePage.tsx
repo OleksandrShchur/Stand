@@ -1,3 +1,4 @@
+import ParticipantList from './components/ParticipantList';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
@@ -53,6 +54,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                                                 <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
                                                     {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
                                                 </Typography>
+                                                <ParticipantList participants={shift.participants} />
                                             </Box>
                                         );
                                     })}

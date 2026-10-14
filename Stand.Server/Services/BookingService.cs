@@ -47,6 +47,11 @@ public sealed class BookingService(
                 b.TimeSlot.StartTime,
                 b.TimeSlot.EndTime,
                 b.CancelToken,
+                Participants = db.Bookings
+                    .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
+                        other.TimeSlotId == b.TimeSlotId && other.Status == "Confirmed" && other.Phone != phone)
+                    .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+                    .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName)).ToList(),
             })
             .ToListAsync(ct);
 
@@ -57,7 +62,8 @@ public sealed class BookingService(
             b.LocationAddress,
             b.StartTime.ToString("HH:mm"),
             b.EndTime.ToString("HH:mm"),
-            b.CancelToken.ToString())).ToList();
+            b.CancelToken.ToString(),
+            b.Participants)).ToList();
     }
 
     public async Task<BookingSummaryDto> BookAsync(
@@ -148,7 +154,7 @@ public sealed class BookingService(
         }
         await tx.CommitAsync(ct);
 
-        return ToSummary(booking);
+        return await ToSummaryAsync(booking, ct);
     }
 
     public async Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct)
@@ -159,7 +165,7 @@ public sealed class BookingService(
             .FirstOrDefaultAsync(b => b.CancelToken == cancelToken, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
-        return ToSummary(booking);
+        return await ToSummaryAsync(booking, ct);
     }
 
     public async Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct)
@@ -179,7 +185,7 @@ public sealed class BookingService(
         booking.CancelledAtUtc = clock.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return ToSummary(booking);
+        return await ToSummaryAsync(booking, ct);
     }
 
     private async Task<int> CountActiveWithLockAsync(DateOnly date, int locationId, int timeSlotId, DateTime now, CancellationToken ct)
@@ -206,20 +212,32 @@ public sealed class BookingService(
         ex.InnerException is SqlException sqlEx &&
         (sqlEx.Number == UniqueConstraintViolationSqlError || sqlEx.Number == UniqueIndexViolationSqlError);
 
-    private static BookingSummaryDto ToSummary(Booking b) => new(
-        b.PublicNumber,
-        b.CancelToken.ToString(),
-        b.Status,
-        b.Date.ToString("yyyy-MM-dd"),
-        b.Location.Name,
-        b.Location.Address,
-        b.TimeSlot.StartTime.ToString("HH:mm"),
-        b.TimeSlot.EndTime.ToString("HH:mm"),
-        b.FirstName,
-        b.LastName,
-        b.Phone,
-        b.Comment,
-        b.CreatedAtUtc.ToString("O"),
-        b.ConfirmedAtUtc?.ToString("O"),
-        b.CancelledAtUtc?.ToString("O"));
+    private async Task<BookingSummaryDto> ToSummaryAsync(Booking b, CancellationToken ct)
+    {
+        var participants = await db.Bookings.AsNoTracking()
+            .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
+                other.TimeSlotId == b.TimeSlotId && other.Status == "Confirmed" &&
+                other.Id != b.Id && (b.Phone == null || other.Phone != b.Phone))
+            .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+            .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName))
+            .ToListAsync(ct);
+
+        return new(
+            b.PublicNumber,
+            b.CancelToken.ToString(),
+            b.Status,
+            b.Date.ToString("yyyy-MM-dd"),
+            b.Location.Name,
+            b.Location.Address,
+            b.TimeSlot.StartTime.ToString("HH:mm"),
+            b.TimeSlot.EndTime.ToString("HH:mm"),
+            b.FirstName,
+            b.LastName,
+            b.Phone,
+            b.Comment,
+            b.CreatedAtUtc.ToString("O"),
+            b.ConfirmedAtUtc?.ToString("O"),
+            b.CancelledAtUtc?.ToString("O"),
+            participants);
+    }
 }

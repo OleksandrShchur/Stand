@@ -1,3 +1,4 @@
+import ParticipantList from './ParticipantList';
 import { Box, ButtonBase, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import BlockIcon from '@mui/icons-material/Block';
@@ -5,10 +6,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { SlotAvailabilityDto } from '../../../api/types';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 import StateBadge from './StateBadge';
-
-function participantName(participant: { firstName: string | null; lastName: string | null }, fallback = bookingCopy.participant) {
-    return [participant.firstName, participant.lastName].filter(Boolean).join(' ') || fallback;
-}
 
 export default function SlotCard({
     slot,
@@ -64,28 +61,7 @@ export default function SlotCard({
                             {badgeLabel && <StateBadge label={badgeLabel} tone={tone} />}
                             {!unavailable && <ChevronRightIcon sx={{ flexShrink: 0 }} />}
                         </Stack>
-                        {showParticipantNames && (
-                            <Box sx={{ mt: 1 }}>
-                                {slot.participants.length === 0 ? (
-                                    <Typography variant="body2" sx={{ color: selected ? 'rgba(255,255,255,0.82)' : 'text.secondary' }}>{bookingCopy.noParticipants}</Typography>
-                                ) : (
-                                    <Box component="ul" sx={{ m: 0, p: 0, listStyle: 'none' }}>
-                                        {slot.participants.map((participant, index) => {
-                                            const name = participantName(participant);
-                                            return (
-                                                <Typography component="li" variant="body2" key={`${name}-${index}`} sx={{
-                                                    py: 0.25,
-                                                    overflowWrap: 'anywhere',
-                                                    color: selected ? 'rgba(255,255,255,0.82)' : 'text.secondary',
-                                                }}>
-                                                    {name}
-                                                </Typography>
-                                            );
-                                        })}
-                                    </Box>
-                                )}
-                            </Box>
-                        )}
+                        {showParticipantNames && <ParticipantList participants={slot.participants} selected={selected} />}
                     </Box>
                 </Stack>
             </Box>

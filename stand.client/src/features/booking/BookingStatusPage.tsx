@@ -1,3 +1,4 @@
+import ParticipantList from './components/ParticipantList';
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -122,6 +123,7 @@ export default function BookingStatusPage() {
                                     <Row label="Локація" value={booking.locationName} />
                                     {booking.locationAddress && <Row label="Адреса" value={booking.locationAddress} />}
                                 </Stack>
+                                <ParticipantList participants={booking.participants} />
                             </CardContent>
                         </Card>
 

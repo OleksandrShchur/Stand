@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Stand.Server.Auth;
@@ -20,7 +21,10 @@ public sealed class SlotsController(IAvailabilityService availability) : Control
             throw new ValidationAppException("Некоректна дата.");
         }
 
-        var result = await availability.GetSlotsAsync(parsedDate, locationId, ct);
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+
+        var result = await availability.GetSlotsAsync(parsedDate, locationId, ct, userId);
         return Ok(result);
     }
 }
