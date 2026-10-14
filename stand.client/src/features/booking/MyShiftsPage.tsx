@@ -141,7 +141,7 @@ export default function MyShiftsPage() {
                         </Box>
                     )}
                     {!loading && !error && filtered.map((shift) => (
-                        <Card key={shift.id} variant="outlined">
+                        <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
                             <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <ShiftDetailsTable shift={shift} />
