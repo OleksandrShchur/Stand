@@ -9,7 +9,6 @@ import { ukUA } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
 import AddIcon from '@mui/icons-material/Add';
-import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -152,16 +151,14 @@ export default function MyShiftsPage() {
                                     <ParticipantList participants={shift.participants} />
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
-                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Button endIcon={<ChevronRightIcon />} onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
-                                    <Tooltip title={bookingCopy.cancelBooking}>
-                                        <IconButton aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} color="error" onClick={() => {
-                                            setCancelError(null);
-                                            setShiftToCancel(shift);
-                                        }} sx={{ minWidth: 44, minHeight: 44 }}>
-                                            <CancelOutlinedIcon />
-                                        </IconButton>
-                                    </Tooltip>
+                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                                    <Button variant="outlined" endIcon={<ChevronRightIcon />} onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
+                                    <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
+                                        setCancelError(null);
+                                        setShiftToCancel(shift);
+                                    }} sx={{ minHeight: 44 }}>
+                                        {bookingCopy.cancelBooking}
+                                    </Button>
                                 </Stack>
                             </CardContent>
                         </Card>
