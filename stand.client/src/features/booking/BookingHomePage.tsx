@@ -1,4 +1,5 @@
 import ParticipantList from './components/ParticipantList';
+import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
@@ -8,7 +9,6 @@ import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
-import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { getClosestShifts } from './closestShifts';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
@@ -45,16 +45,13 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                                 <Typography color="text.secondary" sx={{ py: 2 }}>{bookingCopy.noUpcomingShifts}</Typography>
                             )}
                             {!loading && !error && (
-                                <Stack spacing={2} divider={<Divider />}>
+                                <Stack spacing={2}>
                                     {preview.map((shift) => {
                                         return (
-                                            <Box key={shift.id}>
-                                                <Typography sx={{ fontWeight: 800 }}>{formatDateFull(shift.date)}</Typography>
-                                                <Typography sx={{ fontWeight: 700 }}>{shift.startTime}-{shift.endTime}</Typography>
-                                                <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                                                    {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
-                                                </Typography>
-                                                <ParticipantList participants={shift.participants} />
+                                            <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
+                                                <ShiftDetailsTable shift={shift} />
+                                                <Divider sx={{ mt: 1.5 }} />
+                                                <ParticipantList participants={shift.participants} dashed />
                                             </Box>
                                         );
                                     })}
