@@ -1,7 +1,7 @@
 import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
@@ -32,7 +32,23 @@ export default function MyShiftsPage() {
     const [cancelling, setCancelling] = useState(false);
     const [cancelError, setCancelError] = useState<string | null>(null);
     const [dateFilter, setDateFilter] = useState('');
+    const [datePickerOpen, setDatePickerOpen] = useState(false);
+    const [datePickerView, setDatePickerView] = useState<'year' | 'month' | 'day'>('day');
+    const [dateSelectionPending, setDateSelectionPending] = useState(false);
+    const dateCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [locationFilter, setLocationFilter] = useState('');
+    const dateToolbarProps = { hidden: false, selectionPending: dateSelectionPending };
+
+    useEffect(() => () => {
+        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+    }, []);
+
+    const closeDatePicker = () => {
+        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+        dateCloseTimer.current = null;
+        setDateSelectionPending(false);
+        setDatePickerOpen(false);
+    };
 
     const load = () => {
         setLoading(true);
@@ -111,11 +127,32 @@ export default function MyShiftsPage() {
                                 <DatePicker
                                     label={bookingCopy.dateFilter}
                                     format="DD.MM.YYYY"
-                                    closeOnSelect
+                                    closeOnSelect={false}
+                                    readOnly={dateSelectionPending}
+                                    open={datePickerOpen}
+                                    onOpen={() => setDatePickerOpen(true)}
+                                    onClose={() => { if (!dateSelectionPending) closeDatePicker(); }}
+                                    view={datePickerView}
+                                    onViewChange={(view) => {
+                                        if (dateSelectionPending) return;
+                                        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+                                        dateCloseTimer.current = null;
+                                        setDateSelectionPending(false);
+                                        setDatePickerView(view);
+                                    }}
                                     slots={{ toolbar: ClosableDatePickerToolbar }}
                                     value={dateFilter ? dayjs(dateFilter) : null}
                                     onChange={(value, context) => {
-                                        if (context.validationError === null) setDateFilter(value?.format('YYYY-MM-DD') ?? '');
+                                        if (dateSelectionPending) return;
+                                        if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
+                                        dateCloseTimer.current = null;
+                                        setDateSelectionPending(false);
+                                        if (context.validationError !== null) return;
+                                        setDateFilter(value?.format('YYYY-MM-DD') ?? '');
+                                        if (value && datePickerOpen && datePickerView === 'day' && context.source === 'view') {
+                                            setDateSelectionPending(true);
+                                            dateCloseTimer.current = setTimeout(closeDatePicker, 2000);
+                                        }
                                     }}
                                     localeText={{
                                         fieldDayPlaceholder: () => 'dd',
@@ -124,6 +161,7 @@ export default function MyShiftsPage() {
                                         clearButtonLabel: bookingCopy.clearDateFilter,
                                     }}
                                     slotProps={{
+                                        toolbar: dateToolbarProps,
                                         textField: { fullWidth: true, size: 'small', sx: { minWidth: 0 } },
                                         field: { clearable: true },
                                         openPickerButton: { sx: { minWidth: 44, minHeight: 44 } },
