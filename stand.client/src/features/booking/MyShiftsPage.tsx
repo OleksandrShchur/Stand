@@ -1,5 +1,6 @@
 import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
+import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
@@ -48,6 +49,7 @@ export default function MyShiftsPage() {
         (!dateFilter || shift.date === dateFilter) &&
         (!locationFilter || shift.locationName === locationFilter));
     const locations = [...new Set(shifts.map((shift) => shift.locationName))].sort((a, b) => a.localeCompare(b, 'uk'));
+    const shiftDates = new Set(shifts.map((shift) => shift.date));
 
     const cancel = () => {
         if (!shiftToCancel || cancelling) return;
@@ -109,6 +111,8 @@ export default function MyShiftsPage() {
                                 <DatePicker
                                     label={bookingCopy.dateFilter}
                                     format="DD.MM.YYYY"
+                                    closeOnSelect
+                                    slots={{ toolbar: ClosableDatePickerToolbar }}
                                     value={dateFilter ? dayjs(dateFilter) : null}
                                     onChange={(value, context) => {
                                         if (context.validationError === null) setDateFilter(value?.format('YYYY-MM-DD') ?? '');
@@ -124,7 +128,20 @@ export default function MyShiftsPage() {
                                         field: { clearable: true },
                                         openPickerButton: { sx: { minWidth: 44, minHeight: 44 } },
                                         clearButton: { sx: { minWidth: 44, minHeight: 44 } },
-                                        actionBar: { actions: ['clear', 'cancel', 'accept'] },
+                                        actionBar: { actions: [] },
+                                        day: ({ day }) => {
+                                            const hasShift = shiftDates.has(day.format('YYYY-MM-DD'));
+                                            return hasShift ? {
+                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші зміни`,
+                                                sx: {
+                                                    '&:not(.Mui-selected):not(.Mui-disabled)': {
+                                                        bgcolor: 'var(--state-available-bg)',
+                                                        color: 'var(--state-available-text)',
+                                                        '&:hover': { bgcolor: 'divider' },
+                                                    },
+                                                },
+                                            } : {};
+                                        },
                                     }}
                                 />
                             </LocalizationProvider>
