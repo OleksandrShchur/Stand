@@ -46,7 +46,8 @@ public sealed record BookingSummaryDto(
     string? Comment,
     string CreatedAtUtc,
     string? ConfirmedAtUtc,
-    string? CancelledAtUtc);
+    string? CancelledAtUtc,
+    List<ShiftParticipantDto> Participants);
 
 public sealed record CancelRequestDto(string CancelToken);
 
@@ -60,4 +61,5 @@ public sealed record MyShiftDto(
     string? LocationAddress,
     string StartTime,
     string EndTime,
-    string CancelToken);
+    string CancelToken,
+    List<ShiftParticipantDto> Participants);

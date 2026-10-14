@@ -81,7 +81,7 @@ public sealed class AvailabilityService(
         }
     }
 
-    public async Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct)
+    public async Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct, int? authorizedUserId = null)
     {
         var (min, max) = GetBookableWindow();
         var isDateBookable = date >= min && date <= max &&
@@ -111,8 +111,12 @@ public sealed class AvailabilityService(
         var blockedSet = blockedTimeSlotIds.ToHashSet();
 
         var now = clock.UtcNow;
+        var currentPhone = authorizedUserId is null ? null : PhoneNormalizer.TryNormalize(
+            await db.AuthorizedUsers.Where(u => u.Id == authorizedUserId)
+                .Select(u => u.Phone).FirstOrDefaultAsync(ct) ?? "");
         var participants = await db.Bookings
-            .Where(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed")
+            .Where(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed" &&
+                (currentPhone == null || b.Phone != currentPhone))
             .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
             .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName })
             .ToListAsync(ct);

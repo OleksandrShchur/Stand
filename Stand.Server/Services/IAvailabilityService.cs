@@ -22,7 +22,7 @@ public interface IAvailabilityService
     /// Inactive locations remain viewable for past dates with confirmed bookings.
     /// Throws AppException if the location is not found or is unavailable for browsing.
     /// </summary>
-    Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct);
+    Task<List<SlotAvailabilityDto>> GetSlotsAsync(DateOnly date, int locationId, CancellationToken ct, int? authorizedUserId = null);
 
     /// <summary>Throws if the date is outside the bookable window or not admin-enabled.</summary>
     Task EnsureDateBookableAsync(DateOnly date, CancellationToken ct);

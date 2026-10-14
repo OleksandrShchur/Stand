@@ -1,3 +1,4 @@
+import ParticipantList from './components/ParticipantList';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
@@ -148,6 +149,7 @@ export default function MyShiftsPage() {
                                     <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
                                         {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
                                     </Typography>
+                                    <ParticipantList participants={shift.participants} />
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
                                 <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -174,9 +176,12 @@ export default function MyShiftsPage() {
                 <DialogContent>
                     <DialogContentText>{bookingCopy.cancelPrompt}</DialogContentText>
                     {shiftToCancel && (
-                        <Typography sx={{ mt: 1 }}>
-                            {formatDateFull(shiftToCancel.date)} · {shiftToCancel.startTime}-{shiftToCancel.endTime} · {shiftToCancel.locationName}
-                        </Typography>
+                        <Box>
+                            <Typography sx={{ mt: 1 }}>
+                                {formatDateFull(shiftToCancel.date)} · {shiftToCancel.startTime}-{shiftToCancel.endTime} · {shiftToCancel.locationName}
+                            </Typography>
+                            <ParticipantList participants={shiftToCancel.participants} />
+                        </Box>
                     )}
                     {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
                 </DialogContent>

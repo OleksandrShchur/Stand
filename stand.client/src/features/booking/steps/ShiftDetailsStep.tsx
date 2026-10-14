@@ -1,5 +1,6 @@
+import ParticipantList from '../components/ParticipantList';
 import { useEffect, useState } from 'react';
-import { Avatar, Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
@@ -56,14 +57,6 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     if (error) return <ErrorState message={error} onRetry={load} />;
     if (!slot) return null;
 
-    const participants = [
-        ...slot.participants.map((participant) => ({
-            name: [participant.firstName, participant.lastName].filter(Boolean).join(' ') || 'Учасник',
-            isCurrentUser: false,
-        })),
-        ...(canConfirm ? [{ name: bookingCopy.you, isCurrentUser: true }] : []),
-    ];
-
     return (
         <Box>
             <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
@@ -78,19 +71,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                     <Typography sx={{ fontWeight: 800, overflowWrap: 'anywhere' }}>{locationName}</Typography>
                     {locationAddress && <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{locationAddress}</Typography>}
 
-                    <Typography variant="subtitle2" sx={{ mb: 1, mt: 2 }}>{bookingCopy.participants}</Typography>
-                    <Stack spacing={1}>
-                        {participants.map((participant, index) => (
-                            <Stack key={`${participant.name}-${index}`} direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                                <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: participant.isCurrentUser ? 'primary.main' : 'var(--state-available-bg)', color: participant.isCurrentUser ? 'common.white' : 'primary.dark' }}>
-                                    {participant.isCurrentUser ? <CheckIcon sx={{ fontSize: 16 }} /> : participant.name[0]?.toUpperCase()}
-                                </Avatar>
-                                <Typography variant="body2" sx={{ fontWeight: participant.isCurrentUser ? 800 : 500 }}>
-                                    {participant.name}
-                                </Typography>
-                            </Stack>
-                        ))}
-                    </Stack>
+                    <ParticipantList participants={slot.participants} />
 
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
                         {canConfirm ? bookingCopy.cancellationNote : bookingCopy.readOnly}
