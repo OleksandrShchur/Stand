@@ -1,7 +1,8 @@
 import ParticipantList from './components/ParticipantList';
+import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, Table, TableBody, TableCell, TableRow, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import AppDialog from '../../components/AppDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -17,7 +18,6 @@ import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
-import { formatDateFull } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
@@ -144,12 +144,9 @@ export default function MyShiftsPage() {
                         <Card key={shift.id} variant="outlined">
                             <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <Typography sx={{ fontWeight: 800 }}>{formatDateFull(shift.date)}</Typography>
-                                    <Typography sx={{ fontWeight: 700 }}>{shift.startTime}-{shift.endTime}</Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
-                                        {shift.locationName}{shift.locationAddress ? `, ${shift.locationAddress}` : ''}
-                                    </Typography>
-                                    <ParticipantList participants={shift.participants} />
+                                    <ShiftDetailsTable shift={shift} />
+                                    <Divider sx={{ mt: 1.5 }} />
+                                    <ParticipantList participants={shift.participants} dashed />
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
                                 <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
@@ -187,20 +184,7 @@ export default function MyShiftsPage() {
                 <DialogContentText id="my-shifts-cancel-description">{bookingCopy.cancelPrompt}</DialogContentText>
                 {shiftToCancel && (
                     <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                        <Table size="small" aria-label={bookingCopy.shiftDetails} sx={{ tableLayout: 'fixed', '& .MuiTableCell-root': { border: 0, px: 0, py: 0.5, verticalAlign: 'top' } }}>
-                            <TableBody>
-                                {[
-                                    ['Дата', formatDateFull(shiftToCancel.date)],
-                                    ['Час', `${shiftToCancel.startTime}–${shiftToCancel.endTime}`],
-                                    ['Локація', [shiftToCancel.locationName, shiftToCancel.locationAddress].filter(Boolean).join(', ')],
-                                ].map(([label, value]) => (
-                                    <TableRow key={label}>
-                                        <TableCell component="th" scope="row" sx={{ width: 76, fontWeight: 700 }}>{label}</TableCell>
-                                        <TableCell sx={{ overflowWrap: 'anywhere' }}>{value}</TableCell>
-                                    </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                        <ShiftDetailsTable shift={shiftToCancel} />
                         <Divider sx={{ mt: 1.5 }} />
                         <ParticipantList participants={shiftToCancel.participants} dashed />
                     </Box>
