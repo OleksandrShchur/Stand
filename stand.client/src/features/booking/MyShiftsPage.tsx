@@ -152,7 +152,7 @@ export default function MyShiftsPage() {
                                     <ParticipantList participants={shift.participants} />
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
-                                <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 0.5 }}>
+                                <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
                                     <Button variant="outlined" onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
                                     <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
                                         setCancelError(null);
