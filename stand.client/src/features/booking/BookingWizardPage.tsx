@@ -127,6 +127,7 @@ export default function BookingWizardPage() {
                                 selectedSlotId={state.timeSlotId}
                                 conflictMessage={conflictMessage}
                                 onSelect={selectTime}
+                                onBack={backToLocation}
                             />
                         )}
 

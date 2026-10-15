@@ -1,8 +1,7 @@
 import ParticipantList from './ParticipantList';
-import { Box, ButtonBase, Stack, Typography } from '@mui/material';
+import { Box, Radio, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import BlockIcon from '@mui/icons-material/Block';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { SlotAvailabilityDto } from '../../../api/types';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 import StateBadge from './StateBadge';
@@ -30,10 +29,8 @@ export default function SlotCard({
         : full ? bookingCopy.seatsGone : null;
 
     return (
-        <ButtonBase
-            disabled={unavailable}
-            aria-disabled={unavailable}
-            onClick={() => onSelect(slot)}
+        <Box
+            component="label"
             sx={{
                 width: '100%',
                 minHeight: 84,
@@ -41,7 +38,7 @@ export default function SlotCard({
                 textAlign: 'left',
                 borderRadius: 1,
                 cursor: unavailable ? 'not-allowed' : 'pointer',
-                '&:focus-visible': { outline: '3px solid #7FB69A', outlineOffset: 2 },
+                '&:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
             }}
         >
             <Box sx={{
@@ -59,12 +56,19 @@ export default function SlotCard({
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                             <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{slot.startTime}-{slot.endTime}</Typography>
                             {badgeLabel && <StateBadge label={badgeLabel} tone={tone} />}
-                            {!unavailable && <ChevronRightIcon sx={{ flexShrink: 0 }} />}
+                            <Radio
+                                value={slot.timeSlotId}
+                                checked={selected}
+                                disabled={unavailable}
+                                onChange={() => onSelect(slot)}
+                                slotProps={{ input: { 'aria-label': `${slot.startTime}-${slot.endTime}` } }}
+                                sx={{ p: 0, flexShrink: 0, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
+                            />
                         </Stack>
                         {showParticipantNames && <ParticipantList participants={slot.participants} selected={selected} />}
                     </Box>
                 </Stack>
             </Box>
-        </ButtonBase>
+        </Box>
     );
 }
