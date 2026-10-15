@@ -75,7 +75,7 @@ test('unavailable hints identify the actual availability restriction before adja
     assert.match(getSlotDisabledReason({ ...distant, remaining: 0 }, [first]), /немає вільних місць/);
     assert.match(getSlotDisabledReason({ ...distant, isBlocked: true, isFull: true }, [first]), /заблоковано/);
     assert.match(getSlotDisabledReason({ ...distant, isTooSoon: true, isFull: true }, [first]), /замало часу/);
-    assert.match(getSlotDisabledReason({ ...distant, isBookable: false }, [first]), /Запис на цю зміну недоступний/);
+    assert.match(getSlotDisabledReason({ ...distant, isBookable: false }, [first]), /Запис на цей стенд недоступний/);
     assert.match(getSlotDisabledReason(first, [], true), /минулі дати/);
 });
 
@@ -84,7 +84,7 @@ test('gap hints name the current range boundaries and forbid skipping unavailabl
     assert.match(message, /10:00/);
     assert.match(message, /12:00/);
     assert.match(message, /без перерв/);
-    assert.match(message, /Пропускати зайняті чи недоступні зміни не можна/);
+    assert.match(message, /Пропускати зайняті чи недоступні записи не можна/);
     assert.match(getSlotDisabledReason(slot(4, '10:30', '11:30'), [first]), /перетинається/);
 });
 
@@ -122,7 +122,7 @@ test('finished and running hints take priority over capacity and lead-time flags
     const unavailable = { ...first, isBookable: false, isTooSoon: true, isFull: true, remaining: 0 };
     assert.match(getSlotDisabledReason(unavailable, [], false, 'finished'), /вже завершена/);
     assert.match(getSlotDisabledReason(unavailable, [], false, 'in-progress'), /вже триває/);
-    assert.match(getSlotDisabledReason({ ...first, isFull: true }, []), /Запис на цю зміну недоступний/);
+    assert.match(getSlotDisabledReason({ ...first, isFull: true }, []), /Запис на цей стенд недоступний/);
     assert.equal(getSlotDisabledReason(unavailable, [unavailable], false, 'finished'), null);
 });
 

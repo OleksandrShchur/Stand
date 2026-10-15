@@ -34,9 +34,9 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
         publicApi.getSlots(date, locationId).then((slots) => {
             const ids = timeSlotIds?.length ? timeSlotIds : [timeSlotId];
             const found = slots.filter((item) => ids.includes(item.timeSlotId));
-            if (found.length !== ids.length) throw new Error('Одну з обраних змін не знайдено. Оберіть час ще раз.');
+            if (found.length !== ids.length) throw new Error('Один з обраних записів не знайдено. Оберіть час ще раз.');
             setSlots(sortSlots(found));
-        }).catch((e) => setError(e instanceof ApiError || e instanceof Error ? e.message : 'Не вдалося завантажити зміну.'))
+        }).catch((e) => setError(e instanceof ApiError || e instanceof Error ? e.message : 'Не вдалося завантажити запис.'))
             .finally(() => setLoading(false));
     };
     useEffect(load, [date, locationId, timeSlotId, timeSlotIds]);

@@ -86,7 +86,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
         const reason = bookingWindow && date > bookingWindow.last
             ? `Запис відкрито лише до ${formatDateHuman(bookingWindow.last)}.`
             : bookingWindow && date < bookingWindow.first
-                ? 'На цю дату немає змін для перегляду.'
+                ? 'На цю дату немає записів для перегляду.'
                 : 'Запис на цю дату не відкрито. Оберіть доступний день.';
         setDateHint({ message: `${formatDateHuman(date)}: ${reason}`, key: Date.now() });
     };

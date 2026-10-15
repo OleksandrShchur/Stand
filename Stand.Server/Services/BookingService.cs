@@ -76,7 +76,7 @@ public sealed class BookingService(
         int authorizedUserId, CancellationToken ct)
     {
         if (timeSlotIds.Count == 0 || timeSlotIds.Distinct().Count() != timeSlotIds.Count)
-            throw new ValidationAppException("Оберіть одну або кілька послідовних змін без повторів.");
+            throw new ValidationAppException("Оберіть одну або кілька послідовних записів без повторів.");
 
         var user = await db.AuthorizedUsers.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
@@ -105,7 +105,7 @@ public sealed class BookingService(
         {
             if (timeSlots[index].StartTime >= timeSlots[index].EndTime ||
                 (index > 0 && timeSlots[index - 1].EndTime != timeSlots[index].StartTime))
-                throw new ValidationAppException("Оберіть послідовні зміни без перерв та накладань.");
+                throw new ValidationAppException("Оберіть послідовні записи без перерв та накладань.");
         }
 
         foreach (var timeSlot in timeSlots)

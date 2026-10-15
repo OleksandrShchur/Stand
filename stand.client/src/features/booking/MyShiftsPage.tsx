@@ -94,7 +94,7 @@ export default function MyShiftsPage() {
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
             >
                 <Alert severity="success" variant="filled" onClose={() => setSuccessToastOpen(false)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
-                    Запис підтверджено. Кількість доданих змін: {bookedCount}.
+                    Запис підтверджено. Кількість доданих записів: {bookedCount}.
                 </Alert>
             </Snackbar>
             <Container maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
@@ -166,7 +166,7 @@ export default function MyShiftsPage() {
                                         day: ({ day }) => {
                                             const hasShift = shiftDates.has(day.format('YYYY-MM-DD'));
                                             return hasShift ? {
-                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші зміни`,
+                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші записи`,
                                                 sx: {
                                                     '&:not(.Mui-selected):not(.Mui-disabled)': {
                                                         bgcolor: 'var(--state-available-bg)',

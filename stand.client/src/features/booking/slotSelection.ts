@@ -23,21 +23,21 @@ export function canAddSlot(slot: SlotAvailabilityDto, selected: SlotAvailability
 export function getSlotDisabledReason(slot: SlotAvailabilityDto, selected: SlotAvailabilityDto[], readOnly = false, timeStatus: SlotTimeStatus = 'upcoming'): string | null {
     // Selected slots must remain removable even when availability changes.
     if (selected.some((item) => item.timeSlotId === slot.timeSlotId)) return null;
-    if (timeStatus === 'finished') return 'Ця зміна вже завершена. Оберіть майбутній час для запису.';
-    if (timeStatus === 'in-progress') return 'Ця зміна вже триває. Запис після початку зміни недоступний. Оберіть майбутній час.';
+    if (timeStatus === 'finished') return 'Цей запис вже завершено. Оберіть майбутній час для запису.';
+    if (timeStatus === 'in-progress') return 'Цей запис вже триває. Запис після початку запису недоступний. Оберіть майбутній час.';
     if (readOnly) return 'Запис на минулі дати недоступний. Оберіть іншу дату.';
-    if (slot.isBlocked) return 'Цю зміну заблоковано для запису. Оберіть інший час.';
-    if (slot.isTooSoon) return 'До початку цієї зміни залишилося замало часу для запису. Оберіть пізніший час.';
-    if (slot.remaining <= 0) return 'На цю зміну немає вільних місць. Додати її до обраного часу неможливо.';
-    if (!isSlotBookable(slot)) return 'Запис на цю зміну недоступний. Оберіть інший час.';
+    if (slot.isBlocked) return 'Цей запис заблоковано для запису. Оберіть інший час.';
+    if (slot.isTooSoon) return 'До початку цього запису залишилося замало часу для запису. Оберіть пізніший час.';
+    if (slot.remaining <= 0) return 'На цей запис немає вільних місць. Додати його до обраного часу неможливо.';
+    if (!isSlotBookable(slot)) return 'Запис на цей час недоступний. Оберіть інший час.';
     if (!selected.length || canAddSlot(slot, selected)) return null;
-    if (!isContinuousSelection(selected)) return 'Одна з обраних змін більше недоступна. Зніміть її позначку та оберіть час знову.';
+    if (!isContinuousSelection(selected)) return 'Один з обраних записів більше недоступний. Зніміть її позначку та оберіть час знову.';
     const ordered = sortSlots(selected);
     const first = ordered[0];
     const last = ordered[ordered.length - 1];
     if (slot.startTime < last.endTime && slot.endTime > first.startTime)
-        return 'Ця зміна перетинається з обраним часом. Оберіть суміжну зміну без накладань.';
-    return `Можна обрати лише послідовні зміни без перерв. Спочатку додайте зміну, що закінчується о ${first.startTime} або починається о ${last.endTime}. Пропускати зайняті чи недоступні зміни не можна.`;
+        return 'Цей час перетинається з обраним часом. Оберіть суміжний час без накладань.';
+    return `Можна обрати лише послідовні записи без перерв. Спочатку додайте запис, що закінчується о ${first.startTime} або починається о ${last.endTime}. Пропускати зайняті чи недоступні записи не можна.`;
 }
 
 export function toggleSlot(slot: SlotAvailabilityDto, selected: SlotAvailabilityDto[]): SlotAvailabilityDto[] {
