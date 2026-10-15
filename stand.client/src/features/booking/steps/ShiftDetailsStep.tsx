@@ -1,6 +1,6 @@
 import ParticipantList from '../components/ParticipantList';
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Container, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
@@ -65,26 +65,38 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
         <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
             <Card variant="outlined" sx={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
-                <CardContent>
-                    <Typography variant="h5" sx={{ fontWeight: 800 }}>
-                        {formatDateFull(date)}
-                    </Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, whiteSpace: 'nowrap' }}>
-                        {slots[0].startTime}-{slots[slots.length - 1].endTime}
-                    </Typography>
-                    <Typography sx={{ fontWeight: 800, overflowWrap: 'anywhere' }}>{locationName}</Typography>
-                    {locationAddress && <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>{locationAddress}</Typography>}
-
-                    {slots.map((slot) => (
-                        <Box key={slot.timeSlotId}>
-                            {slots.length > 1 && <Typography sx={{ mt: 1.5, fontWeight: 700 }}>{slot.startTime}-{slot.endTime}</Typography>}
-                            <ParticipantList participants={slot.participants} />
+                <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+                    <Stack spacing={2}>
+                        <Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Дата</Typography>
+                            <Typography sx={{ fontSize: 18, fontWeight: 600, lineHeight: 1.5 }}>
+                                {formatDateFull(date)}
+                            </Typography>
                         </Box>
-                    ))}
-
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                        {canConfirm ? bookingCopy.cancellationNote : bookingCopy.readOnly}
-                    </Typography>
+                        <Box sx={{ p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Час чергування</Typography>
+                            <Typography sx={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: 'primary.dark', fontVariantNumeric: 'tabular-nums' }}>
+                                {slots[0].startTime}–{slots[slots.length - 1].endTime}
+                            </Typography>
+                        </Box>
+                        <Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Локація</Typography>
+                            <Typography sx={{ fontSize: 16, fontWeight: 700, lineHeight: 1.5, overflowWrap: 'anywhere' }}>{locationName}</Typography>
+                            {locationAddress && <Typography sx={{ fontSize: 14, color: 'text.secondary', lineHeight: 1.6 }}>{locationAddress}</Typography>}
+                        </Box>
+                        <Divider />
+                        {slots.map((slot) => (
+                            <Box key={slot.timeSlotId} sx={{ '& > div': { mt: 0 }, '& .MuiTypography-body2': { fontSize: 14, lineHeight: 1.6 }, '& ul': { mt: 0.5 }, '& li': { color: 'text.primary' } }}>
+                                {slots.length > 1 && <Typography sx={{ mb: 0.5, fontWeight: 700, color: 'primary.dark' }}>{slot.startTime}–{slot.endTime}</Typography>}
+                                <ParticipantList participants={slot.participants} />
+                            </Box>
+                        ))}
+                        <Box sx={{ p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
+                            <Typography sx={{ fontSize: 13, lineHeight: 1.6, color: 'text.secondary' }}>
+                                {canConfirm ? bookingCopy.cancellationNote : bookingCopy.readOnly}
+                            </Typography>
+                        </Box>
+                    </Stack>
                 </CardContent>
             </Card>
 

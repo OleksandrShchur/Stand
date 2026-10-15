@@ -5,6 +5,7 @@ export interface LocationDto {
     name: string;
     address?: string | null;
     capacity: number;
+    hasAvailableBookings?: boolean | null;
 }
 
 export interface CalendarDayAvailabilityDto {
@@ -54,6 +55,8 @@ export interface SlotAvailabilityDto {
 export interface CalendarDto {
     bookableDates: string[];
     pastDates?: string[];
+    /** Dates still viewable when no remaining shift can be booked. */
+    readOnlyDates?: string[];
     earliestBookableDate: string;
     latestBookableDate: string;
 }

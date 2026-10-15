@@ -7,6 +7,9 @@ import type { LocationDto } from '../../../api/types';
 import { formatDateFull } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
+import StateBadge from '../components/StateBadge';
+import { loadLocationsWithAvailability } from '../locationAvailability';
+import { getKyivDateTime } from '../slotTimeStatus';
 
 export default function LocationStep({ date, onSelect, onBack, selectedLocationId }: {
     date: string;
@@ -19,18 +22,34 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
     const [locations, setLocations] = useState<LocationDto[]>([]);
     const [selectedId, setSelectedId] = useState<number | undefined>(selectedLocationId);
     const selectedLocation = locations.find((location) => location.id === selectedId);
+    const showAvailabilityChips = date >= getKyivDateTime(new Date()).date;
 
     const load = () => {
         setLoading(true);
         setError(null);
-        publicApi
-            .getLocations(date)
+        loadLocationsWithAvailability(date, publicApi)
             .then(setLocations)
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити локації.'))
             .finally(() => setLoading(false));
     };
 
     useEffect(load, [date]);
+
+    useEffect(() => {
+        let active = true;
+        const refresh = () => {
+            loadLocationsWithAvailability(date, publicApi).then((updated) => {
+                if (active) setLocations(updated);
+            }).catch(() => { /* Keep the last successful availability during connection failures. */ });
+        };
+        const timer = setInterval(refresh, 30000);
+        window.addEventListener('focus', refresh);
+        return () => {
+            active = false;
+            clearInterval(timer);
+            window.removeEventListener('focus', refresh);
+        };
+    }, [date]);
 
     if (loading) return <SkeletonList rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
@@ -39,7 +58,10 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                 <Typography id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
-                <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
+                    <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                    {!showAvailabilityChips && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
+                </Stack>
             </Stack>
 
             {locations.length === 0 ? (
@@ -58,10 +80,17 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
                                     labelPlacement="start"
                                     sx={{ m: 0, width: '100%', minHeight: 52, px: { xs: 1.5, sm: 2 }, py: 0.5, '& .MuiFormControlLabel-label': { flex: 1, minWidth: 0 } }}
                                     label={
-                                        <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
-                                            <Typography variant="body1" sx={{ fontWeight: 800, fontSize: { xs: 14, sm: 16 } }}>{location.name}</Typography>
-                                            {location.address && (
-                                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: 12, sm: 14 } }}>{location.address}</Typography>
+                                        <Box sx={{ minWidth: 0, py: showAvailabilityChips && location.hasAvailableBookings === false ? 0.5 : 0 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, minWidth: 0, overflowWrap: 'anywhere' }}>
+                                                <Typography variant="body1" sx={{ fontWeight: 800, fontSize: { xs: 14, sm: 16 } }}>{location.name}</Typography>
+                                                {location.address && (
+                                                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: 12, sm: 14 } }}>{location.address}</Typography>
+                                                )}
+                                            </Box>
+                                            {showAvailabilityChips && location.hasAvailableBookings === false && (
+                                                <Box sx={{ mt: 0.75 }}>
+                                                    <StateBadge label="Немає доступних записів" tone="warning" />
+                                                </Box>
                                             )}
                                         </Box>
                                     }

@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, Box, Button, Container, IconButton, Snackbar, Stack, Tooltip, Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
-import { dateRangeIso, parseIsoDate, todayIso } from '../../../utils/date';
+import { dateRangeIso, formatDateHuman, parseIsoDate } from '../../../utils/date';
+import type { CalendarDto } from '../../../api/types';
+import { getKyivDateTime } from '../slotTimeStatus';
 import { pagePadding } from '../../../layoutSpacing';
 import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
@@ -22,29 +24,48 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [bookable, setBookable] = useState<Set<string>>(new Set());
-    const [pastDates, setPastDates] = useState<Set<string>>(new Set());
+    const [readOnlyDates, setReadOnlyDates] = useState<Set<string>>(new Set());
+    const [bookingWindow, setBookingWindow] = useState<{ first: string; last: string } | null>(null);
+    const [dateHint, setDateHint] = useState<{ message: string; key: number } | null>(null);
     const [month, setMonth] = useState(() => {
-        const today = parseIsoDate(todayIso());
+        const today = parseIsoDate(selectedDate ?? getKyivDateTime(new Date()).date);
         return new Date(today.getFullYear(), today.getMonth(), 1);
     });
-    const [today, setToday] = useState(todayIso());
+    const [today, setToday] = useState(() => getKyivDateTime(new Date()).date);
+
+    const applyCalendar = useCallback((cal: CalendarDto) => {
+        setBookable(new Set(cal.bookableDates));
+        setReadOnlyDates(new Set([...(cal.pastDates ?? []), ...(cal.readOnlyDates ?? [])]));
+        setBookingWindow({ first: cal.earliestBookableDate, last: cal.latestBookableDate });
+        setToday(cal.earliestBookableDate);
+    }, []);
 
     const load = () => {
         setLoading(true);
         setError(null);
         publicApi.getCalendar()
-            .then((cal) => {
-                setBookable(new Set(cal.bookableDates));
-                setPastDates(new Set(cal.pastDates ?? []));
-                setToday(todayIso());
-                const firstDate = parseIsoDate(selectedDate ?? cal.earliestBookableDate);
-                setMonth(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
-            })
+            .then(applyCalendar)
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.'))
             .finally(() => setLoading(false));
     };
 
-    useEffect(load, []);
+    useEffect(load, [applyCalendar]);
+
+    useEffect(() => {
+        let active = true;
+        const refresh = () => {
+            publicApi.getCalendar().then((calendar) => {
+                if (active) applyCalendar(calendar);
+            }).catch(() => { /* Keep the last calendar when a background refresh fails. */ });
+        };
+        const timer = setInterval(refresh, 30000);
+        window.addEventListener('focus', refresh);
+        return () => {
+            active = false;
+            clearInterval(timer);
+            window.removeEventListener('focus', refresh);
+        };
+    }, [applyCalendar]);
 
     const cells = useMemo(() => {
         const year = month.getFullYear();
@@ -56,7 +77,17 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
     }, [month]);
 
     const changeMonth = (offset: number) => {
+        setDateHint(null);
         setMonth((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1));
+    };
+
+    const explainUnavailableDate = (date: string) => {
+        const reason = bookingWindow && date > bookingWindow.last
+            ? `Запис відкрито лише до ${formatDateHuman(bookingWindow.last)}.`
+            : bookingWindow && date < bookingWindow.first
+                ? 'На цю дату немає змін для перегляду.'
+                : 'Запис на цю дату не відкрито. Оберіть доступний день.';
+        setDateHint({ message: `${formatDateHuman(date)}: ${reason}`, key: Date.now() });
     };
 
     const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()}`;
@@ -99,22 +130,38 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
                         <DayCell
                             key={date}
                             date={date}
-                            isAvailable={bookable.has(date) || pastDates.has(date)}
-                            readOnly={pastDates.has(date)}
+                            isAvailable={bookable.has(date) || readOnlyDates.has(date)}
+                            readOnly={readOnlyDates.has(date)}
                             isSelected={selectedDate === date}
                             isToday={date === today}
-                            onSelect={onSelect}
+                            onSelect={(date) => {
+                                setDateHint(null);
+                                onSelect(date);
+                            }}
+                            onUnavailable={explainUnavailableDate}
                         />
                     ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}
                 </Box>
             </Box>
+            <Snackbar
+                key={dateHint?.key}
+                open={Boolean(dateHint)}
+                autoHideDuration={16000}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setDateHint(null); }}
+                sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
+            >
+                <Alert severity="warning" variant="filled" onClose={() => setDateHint(null)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
+                    {dateHint?.message}
+                </Alert>
+            </Snackbar>
             <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                     <Stack direction="row" spacing={1}>
                         <Button variant="outlined" size="large" onClick={onBack} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
                             {bookingCopy.back}
                         </Button>
-                        <Button variant="contained" size="large" onClick={onContinue} disabled={!selectedDate || (!bookable.has(selectedDate) && !pastDates.has(selectedDate))} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
+                        <Button variant="contained" size="large" onClick={onContinue} disabled={!selectedDate || (!bookable.has(selectedDate) && !readOnlyDates.has(selectedDate))} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
                             {bookingCopy.next}
                         </Button>
                     </Stack>

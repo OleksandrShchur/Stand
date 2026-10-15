@@ -5,6 +5,7 @@ import BlockIcon from '@mui/icons-material/Block';
 import type { SlotAvailabilityDto } from '../../../api/types';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 import StateBadge from './StateBadge';
+import type { SlotTimeStatus } from '../slotTimeStatus';
 
 export default function SlotCard({
     slot,
@@ -14,6 +15,7 @@ export default function SlotCard({
     onSelect,
     disabled = false,
     onDisabledClick,
+    timeStatus,
 }: {
     slot: SlotAvailabilityDto;
     selected: boolean;
@@ -22,14 +24,17 @@ export default function SlotCard({
     onSelect: (slot: SlotAvailabilityDto) => void;
     disabled?: boolean;
     onDisabledClick?: () => void;
+    timeStatus: SlotTimeStatus;
 }) {
-    const full = slot.remaining <= 0 || (!readOnly && slot.isFull);
+    const full = slot.remaining <= 0;
     const canViewFullShift = slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon;
-    const unavailable = !selected && (disabled || (!readOnly && !slot.isBookable && !mine && !canViewFullShift));
-    const tone = readOnly ? 'unavailable' : mine ? 'mine' : 'full';
+    const unavailable = !selected && (timeStatus !== 'upcoming' || disabled || (!readOnly && !slot.isBookable && !mine && !canViewFullShift));
     const accent = mine ? 'var(--state-mine-border)' : full ? '#9CA3AF' : 'var(--state-available-border)';
-    const badgeLabel = readOnly ? bookingCopy.pastShift : mine
-        ? bookingCopy.youBooked
+    const badgeLabel = timeStatus === 'finished' ? bookingCopy.pastShift
+        : timeStatus === 'in-progress' ? bookingCopy.shiftInProgress
+        : mine ? bookingCopy.youBooked
+        : slot.isBlocked ? bookingCopy.shiftBlocked
+        : slot.isTooSoon ? bookingCopy.bookingClosed
         : full ? bookingCopy.seatsGone : null;
 
     return (
@@ -73,11 +78,11 @@ export default function SlotCard({
                 p: 1.5,
             }}>
                 <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start' }}>
-                    {mine ? <CheckIcon sx={{ mt: 0.25 }} /> : full ? <BlockIcon sx={{ mt: 0.25, color: 'text.secondary' }} /> : null}
+                    {mine ? <CheckIcon sx={{ mt: 0.25 }} /> : full && timeStatus === 'upcoming' ? <BlockIcon sx={{ mt: 0.25, color: 'text.secondary' }} /> : null}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                             <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{slot.startTime}-{slot.endTime}</Typography>
-                            {badgeLabel && <StateBadge label={badgeLabel} tone={tone} />}
+                            {badgeLabel && <StateBadge label={badgeLabel} tone="warning" />}
                             <Checkbox
                                 value={slot.timeSlotId}
                                 checked={selected}

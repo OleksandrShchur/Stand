@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Stand.Server.Common;
 using Stand.Server.Data;
+using Stand.Server.Data.Entities;
 using Stand.Server.Dtos.Public;
 using Stand.Server.Options;
 
@@ -46,22 +47,61 @@ public sealed class AvailabilityService(
             .OrderBy(d => d)
             .ToListAsync(ct);
 
+        var readOnlyDates = new List<string>();
+        if (dates.Contains(min))
+        {
+            var hasBookableSlot = await GetBookableLocationsQuery(min).AnyAsync(ct);
+
+            if (!hasBookableSlot)
+            {
+                dates.Remove(min);
+                readOnlyDates.Add(min.ToString("yyyy-MM-dd"));
+            }
+        }
+
         return new CalendarDto(
             dates.Select(d => d.ToString("yyyy-MM-dd")).ToList(),
             min.ToString("yyyy-MM-dd"),
             max.ToString("yyyy-MM-dd"),
-            pastDates.Select(d => d.ToString("yyyy-MM-dd")).ToList());
+            pastDates.Select(d => d.ToString("yyyy-MM-dd")).ToList(),
+            readOnlyDates);
     }
 
     public async Task<List<LocationDto>> GetActiveLocationsAsync(CancellationToken ct, DateOnly? date = null)
     {
+        var bookableLocationIds = date is null ? [] :
+            await GetBookableLocationsQuery(date.Value).Select(location => location.Id).ToListAsync(ct);
         return await db.Locations
             .Where(l => l.IsActive || (date != null && date < clock.TodayLocal &&
                 l.Bookings.Any(b => b.Date == date && b.Status == "Confirmed")))
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.Name)
-            .Select(l => new LocationDto(l.Id, l.Name, l.Address, l.Capacity))
+            .Select(l => new LocationDto(l.Id, l.Name, l.Address, l.Capacity,
+                date == null ? (bool?)null : bookableLocationIds.Contains(l.Id)))
             .ToListAsync(ct);
+    }
+
+    // The calendar and location list use the same cutoff, exceptions and capacity rules.
+    private IQueryable<Location> GetBookableLocationsQuery(DateOnly date)
+    {
+        var (min, max) = GetBookableWindow();
+        var nowLocal = clock.NowLocal;
+        var earliestStart = nowLocal.AddMinutes(_options.MinLeadTimeMinutes);
+        var earliestDate = DateOnly.FromDateTime(earliestStart);
+        var earliestTime = TimeOnly.FromDateTime(earliestStart);
+        var currentTime = TimeOnly.FromDateTime(nowLocal);
+        var nowUtc = clock.UtcNow;
+
+        return db.Locations.Where(location => location.IsActive && date >= min && date <= max &&
+            db.AvailableDates.Any(day => day.Date == date && day.IsActive) &&
+            db.TimeSlots.Any(slot => slot.IsActive &&
+                (date > earliestDate || (date == earliestDate && slot.StartTime >= earliestTime)) &&
+                (date > min || slot.EndTime > currentTime) &&
+                !db.DateTimeSlotExceptions.Any(exception =>
+                    exception.Date == date && exception.TimeSlotId == slot.Id && exception.IsBlocked) &&
+                db.Bookings.Count(booking => booking.Date == date && booking.TimeSlotId == slot.Id &&
+                    booking.LocationId == location.Id &&
+                    (booking.Status == "Confirmed" || (booking.Status == "Held" && booking.HoldExpiresAtUtc > nowUtc))) < location.Capacity));
     }
 
     public async Task EnsureDateBookableAsync(DateOnly date, CancellationToken ct)

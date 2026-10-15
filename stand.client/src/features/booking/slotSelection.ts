@@ -1,4 +1,5 @@
 import type { SlotAvailabilityDto } from '../../api/types';
+import type { SlotTimeStatus } from './slotTimeStatus';
 
 export function sortSlots(slots: SlotAvailabilityDto[]): SlotAvailabilityDto[] {
     return [...slots].sort((a, b) => a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime));
@@ -19,13 +20,15 @@ export function canAddSlot(slot: SlotAvailabilityDto, selected: SlotAvailability
         isContinuousSelection([...selected, slot]);
 }
 
-export function getSlotDisabledReason(slot: SlotAvailabilityDto, selected: SlotAvailabilityDto[], readOnly = false): string | null {
+export function getSlotDisabledReason(slot: SlotAvailabilityDto, selected: SlotAvailabilityDto[], readOnly = false, timeStatus: SlotTimeStatus = 'upcoming'): string | null {
     // Selected slots must remain removable even when availability changes.
     if (selected.some((item) => item.timeSlotId === slot.timeSlotId)) return null;
+    if (timeStatus === 'finished') return 'Ця зміна вже завершена. Оберіть майбутній час для запису.';
+    if (timeStatus === 'in-progress') return 'Ця зміна вже триває. Запис після початку зміни недоступний. Оберіть майбутній час.';
     if (readOnly) return 'Запис на минулі дати недоступний. Оберіть іншу дату.';
     if (slot.isBlocked) return 'Цю зміну заблоковано для запису. Оберіть інший час.';
     if (slot.isTooSoon) return 'До початку цієї зміни залишилося замало часу для запису. Оберіть пізніший час.';
-    if (slot.remaining <= 0 || slot.isFull) return 'На цю зміну немає вільних місць. Додати її до обраного часу неможливо.';
+    if (slot.remaining <= 0) return 'На цю зміну немає вільних місць. Додати її до обраного часу неможливо.';
     if (!isSlotBookable(slot)) return 'Запис на цю зміну недоступний. Оберіть інший час.';
     if (!selected.length || canAddSlot(slot, selected)) return null;
     if (!isContinuousSelection(selected)) return 'Одна з обраних змін більше недоступна. Зніміть її позначку та оберіть час знову.';

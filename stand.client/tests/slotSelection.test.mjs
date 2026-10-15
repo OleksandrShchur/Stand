@@ -5,7 +5,17 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/features/booking/slotSelection.ts', import.meta.url), 'utf8');
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
-const { canAddSlot, getSlotDisabledReason, isContinuousSelection, toggleSlot } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+const selectionModuleUrl = `data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`;
+const { canAddSlot, getSlotDisabledReason, isContinuousSelection, toggleSlot } = await import(selectionModuleUrl);
+const timeSource = readFileSync(new URL('../src/features/booking/slotTimeStatus.ts', import.meta.url), 'utf8');
+const timeOutput = ts.transpileModule(timeSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
+const timeModuleUrl = `data:text/javascript;base64,${Buffer.from(timeOutput).toString('base64')}`;
+const { getSlotTimeStatus } = await import(timeModuleUrl);
+const locationSource = readFileSync(new URL('../src/features/booking/locationAvailability.ts', import.meta.url), 'utf8');
+const locationOutput = ts.transpileModule(locationSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText
+    .replace(/from ['"]\.\/slotSelection['"]/g, `from '${selectionModuleUrl}'`)
+    .replace(/from ['"]\.\/slotTimeStatus['"]/g, `from '${timeModuleUrl}'`);
+const { loadLocationsWithAvailability } = await import(`data:text/javascript;base64,${Buffer.from(locationOutput).toString('base64')}`);
 
 const slot = (id, start, end, overrides = {}) => ({
     timeSlotId: id, startTime: start, endTime: end,
@@ -83,4 +93,63 @@ test('selected slots can still be unchecked when their availability changes', ()
     assert.equal(getSlotDisabledReason(changed, [changed]), null);
     assert.deepEqual(toggleSlot(changed, [changed, next]), []);
     assert.match(getSlotDisabledReason(slot(3, '12:00', '13:00'), [changed, next]), /більше недоступна/);
+});
+
+test('today distinguishes finished, running and upcoming shifts in Kyiv', () => {
+    const now = new Date('2026-10-15T16:00:00+03:00');
+    assert.equal(getSlotTimeStatus('2026-10-15', slot(1, '09:00', '11:00'), now), 'finished');
+    assert.equal(getSlotTimeStatus('2026-10-15', slot(2, '15:00', '17:00'), now), 'in-progress');
+    assert.equal(getSlotTimeStatus('2026-10-15', slot(3, '17:00', '19:00'), now), 'upcoming');
+});
+
+test('shift starts inclusively and finishes exactly at its end time', () => {
+    const shift = slot(1, '15:00', '17:00');
+    assert.equal(getSlotTimeStatus('2026-10-15', shift, new Date('2026-10-15T14:59:59+03:00')), 'upcoming');
+    assert.equal(getSlotTimeStatus('2026-10-15', shift, new Date('2026-10-15T15:00:00+03:00')), 'in-progress');
+    assert.equal(getSlotTimeStatus('2026-10-15', shift, new Date('2026-10-15T17:00:00+03:00')), 'finished');
+});
+
+test('Kyiv date boundaries work independently of the browser timezone', () => {
+    const now = new Date('2026-10-14T21:30:00Z'); // 00:30 on 15 October in Kyiv.
+    const shift = slot(1, '00:00', '01:00');
+    assert.equal(getSlotTimeStatus('2026-10-14', shift, now), 'finished');
+    assert.equal(getSlotTimeStatus('2026-10-15', shift, now), 'in-progress');
+    assert.equal(getSlotTimeStatus('2026-10-16', shift, now), 'upcoming');
+    assert.equal(getSlotTimeStatus('2026-12-15', shift, new Date('2026-12-14T22:30:00Z')), 'in-progress');
+});
+
+test('finished and running hints take priority over capacity and lead-time flags', () => {
+    const unavailable = { ...first, isBookable: false, isTooSoon: true, isFull: true, remaining: 0 };
+    assert.match(getSlotDisabledReason(unavailable, [], false, 'finished'), /вже завершена/);
+    assert.match(getSlotDisabledReason(unavailable, [], false, 'in-progress'), /вже триває/);
+    assert.match(getSlotDisabledReason({ ...first, isFull: true }, []), /Запис на цю зміну недоступний/);
+    assert.equal(getSlotDisabledReason(unavailable, [unavailable], false, 'finished'), null);
+});
+
+test('missing location availability is resolved using actual slot availability', async () => {
+    const result = await loadLocationsWithAvailability('2026-10-15', {
+        getLocations: async () => [{ id: 1 }, { id: 2, hasAvailableBookings: null }],
+        getSlots: async (_, id) => id === 1
+            ? [slot(1, '17:00', '19:00', { isBookable: false, isTooSoon: true, isFull: true })]
+            : [slot(2, '18:00', '20:00')],
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.equal(result[0].hasAvailableBookings, false);
+    assert.equal(result[1].hasAvailableBookings, true);
+});
+
+test('location fallback does not advertise finished, running or full shifts', async () => {
+    const result = await loadLocationsWithAvailability('2026-10-15', {
+        getLocations: async () => [{ id: 1 }],
+        getSlots: async () => [slot(1, '09:00', '11:00'), slot(2, '15:00', '17:00'), slot(3, '17:00', '19:00', { remaining: 0 })],
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.equal(result[0].hasAvailableBookings, false);
+});
+
+test('known server availability avoids extra slot requests', async () => {
+    const locations = [{ id: 1, hasAvailableBookings: false }, { id: 2, hasAvailableBookings: true }];
+    const result = await loadLocationsWithAvailability('2026-10-15', {
+        getLocations: async () => locations,
+        getSlots: async () => { assert.fail('Known availability should not trigger fallback requests'); },
+    });
+    assert.deepEqual(result, locations);
 });

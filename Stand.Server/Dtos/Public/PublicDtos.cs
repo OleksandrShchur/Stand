@@ -4,7 +4,7 @@ namespace Stand.Server.Dtos.Public;
 public sealed record PublicLoginRequestDto(string Phone);
 public sealed record PublicUserMeDto(int Id, string Phone);
 
-public sealed record LocationDto(int Id, string Name, string? Address, int Capacity);
+public sealed record LocationDto(int Id, string Name, string? Address, int Capacity, bool? HasAvailableBookings = null);
 
 public sealed record TimeSlotDto(int Id, string StartTime, string EndTime);
 
@@ -29,7 +29,8 @@ public sealed record CalendarDto(
     List<string> BookableDates, // yyyy-MM-dd, within today..+horizon and admin-enabled
     string EarliestBookableDate,
     string LatestBookableDate,
-    List<string> PastDates);
+    List<string> PastDates,
+    List<string> ReadOnlyDates);
 
 public sealed record BookingSummaryDto(
     string PublicNumber,

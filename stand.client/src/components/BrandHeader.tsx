@@ -5,6 +5,7 @@ import AppDialog from './AppDialog';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
+import { formatUaPhone } from '../utils/phone';
 
 export default function BrandHeader({ onHome, title = 'Головна' }: { onHome?: () => void; title?: string }) {
     const [supportOpen, setSupportOpen] = useState(false);
@@ -51,12 +52,12 @@ export default function BrandHeader({ onHome, title = 'Головна' }: { onHo
                 icon={<HelpOutlineOutlinedIcon color="primary" />}
                 actions={<Button variant="contained" fullWidth onClick={() => setSupportOpen(false)}>Закрити</Button>}
             >
-                <Stack spacing={0.5} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-                    <Link href="tel:0682385502" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: 44, fontSize: '1.25rem', fontWeight: 700, alignSelf: 'flex-start' }}>
+                <Stack spacing={1} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                    <Link href="tel:+380682385502" underline="hover" sx={{ display: 'flex', alignItems: 'center', gap: 1, minHeight: 44, fontSize: '1.25rem', fontWeight: 700, alignSelf: 'flex-start' }}>
                         <PhoneOutlinedIcon fontSize="small" />
-                        0682385502
+                        {formatUaPhone('+380682385502')}
                     </Link>
-                    <Typography variant="body2" color="text.secondary">Ярослав Карлійчук</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: 'primary.dark', lineHeight: 1.4 }}>Ярослав Карлійчук</Typography>
                 </Stack>
             </AppDialog>
         </>

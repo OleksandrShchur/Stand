@@ -31,6 +31,7 @@ export default function BookingWizardPage() {
     }, [startBooking, location.pathname, navigate]);
 
     const start = () => {
+        setConflictMessage(null);
         setState(initialWizardState);
         setShowHome(false);
     };
@@ -47,7 +48,8 @@ export default function BookingWizardPage() {
         setState({ step: 'date', date });
     };
 
-    const selectLocation = (location: LocationDto) =>
+    const selectLocation = (location: LocationDto) => {
+        setConflictMessage(null);
         setState((s) => ({
             ...s,
             step: 'time',
@@ -59,9 +61,11 @@ export default function BookingWizardPage() {
             startTime: undefined,
             endTime: undefined,
         }));
+    };
 
     const selectTime = (slots: SlotAvailabilityDto[]) => {
         if (!slots.length) return;
+        setConflictMessage(null);
         setState((s) => ({
             ...s,
             step: 'contact',
@@ -72,8 +76,14 @@ export default function BookingWizardPage() {
         }));
     };
 
-    const backToDate = () => setState({ step: 'date', date: state.date });
-    const backToLocation = () => setState((s) => ({ ...s, step: 'location' }));
+    const backToDate = () => {
+        setConflictMessage(null);
+        setState({ step: 'date', date: state.date });
+    };
+    const backToLocation = () => {
+        setConflictMessage(null);
+        setState((s) => ({ ...s, step: 'location' }));
+    };
     const backToTime = (message?: string) => {
         setConflictMessage(message ?? null);
         setState((s) => ({
@@ -89,11 +99,7 @@ export default function BookingWizardPage() {
 
     const onConfirmed = (summaries: { cancelToken: string }[]) => {
         clearWizardState();
-        if (summaries.length === 1) {
-            navigate(`/booking/${summaries[0].cancelToken}`, { state: { justBooked: true } });
-        } else {
-            navigate('/my-shifts', { state: { justBookedCount: summaries.length } });
-        }
+        navigate('/my-shifts', { state: { justBookedCount: summaries.length } });
     };
 
     const goToStep = (step: WizardStep) => {

@@ -4,11 +4,12 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull, todayIso } from '../../../utils/date';
+import { formatDateFull } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
 import { getSlotDisabledReason, isContinuousSelection, sortSlots, toggleSlot } from '../slotSelection';
+import { getKyivDateTime, getSlotTimeStatus } from '../slotTimeStatus';
 
 export default function TimeStep({ date, locationId, locationName, selectedSlotIds, conflictMessage, onSelect, onBack }: {
     date: string;
@@ -23,10 +24,18 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     const [error, setError] = useState<string | null>(null);
     const [slots, setSlots] = useState<SlotAvailabilityDto[]>([]);
     const [selectedIds, setSelectedIds] = useState<number[]>(selectedSlotIds ?? []);
-    const [hint, setHint] = useState<{ message: string; key: number } | null>(null);
-    const readOnly = date < todayIso();
+    const [hint, setHint] = useState<{ message: string; key: number; severity: 'info' | 'warning' } | null>(() =>
+        conflictMessage ? { message: `${conflictMessage}. ${bookingCopy.conflictHint}`, key: 0, severity: 'warning' } : null);
+    const [now, setNow] = useState(() => new Date());
+    const readOnly = date < getKyivDateTime(now).date;
     const selectedSlots = sortSlots(slots.filter((slot) => selectedIds.includes(slot.timeSlotId)));
-    const canContinue = selectedSlots.length === selectedIds.length && isContinuousSelection(selectedSlots);
+    const canContinue = selectedSlots.length === selectedIds.length && isContinuousSelection(selectedSlots) &&
+        selectedSlots.every((slot) => getSlotTimeStatus(date, slot, now) === 'upcoming');
+
+    useEffect(() => {
+        const timer = setInterval(() => setNow(new Date()), 30000);
+        return () => clearInterval(timer);
+    }, []);
 
     const load = () => {
         setLoading(true);
@@ -47,30 +56,26 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                 <Typography id="time-heading" variant="h5">{bookingCopy.selectTime}</Typography>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
                     <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                    {readOnly && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                     <Chip label={locationName} size="small" variant="outlined" />
-                    {readOnly && <Chip label={bookingCopy.readOnly} size="small" variant="outlined" />}
                 </Stack>
             </Stack>
-            {conflictMessage && (
-                <Alert severity="warning" sx={{ mb: 2, borderRadius: 1 }}>
-                    <Typography sx={{ fontWeight: 800 }}>{conflictMessage}</Typography>
-                    <Typography variant="body2">{bookingCopy.conflictHint}</Typography>
-                </Alert>
-            )}
             {slots.length === 0 ? (
                 <EmptyState message={bookingCopy.noSlotsForDate} />
             ) : (
                 <Stack role="group" aria-labelledby="time-heading" spacing={listGap}>
                     {slots.map((slot) => {
-                        const disabledReason = getSlotDisabledReason(slot, selectedSlots, readOnly);
+                        const timeStatus = getSlotTimeStatus(date, slot, now);
+                        const disabledReason = getSlotDisabledReason(slot, selectedSlots, readOnly, timeStatus);
                         return (
                             <SlotCard
                                 key={slot.timeSlotId}
                                 slot={slot}
+                                timeStatus={timeStatus}
                                 selected={selectedIds.includes(slot.timeSlotId)}
                                 disabled={Boolean(disabledReason)}
                                 onDisabledClick={() => {
-                                    if (disabledReason) setHint({ message: disabledReason, key: Date.now() });
+                                    if (disabledReason) setHint({ message: disabledReason, key: Date.now(), severity: 'info' });
                                 }}
                                 readOnly={readOnly}
                                 onSelect={(slot) => {
@@ -90,7 +95,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                 onClose={(_, reason) => { if (reason !== 'clickaway') setHint(null); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
             >
-                <Alert severity="info" variant="filled" onClose={() => setHint(null)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
+                <Alert severity={hint?.severity ?? 'info'} variant="filled" onClose={() => setHint(null)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
                     {hint?.message}
                 </Alert>
             </Snackbar>
