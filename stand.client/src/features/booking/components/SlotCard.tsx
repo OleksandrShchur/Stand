@@ -1,11 +1,11 @@
 import ParticipantList from './ParticipantList';
-import { Box, ButtonBase, Stack, Typography } from '@mui/material';
+import { Box, Checkbox, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import BlockIcon from '@mui/icons-material/Block';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import type { SlotAvailabilityDto } from '../../../api/types';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 import StateBadge from './StateBadge';
+import type { SlotTimeStatus } from '../slotTimeStatus';
 
 export default function SlotCard({
     slot,
@@ -13,27 +13,50 @@ export default function SlotCard({
     mine,
     readOnly = false,
     onSelect,
+    disabled = false,
+    onDisabledClick,
+    timeStatus,
 }: {
     slot: SlotAvailabilityDto;
     selected: boolean;
     mine?: boolean;
     readOnly?: boolean;
     onSelect: (slot: SlotAvailabilityDto) => void;
+    disabled?: boolean;
+    onDisabledClick?: () => void;
+    timeStatus: SlotTimeStatus;
 }) {
-    const full = slot.remaining <= 0 || (!readOnly && slot.isFull);
+    const full = slot.remaining <= 0;
     const canViewFullShift = slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon;
-    const unavailable = !readOnly && !slot.isBookable && !mine && !canViewFullShift;
-    const tone = readOnly ? 'unavailable' : mine ? 'mine' : 'full';
+    const unavailable = !selected && (timeStatus !== 'upcoming' || disabled || (!readOnly && !slot.isBookable && !mine && !canViewFullShift));
     const accent = mine ? 'var(--state-mine-border)' : full ? '#9CA3AF' : 'var(--state-available-border)';
-    const badgeLabel = readOnly ? bookingCopy.pastShift : mine
-        ? bookingCopy.youBooked
+    const badgeLabel = timeStatus === 'finished' ? bookingCopy.pastShift
+        : timeStatus === 'in-progress' ? bookingCopy.shiftInProgress
+        : mine ? bookingCopy.youBooked
+        : slot.isBlocked ? bookingCopy.shiftBlocked
+        : slot.isTooSoon ? bookingCopy.bookingClosed
         : full ? bookingCopy.seatsGone : null;
 
     return (
-        <ButtonBase
-            disabled={unavailable}
-            aria-disabled={unavailable}
-            onClick={() => onSelect(slot)}
+        <Box
+            component="label"
+            role={unavailable ? 'button' : undefined}
+            tabIndex={unavailable ? 0 : undefined}
+            aria-disabled={unavailable || undefined}
+            aria-label={unavailable ? `${slot.startTime}-${slot.endTime}: недоступно. Дізнатися причину` : undefined}
+            onClickCapture={(event) => {
+                if (unavailable) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onDisabledClick?.();
+                }
+            }}
+            onKeyDown={(event) => {
+                if (unavailable && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onDisabledClick?.();
+                }
+            }}
             sx={{
                 width: '100%',
                 minHeight: 84,
@@ -41,30 +64,38 @@ export default function SlotCard({
                 textAlign: 'left',
                 borderRadius: 1,
                 cursor: unavailable ? 'not-allowed' : 'pointer',
-                '&:focus-visible': { outline: '3px solid #7FB69A', outlineOffset: 2 },
+                opacity: unavailable ? 0.55 : 1,
+                '&:focus-visible, &:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
             }}
         >
             <Box sx={{
                 border: '1px solid',
                 borderColor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-border)' : 'divider',
-                borderLeft: `6px solid ${selected ? 'var(--state-selected-bg)' : accent}`,
+                borderLeft: `6px solid ${unavailable ? '#9CA3AF' : selected ? 'var(--state-selected-bg)' : accent}`,
                 borderRadius: 1,
-                bgcolor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
+                bgcolor: unavailable ? 'action.disabledBackground' : selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
                 color: selected ? 'var(--state-selected-text)' : 'text.primary',
                 p: 1.5,
             }}>
                 <Stack direction="row" spacing={1.25} sx={{ alignItems: 'flex-start' }}>
-                    {mine ? <CheckIcon sx={{ mt: 0.25 }} /> : full ? <BlockIcon sx={{ mt: 0.25, color: 'text.secondary' }} /> : null}
+                    {mine ? <CheckIcon sx={{ mt: 0.25 }} /> : full && timeStatus === 'upcoming' ? <BlockIcon sx={{ mt: 0.25, color: 'text.secondary' }} /> : null}
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                             <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{slot.startTime}-{slot.endTime}</Typography>
-                            {badgeLabel && <StateBadge label={badgeLabel} tone={tone} />}
-                            {!unavailable && <ChevronRightIcon sx={{ flexShrink: 0 }} />}
+                            {badgeLabel && <StateBadge label={badgeLabel} tone="warning" />}
+                            <Checkbox
+                                value={slot.timeSlotId}
+                                checked={selected}
+                                disabled={unavailable}
+                                onChange={() => onSelect(slot)}
+                                slotProps={{ input: { 'aria-label': `${slot.startTime}-${slot.endTime}` } }}
+                                sx={{ p: 0, flexShrink: 0, pointerEvents: unavailable ? 'none' : undefined, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
+                            />
                         </Stack>
                         {showParticipantNames && <ParticipantList participants={slot.participants} selected={selected} />}
                     </Box>
                 </Stack>
             </Box>
-        </ButtonBase>
+        </Box>
     );
 }

@@ -25,6 +25,9 @@ export const publicApi = {
     book: (date: string, locationId: number, timeSlotId: number) =>
         api.post<BookingSummaryDto>('/api/bookings', { date, locationId, timeSlotId }),
 
+    bookMany: (date: string, locationId: number, timeSlotIds: number[]) =>
+        api.post<BookingSummaryDto[]>('/api/bookings/batch', { date, locationId, timeSlotIds }),
+
     getByCancelToken: (cancelToken: string) =>
         api.get<BookingSummaryDto>(`/api/bookings/${cancelToken}`),
 

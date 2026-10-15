@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Fade, IconButton, Stack } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import { Box, Container, Fade } from '@mui/material';
 import BrandHeader from '../../components/BrandHeader';
 import WizardProgress from './components/WizardProgress';
 import DateStep from './steps/DateStep';
@@ -12,8 +10,6 @@ import ShiftDetailsStep from './steps/ShiftDetailsStep';
 import BookingHomePage from './BookingHomePage';
 import { clearWizardState, initialWizardState, loadWizardState, saveWizardState, type WizardState, type WizardStep } from './wizardState';
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
-import { bookingCopy } from './bookingCopy';
-import { todayIso } from '../../utils/date';
 import { pagePadding } from '../../layoutSpacing';
 
 export default function BookingWizardPage() {
@@ -35,6 +31,7 @@ export default function BookingWizardPage() {
     }, [startBooking, location.pathname, navigate]);
 
     const start = () => {
+        setConflictMessage(null);
         setState(initialWizardState);
         setShowHome(false);
     };
@@ -51,7 +48,8 @@ export default function BookingWizardPage() {
         setState({ step: 'date', date });
     };
 
-    const selectLocation = (location: LocationDto) =>
+    const selectLocation = (location: LocationDto) => {
+        setConflictMessage(null);
         setState((s) => ({
             ...s,
             step: 'time',
@@ -59,21 +57,33 @@ export default function BookingWizardPage() {
             locationName: location.name,
             locationAddress: location.address,
             timeSlotId: undefined,
+            timeSlotIds: undefined,
             startTime: undefined,
             endTime: undefined,
         }));
+    };
 
-    const selectTime = (slot: SlotAvailabilityDto) =>
+    const selectTime = (slots: SlotAvailabilityDto[]) => {
+        if (!slots.length) return;
+        setConflictMessage(null);
         setState((s) => ({
             ...s,
-            step: slot.isBookable && s.date && s.date >= todayIso() ? 'contact' : 'details',
-            timeSlotId: slot.timeSlotId,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
+            step: 'contact',
+            timeSlotId: slots[0].timeSlotId,
+            timeSlotIds: slots.map((slot) => slot.timeSlotId),
+            startTime: slots[0].startTime,
+            endTime: slots[slots.length - 1].endTime,
         }));
+    };
 
-    const backToDate = () => setState({ step: 'date', date: state.date });
-    const backToLocation = () => setState((s) => ({ step: 'location', date: s.date }));
+    const backToDate = () => {
+        setConflictMessage(null);
+        setState({ step: 'date', date: state.date });
+    };
+    const backToLocation = () => {
+        setConflictMessage(null);
+        setState((s) => ({ ...s, step: 'location' }));
+    };
     const backToTime = (message?: string) => {
         setConflictMessage(message ?? null);
         setState((s) => ({
@@ -83,19 +93,13 @@ export default function BookingWizardPage() {
             locationName: s.locationName,
             locationAddress: s.locationAddress,
             timeSlotId: s.timeSlotId,
+            timeSlotIds: s.timeSlotIds,
         }));
     };
 
-    const onConfirmed = (summary: { cancelToken: string }) => {
+    const onConfirmed = (summaries: { cancelToken: string }[]) => {
         clearWizardState();
-        navigate(`/booking/${summary.cancelToken}`, { state: { justBooked: true } });
-    };
-
-    const handleBack = () => {
-        if (state.step === 'date') returnHome();
-        else if (state.step === 'location') backToDate();
-        else if (state.step === 'time') backToLocation();
-        else if (state.step === 'contact' || state.step === 'details') backToTime();
+        navigate('/my-shifts', { state: { justBookedCount: summaries.length } });
     };
 
     const goToStep = (step: WizardStep) => {
@@ -108,34 +112,17 @@ export default function BookingWizardPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader onHome={returnHome} />
+            <BrandHeader onHome={returnHome} title="Запис" />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
             <Container maxWidth="sm" sx={pagePadding}>
-                <Stack direction="row" sx={{
-                    mb: 1,
-                    minHeight: 44,
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                }}>
-                    <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
-                        <ArrowBackIcon />
-                    </IconButton>
-                    <Button
-                        onClick={returnHome}
-                        startIcon={<HomeOutlinedIcon />}
-                        sx={{ ml: 'auto', minHeight: 44 }}
-                    >
-                        {bookingCopy.home}
-                    </Button>
-                </Stack>
-
                 <Fade in key={state.step} timeout={250}>
                     <Box>
                         {state.step === 'date' && (
                             <DateStep
                                 selectedDate={state.date}
                                 onSelect={selectDate}
+                                onBack={returnHome}
                                 onContinue={() => {
                                     if (state.date) setState((s) => ({ ...s, step: 'location' }));
                                 }}
@@ -143,7 +130,7 @@ export default function BookingWizardPage() {
                         )}
 
                         {state.step === 'location' && state.date && (
-                            <LocationStep date={state.date} onSelect={selectLocation} />
+                            <LocationStep date={state.date} selectedLocationId={state.locationId} onSelect={selectLocation} onBack={backToDate} />
                         )}
 
                         {state.step === 'time' && state.date && state.locationId && state.locationName && (
@@ -151,9 +138,10 @@ export default function BookingWizardPage() {
                                 date={state.date}
                                 locationId={state.locationId}
                                 locationName={state.locationName}
-                                selectedSlotId={state.timeSlotId}
+                                selectedSlotIds={state.timeSlotIds ?? (state.timeSlotId ? [state.timeSlotId] : [])}
                                 conflictMessage={conflictMessage}
                                 onSelect={selectTime}
+                                onBack={backToLocation}
                             />
                         )}
 
@@ -165,11 +153,13 @@ export default function BookingWizardPage() {
                                 <ShiftDetailsStep
                                     locationId={state.locationId}
                                     timeSlotId={state.timeSlotId}
+                                    timeSlotIds={state.timeSlotIds}
                                     date={state.date}
                                     locationName={state.locationName}
                                     locationAddress={state.locationAddress}
                                     onUnavailable={backToTime}
-                                    onConfirmed={state.step === 'contact' && state.date >= todayIso() ? onConfirmed : undefined}
+                                    onBack={() => backToTime()}
+                                    onConfirmed={state.step === 'contact' ? onConfirmed : undefined}
                                 />
                             )}
                     </Box>

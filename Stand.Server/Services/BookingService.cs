@@ -69,7 +69,15 @@ public sealed class BookingService(
     public async Task<BookingSummaryDto> BookAsync(
         DateOnly date, int locationId, int timeSlotId,
         int authorizedUserId, CancellationToken ct)
+        => (await BookManyAsync(date, locationId, [timeSlotId], authorizedUserId, ct)).Single();
+
+    public async Task<List<BookingSummaryDto>> BookManyAsync(
+        DateOnly date, int locationId, IReadOnlyList<int> timeSlotIds,
+        int authorizedUserId, CancellationToken ct)
     {
+        if (timeSlotIds.Count == 0 || timeSlotIds.Distinct().Count() != timeSlotIds.Count)
+            throw new ValidationAppException("Оберіть одну або кілька послідовних змін без повторів.");
+
         var user = await db.AuthorizedUsers.AsNoTracking()
             .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
             ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
@@ -89,60 +97,82 @@ public sealed class BookingService(
             throw new ValidationAppException("Ця локація зараз недоступна.", ErrorCodes.LocationInactive);
         }
 
-        var timeSlot = await db.TimeSlots.FirstOrDefaultAsync(t => t.Id == timeSlotId, ct)
-            ?? throw new NotFoundAppException(ErrorCodes.TimeSlotNotFound, "Час не знайдено.");
-        if (!timeSlot.IsActive)
+        var timeSlots = await db.TimeSlots.Where(t => timeSlotIds.Contains(t.Id))
+            .OrderBy(t => t.StartTime).ThenBy(t => t.Id).ToListAsync(ct);
+        if (timeSlots.Count != timeSlotIds.Count)
+            throw new NotFoundAppException(ErrorCodes.TimeSlotNotFound, "Час не знайдено.");
+        for (var index = 0; index < timeSlots.Count; index++)
         {
-            throw new ValidationAppException("Цей час зараз недоступний.", ErrorCodes.TimeSlotBlocked);
+            if (timeSlots[index].StartTime >= timeSlots[index].EndTime ||
+                (index > 0 && timeSlots[index - 1].EndTime != timeSlots[index].StartTime))
+                throw new ValidationAppException("Оберіть послідовні зміни без перерв та накладань.");
         }
 
-        var isBlocked = await db.DateTimeSlotExceptions
-            .AnyAsync(e => e.Date == date && e.TimeSlotId == timeSlotId && e.IsBlocked, ct);
-        if (isBlocked)
+        foreach (var timeSlot in timeSlots)
         {
-            throw new ValidationAppException("Цей час недоступний для обраної дати.", ErrorCodes.TimeSlotBlocked);
+            if (!timeSlot.IsActive)
+            {
+                throw new ValidationAppException("Цей час зараз недоступний.", ErrorCodes.TimeSlotBlocked);
+            }
+
+            var isBlocked = await db.DateTimeSlotExceptions
+                .AnyAsync(e => e.Date == date && e.TimeSlotId == timeSlot.Id && e.IsBlocked, ct);
+            if (isBlocked)
+            {
+                throw new ValidationAppException("Цей час недоступний для обраної дати.", ErrorCodes.TimeSlotBlocked);
+            }
+
+            if (availability.IsSlotTooSoon(date, timeSlot.StartTime))
+            {
+                throw new ValidationAppException(
+                    $"Запис можливий лише не раніше ніж за {_options.MinLeadTimeMinutes} хв до початку чергування.",
+                    ErrorCodes.SlotTooSoon);
+            }
+
         }
 
-        if (availability.IsSlotTooSoon(date, timeSlot.StartTime))
-        {
-            throw new ValidationAppException(
-                $"Запис можливий лише не раніше ніж за {_options.MinLeadTimeMinutes} хв до початку чергування.",
-                ErrorCodes.SlotTooSoon);
-        }
-
-        // The capacity check and confirmed insert share a lock to prevent overbooking.
+        // Lock every selected slot in a consistent order, then save all bookings together.
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
         var now = clock.UtcNow;
-        var activeCount = await CountActiveWithLockAsync(date, locationId, timeSlotId, now, ct);
-
-        if (await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId &&
-            b.TimeSlotId == timeSlotId && b.Phone == phone && b.Status != "Cancelled", ct))
-            throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
-                "З цим номером телефону вже є запис на цю дату, локацію та час.");
-
-        if (activeCount >= location.Capacity)
+        foreach (var timeSlot in timeSlots.OrderBy(t => t.Id))
         {
-            await tx.RollbackAsync(ct);
-            throw new ConflictAppException(ErrorCodes.SlotFull, "На цей час вже немає вільних місць (Зайнято).");
+            var activeCount = await CountActiveWithLockAsync(date, locationId, timeSlot.Id, now, ct);
+
+            if (await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId &&
+                b.TimeSlotId == timeSlot.Id && b.Phone == phone && b.Status != "Cancelled", ct))
+                throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
+                    "З цим номером телефону вже є запис на цю дату, локацію та час.");
+
+            if (activeCount >= location.Capacity)
+            {
+                await tx.RollbackAsync(ct);
+                throw new ConflictAppException(ErrorCodes.SlotFull, "На цей час вже немає вільних місць (Зайнято).");
+            }
+
         }
 
-        var booking = new Booking
+        var created = new List<Booking>();
+        foreach (var timeSlot in timeSlots)
         {
-            PublicNumber = BookingNumberGenerator.Generate(date),
-            LocationId = locationId,
-            Date = date,
-            TimeSlotId = timeSlotId,
-            Status = "Confirmed",
-            FirstName = fn,
-            LastName = ln,
-            Phone = phone,
-            ConfirmedAtUtc = now,
-            Location = location,
-            TimeSlot = timeSlot,
-        };
+            var booking = new Booking
+            {
+                PublicNumber = BookingNumberGenerator.Generate(date),
+                LocationId = locationId,
+                Date = date,
+                TimeSlotId = timeSlot.Id,
+                Status = "Confirmed",
+                FirstName = fn,
+                LastName = ln,
+                Phone = phone,
+                ConfirmedAtUtc = now,
+                Location = location,
+                TimeSlot = timeSlot,
+            };
 
-        db.Bookings.Add(booking);
+            db.Bookings.Add(booking);
+            created.Add(booking);
+        }
         try
         {
             await db.SaveChangesAsync(ct);
@@ -154,7 +184,10 @@ public sealed class BookingService(
         }
         await tx.CommitAsync(ct);
 
-        return await ToSummaryAsync(booking, ct);
+        var summaries = new List<BookingSummaryDto>();
+        foreach (var booking in created)
+            summaries.Add(await ToSummaryAsync(booking, ct));
+        return summaries;
     }
 
     public async Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct)

@@ -10,6 +10,7 @@ export default function DayCell({
     isSelected,
     isToday,
     onSelect,
+    onUnavailable,
 }: {
     date: string;
     isAvailable: boolean;
@@ -17,19 +18,23 @@ export default function DayCell({
     isSelected?: boolean;
     isToday: boolean;
     onSelect: (date: string) => void;
+    onUnavailable?: (date: string) => void;
 }) {
     const disabled = !isAvailable;
     const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є зміни' : 'немає змін'}`;
 
     return (
         <Button
-            disabled={disabled}
-            tabIndex={disabled ? -1 : 0}
+            disabled={disabled && !onUnavailable}
+            tabIndex={disabled && !onUnavailable ? -1 : 0}
             aria-disabled={disabled}
             aria-label={label}
             aria-pressed={Boolean(isSelected)}
             aria-current={isToday ? 'date' : undefined}
-            onClick={() => onSelect(date)}
+            onClick={() => {
+                if (disabled) onUnavailable?.(date);
+                else onSelect(date);
+            }}
             sx={{
                 position: 'relative',
                 minWidth: 44,

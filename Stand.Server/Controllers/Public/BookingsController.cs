@@ -38,6 +38,20 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
         return Ok(result);
     }
 
+    /// <summary>Books a continuous range of shifts together in one transaction.</summary>
+    [HttpPost("batch")]
+    public async Task<IActionResult> CreateMany([FromBody] CreateBookingsRequestDto request, CancellationToken ct)
+    {
+        if (!DateOnly.TryParse(request.Date, out var date))
+            throw new ValidationAppException("Некоректна дата.");
+        if (request.TimeSlotIds is null || request.TimeSlotIds.Count == 0)
+            throw new ValidationAppException("Оберіть час.");
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+
+        return Ok(await bookings.BookManyAsync(date, request.LocationId, request.TimeSlotIds, userId, ct));
+    }
+
     /// <summary>Fetches a booking summary by its cancel token (success / cancel pages).</summary>
     [HttpGet("{cancelToken:guid}")]
     public async Task<IActionResult> GetByToken(Guid cancelToken, CancellationToken ct)
