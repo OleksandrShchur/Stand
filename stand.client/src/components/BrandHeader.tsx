@@ -6,7 +6,7 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 
-export default function BrandHeader() {
+export default function BrandHeader({ onHome }: { onHome?: () => void }) {
     const [supportOpen, setSupportOpen] = useState(false);
 
     return (
@@ -14,7 +14,18 @@ export default function BrandHeader() {
             <AppBar position="sticky" elevation={0}>
                 <Toolbar sx={{ py: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        <IconButton component={RouterLink} to="/" color="inherit" aria-label="На головну">
+                        <IconButton
+                            component={RouterLink}
+                            to="/"
+                            color="inherit"
+                            aria-label="На головну"
+                            onClick={(event) => {
+                                if (onHome) {
+                                    event.preventDefault();
+                                    onHome();
+                                }
+                            }}
+                        >
                             <HomeOutlinedIcon sx={{ fontSize: 30 }} />
                         </IconButton>
                         <Box>

@@ -108,7 +108,7 @@ export default function BookingWizardPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader />
+            <BrandHeader onHome={returnHome} />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
             <Container maxWidth="sm" sx={pagePadding}>
