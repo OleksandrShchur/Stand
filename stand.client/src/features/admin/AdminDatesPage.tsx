@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-    Box, Button, Card, CardContent, Checkbox, FormControlLabel, FormGroup, IconButton,
+    Box, Button, Card, CardContent, Checkbox, CircularProgress, FormControlLabel, FormGroup, IconButton,
     Stack, ToggleButton, Typography,
 } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -31,6 +31,7 @@ export default function AdminDatesPage() {
     const [activeMap, setActiveMap] = useState<Record<string, boolean>>({});
     const [bulkWeekdays, setBulkWeekdays] = useState<number[]>([1, 2, 3, 4, 5]);
     const [bulkBusy, setBulkBusy] = useState(false);
+    const [pendingDate, setPendingDate] = useState<string | null>(null);
 
     const daysInMonth = new Date(year, month, 0).getDate();
     const firstWeekday = (new Date(year, month - 1, 1).getDay() + 6) % 7; // 0=Mon
@@ -62,9 +63,16 @@ export default function AdminDatesPage() {
     };
 
     const toggleDay = (date: string) => {
+        if (pendingDate || bulkBusy) return;
         const next = !activeMap[date];
+        setPendingDate(date);
         setActiveMap((m) => ({ ...m, [date]: next }));
-        adminApi.setDate(date, next).catch(() => load());
+        adminApi.setDate(date, next)
+            .catch(() => {
+                setActiveMap((m) => ({ ...m, [date]: !next }));
+                setError('Не вдалося зберегти дату. Спробуйте ще раз.');
+            })
+            .finally(() => setPendingDate(null));
     };
 
     const runBulk = (isActive: boolean) => {
@@ -92,9 +100,9 @@ export default function AdminDatesPage() {
             <Card variant="outlined" sx={{ mb: 3 }}>
                 <CardContent>
                     <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between' }}>
-                        <IconButton onClick={() => changeMonth(-1)}><ChevronLeftIcon /></IconButton>
+                        <IconButton disabled={bulkBusy || !!pendingDate || loading} onClick={() => changeMonth(-1)}><ChevronLeftIcon /></IconButton>
                         <Typography variant="h6">{MONTH_NAMES[month - 1]} {year}</Typography>
-                        <IconButton onClick={() => changeMonth(1)}><ChevronRightIcon /></IconButton>
+                        <IconButton disabled={bulkBusy || !!pendingDate || loading} onClick={() => changeMonth(1)}><ChevronRightIcon /></IconButton>
                     </Stack>
 
                     {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
@@ -107,6 +115,8 @@ export default function AdminDatesPage() {
                                 <ToggleButton
                                     key={c.date}
                                     value={c.date}
+                                    disabled={bulkBusy || !!pendingDate}
+                                    aria-label={`${c.day}, ${MONTH_NAMES[month - 1]}${pendingDate === c.date ? ', зберігаємо' : ''}`}
                                     selected={!!activeMap[c.date]}
                                     onChange={() => toggleDay(c.date!)}
                                     size="small"
@@ -117,7 +127,7 @@ export default function AdminDatesPage() {
                                         '&.Mui-selected': { bgcolor: 'primary.main', color: 'common.white', '&:hover': { bgcolor: 'primary.dark' } },
                                     }}
                                 >
-                                    {c.day}
+                                    {pendingDate === c.date ? <CircularProgress size={18} color="inherit" aria-label="Зберігаємо дату" /> : c.day}
                                 </ToggleButton>
                             ) : <Box key={`empty-${idx}`} />)}
                         </Box>
@@ -149,8 +159,8 @@ export default function AdminDatesPage() {
                         ))}
                     </FormGroup>
                     <Stack direction="row" spacing={1.5}>
-                        <Button variant="contained" disabled={bulkBusy} onClick={() => runBulk(true)}>Увімкнути обрані дні</Button>
-                        <Button variant="outlined" color="error" disabled={bulkBusy} onClick={() => runBulk(false)}>Вимкнути обрані дні</Button>
+                        <Button loading={bulkBusy} variant="contained" disabled={loading || !!pendingDate} onClick={() => runBulk(true)}>Увімкнути обрані дні</Button>
+                        <Button loading={bulkBusy} variant="outlined" color="error" disabled={loading || !!pendingDate} onClick={() => runBulk(false)}>Вимкнути обрані дні</Button>
                     </Stack>
                 </CardContent>
             </Card>

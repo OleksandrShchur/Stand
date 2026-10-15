@@ -51,7 +51,7 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
         };
     }, [date]);
 
-    if (loading) return <SkeletonList rows={4} />;
+    if (loading) return <SkeletonList label="Перевіряємо доступність локацій…" rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (

@@ -39,6 +39,7 @@ export default function WizardProgress({ current, onNavigate }: { current: Wizar
                             sx={{
                                 width: '100%',
                                 height: active ? 7 : 5,
+                                transition: 'height 180ms ease, background-color 180ms ease',
                                 borderRadius: 3,
                                 backgroundColor: i <= currentIndex ? 'primary.main' : 'divider',
                             }}

@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="xs" sx={pagePadding}>
+            <Container className="content-enter" maxWidth="xs" sx={pagePadding}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -58,7 +58,7 @@ export default function AdminLoginPage() {
 
                             {error && <ErrorState message={error} />}
 
-                            <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
+                            <Button loading={submitting} type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
                                 {submitting ? 'Входимо…' : 'Увійти'}
                             </Button>
                         </Box>

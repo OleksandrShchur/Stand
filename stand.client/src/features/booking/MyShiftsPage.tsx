@@ -97,9 +97,9 @@ export default function MyShiftsPage() {
                     Запис підтверджено. Кількість доданих записів: {bookedCount}.
                 </Alert>
             </Snackbar>
-            <Container maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Container className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
-                    {loading && <SkeletonList rows={2} />}
+                    {loading && <SkeletonList label="Завантажуємо ваші записи…" rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}
                     {!loading && !error && shifts.length === 0 && (
                         <Card variant="outlined">
@@ -237,7 +237,7 @@ export default function MyShiftsPage() {
                 actions={
                     <>
                         <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
-                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
+                        <Button loading={cancelling} color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
                             {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
                         </Button>
                     </>

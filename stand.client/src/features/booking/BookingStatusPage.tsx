@@ -70,7 +70,7 @@ export default function BookingStatusPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={pagePadding}>
+            <Container className="content-enter" maxWidth="sm" sx={pagePadding}>
                 {!justBooked && (
                     <Stack direction="row" sx={{ mb: 1, minHeight: 44, alignItems: 'center' }}>
                         <Tooltip title={bookingCopy.back}>
@@ -162,7 +162,7 @@ export default function BookingStatusPage() {
                 actions={
                     <>
                         <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setConfirmOpen(false)}>{bookingCopy.keepBooking}</Button>
-                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={handleCancel}>
+                        <Button loading={cancelling} color="error" variant="contained" fullWidth disabled={cancelling} onClick={handleCancel}>
                             {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
                         </Button>
                     </>

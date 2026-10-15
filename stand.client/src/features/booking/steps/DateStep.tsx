@@ -93,7 +93,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
 
     const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()}`;
 
-    if (loading) return <SkeletonList rows={4} />;
+    if (loading) return <SkeletonList label="Завантажуємо доступні дати…" rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (

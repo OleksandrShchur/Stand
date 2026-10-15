@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-    Box, Button, Card, CardContent, FormControlLabel, IconButton, MenuItem, Paper, Stack,
+    Box, Button, Card, CardContent, CircularProgress, FormControlLabel, IconButton, MenuItem, Paper, Stack,
     Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
@@ -21,6 +21,7 @@ export default function AdminExceptionsPage() {
     const [isBlocked, setIsBlocked] = useState(true);
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
+    const [deletingId, setDeletingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
 
     const load = () => {
@@ -45,7 +46,11 @@ export default function AdminExceptionsPage() {
     };
 
     const removeException = (id: number) => {
-        adminApi.deleteException(id).then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося видалити.'));
+        if (deletingId !== null) return;
+        setDeletingId(id);
+        adminApi.deleteException(id).then(load)
+            .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося видалити.'))
+            .finally(() => setDeletingId(null));
     };
 
     if (loading) return <LoadingState />;
@@ -79,7 +84,7 @@ export default function AdminExceptionsPage() {
                             label="Заблокувати"
                             sx={{ whiteSpace: 'nowrap' }}
                         />
-                        <Button variant="contained" disabled={saving} onClick={addException} sx={{ height: 56 }}>
+                        <Button loading={saving} variant="contained" disabled={saving} onClick={addException} sx={{ height: 56 }}>
                             Додати
                         </Button>
                     </Stack>
@@ -111,8 +116,8 @@ export default function AdminExceptionsPage() {
                                     <TableCell>{item.isBlocked ? 'Заблоковано' : 'Дозволено'}</TableCell>
                                     <TableCell>{item.note}</TableCell>
                                     <TableCell align="center">
-                                        <IconButton size="small" onClick={() => removeException(item.id)}>
-                                            <DeleteOutlineIcon fontSize="small" />
+                                        <IconButton aria-label="Видалити виняток" disabled={deletingId !== null} size="small" onClick={() => removeException(item.id)}>
+                                            {deletingId === item.id ? <CircularProgress size={18} color="inherit" aria-label="Видаляємо виняток" /> : <DeleteOutlineIcon fontSize="small" />}
                                         </IconButton>
                                     </TableCell>
                                 </TableRow>

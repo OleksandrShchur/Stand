@@ -57,7 +57,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
             }).finally(() => setSubmitting(false));
     };
 
-    if (loading) return <SkeletonList rows={3} />;
+    if (loading) return <SkeletonList label="Завантажуємо деталі чергування…" rows={3} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
     if (!slots.length) return null;
 
@@ -114,7 +114,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                             <Button variant="outlined" size="large" disabled={submitting} onClick={onBack} sx={{ minHeight: 56, flexShrink: 0 }}>
                                 {bookingCopy.back}
                             </Button>
-                            <Button variant="contained" size="large" disabled={submitting || !isContinuousSelection(slots)} onClick={confirm} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
+                            <Button loading={submitting} variant="contained" size="large" disabled={submitting || !isContinuousSelection(slots)} onClick={confirm} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
                                 {submitting ? bookingCopy.confirming : bookingCopy.confirmAction}
                             </Button>
                         </Stack>

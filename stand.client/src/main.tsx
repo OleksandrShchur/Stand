@@ -6,12 +6,14 @@ import CssBaseline from '@mui/material/CssBaseline';
 import theme from './theme';
 import './index.css';
 import App from './App.tsx';
+import RequestProgress from './components/RequestProgress';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <BrowserRouter>
+        <RequestProgress />
         <App />
       </BrowserRouter>
     </ThemeProvider>

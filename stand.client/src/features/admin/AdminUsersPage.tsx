@@ -21,6 +21,7 @@ export default function AdminUsersPage() {
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [saving, setSaving] = useState(false);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
 
     const load = () => {
@@ -45,8 +46,10 @@ export default function AdminUsersPage() {
     };
 
     const toggle = (u: AdminUserDto) => {
+        if (updatingId !== null) return;
+        setUpdatingId(u.id);
         const action = u.isActive ? adminApi.disableUser(u.id) : adminApi.enableUser(u.id);
-        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.'));
+        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.')).finally(() => setUpdatingId(null));
     };
 
     if (loading) return <LoadingState />;
@@ -82,7 +85,7 @@ export default function AdminUsersPage() {
                                 <TableCell>{u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : '—'}</TableCell>
                                 <TableCell align="center">
                                     {u.id !== currentUser?.id && (
-                                        <IconButton size="small" onClick={() => toggle(u)}>
+                                        <IconButton aria-busy={updatingId === u.id} disabled={updatingId !== null} size="small" onClick={() => toggle(u)}>
                                             {u.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
                                         </IconButton>
                                     )}
@@ -93,7 +96,7 @@ export default function AdminUsersPage() {
                 </Table>
             </TableContainer>
 
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">
+            <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="xs">
                 <DialogTitle>Новий адміністратор</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                     <TextField label="Логін" value={login} onChange={(e) => setLogin(e.target.value)} fullWidth autoFocus />
@@ -102,8 +105,8 @@ export default function AdminUsersPage() {
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Скасувати</Button>
-                    <Button variant="contained" disabled={saving || !login || !password} onClick={create}>
+                    <Button disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
+                    <Button loading={saving} variant="contained" disabled={saving || !login || !password} onClick={create}>
                         {saving ? 'Створюємо…' : 'Створити'}
                     </Button>
                 </DialogActions>

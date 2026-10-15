@@ -79,6 +79,8 @@ const theme = createTheme({
             styleOverrides: {
                 root: {
                     borderRadius: 8,
+                    animation: 'content-enter 200ms ease-out',
+                    transition: 'border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease',
                 },
             },
         },

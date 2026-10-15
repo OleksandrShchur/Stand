@@ -21,6 +21,7 @@ export default function AdminTimeSlotsPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [form, setForm] = useState<FormState>(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
 
     const load = () => {
@@ -52,8 +53,10 @@ export default function AdminTimeSlotsPage() {
     };
 
     const toggleActive = (slot: TimeSlotAdminDto) => {
+        if (updatingId !== null) return;
+        setUpdatingId(slot.id);
         const action = slot.isActive ? adminApi.deactivateTimeSlot(slot.id) : adminApi.activateTimeSlot(slot.id);
-        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.'));
+        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.')).finally(() => setUpdatingId(null));
     };
 
     if (loading) return <LoadingState />;
@@ -89,7 +92,7 @@ export default function AdminTimeSlotsPage() {
                                 <TableCell sx={{ fontWeight: 600 }}>{slot.endTime}</TableCell>
                                 <TableCell align="center">{slot.sortOrder}</TableCell>
                                 <TableCell align="center">
-                                    <Switch checked={slot.isActive} onChange={() => toggleActive(slot)} size="small" />
+                                    <Switch aria-busy={updatingId === slot.id} disabled={updatingId !== null} checked={slot.isActive} onChange={() => toggleActive(slot)} size="small" />
                                 </TableCell>
                                 <TableCell align="center">
                                     <IconButton size="small" onClick={() => openEdit(slot)}><EditIcon fontSize="small" /></IconButton>
@@ -100,7 +103,7 @@ export default function AdminTimeSlotsPage() {
                 </Table>
             </TableContainer>
 
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="xs">
+            <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="xs">
                 <DialogTitle>{editing ? 'Редагувати час' : 'Новий час'}</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                     <TextField
@@ -133,8 +136,8 @@ export default function AdminTimeSlotsPage() {
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Скасувати</Button>
-                    <Button variant="contained" disabled={saving} onClick={save}>
+                    <Button disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
+                    <Button loading={saving} variant="contained" disabled={saving} onClick={save}>
                         {saving ? 'Зберігаємо…' : 'Зберегти'}
                     </Button>
                 </DialogActions>
