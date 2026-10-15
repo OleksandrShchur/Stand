@@ -3,7 +3,7 @@ import ShiftDetailsTable from './components/ShiftDetailsTable';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, IconButton, MenuItem, Stack, TextField, Tooltip, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import AppDialog from '../../components/AppDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -12,9 +12,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ukUA } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
-import AddIcon from '@mui/icons-material/Add';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -84,34 +81,9 @@ export default function MyShiftsPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader />
-            <Container maxWidth="sm" sx={pagePadding}>
+            <BrandHeader title={`${bookingCopy.myShiftsButton}${!loading && !error ? ` (${shifts.length})` : ''}`} />
+            <Container maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 44 }}>
-                        <Tooltip title={bookingCopy.back}>
-                            <IconButton aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }} onClick={() => {
-                                clearWizardState();
-                                navigate('/');
-                            }}>
-                                <ArrowBackIcon />
-                            </IconButton>
-                        </Tooltip>
-                        <Typography variant="h5" sx={{ whiteSpace: 'nowrap' }}>{bookingCopy.myShiftsButton}</Typography>
-                        {!loading && !error && (
-                            <Typography variant="body2" color="text.secondary" aria-label={bookingCopy.upcomingCount(shifts.length)}>
-                                ({shifts.length})
-                            </Typography>
-                        )}
-                        <Box sx={{ flex: 1 }} />
-                        <Tooltip title={bookingCopy.home}>
-                            <IconButton aria-label={bookingCopy.home} color="primary" sx={{ minWidth: 44, minHeight: 44 }} onClick={() => {
-                                clearWizardState();
-                                navigate('/');
-                            }}>
-                                <HomeOutlinedIcon />
-                            </IconButton>
-                        </Tooltip>
-                    </Stack>
                     {loading && <SkeletonList rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}
                     {!loading && !error && shifts.length === 0 && (
@@ -201,11 +173,11 @@ export default function MyShiftsPage() {
                     {!loading && !error && shifts.length > 0 && filtered.length === 0 && (
                         <Box>
                             <Typography color="text.secondary">{bookingCopy.noMatchingShifts}</Typography>
-                            <Button onClick={() => { setDateFilter(''); setLocationFilter(''); }}>{bookingCopy.resetFilters}</Button>
+                            <Button variant="outlined" sx={{ mt: 1.5 }} onClick={() => { setDateFilter(''); setLocationFilter(''); }}>{bookingCopy.resetFilters}</Button>
                         </Box>
                     )}
                     {!loading && !error && filtered.map((shift) => (
-                        <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                        <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                             <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                 <Box sx={{ flex: 1, minWidth: 0 }}>
                                     <ShiftDetailsTable shift={shift} />
@@ -214,7 +186,6 @@ export default function MyShiftsPage() {
                                 </Box>
                                 <Divider sx={{ my: 1 }} />
                                 <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
-                                    <Button variant="outlined" onClick={() => navigate(`/booking/${shift.cancelToken}`)}>{bookingCopy.shiftDetails}</Button>
                                     <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
                                         setCancelError(null);
                                         setShiftToCancel(shift);
@@ -225,11 +196,23 @@ export default function MyShiftsPage() {
                             </CardContent>
                         </Card>
                     ))}
-                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={() => navigate('/', { state: { startBooking: true } })}>
-                        {bookingCopy.startBooking}
-                    </Button>
                 </Stack>
             </Container>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" size="large" onClick={() => {
+                            clearWizardState();
+                            navigate('/');
+                        }} sx={{ minHeight: 56, flexShrink: 0 }}>
+                            {bookingCopy.back}
+                        </Button>
+                        <Button variant="contained" size="large" onClick={() => navigate('/', { state: { startBooking: true } })} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
+                            {bookingCopy.startBooking}
+                        </Button>
+                    </Stack>
+                </Container>
+            </Box>
             <AppDialog
                 open={Boolean(shiftToCancel)}
                 onClose={() => { if (!cancelling) setShiftToCancel(null); }}

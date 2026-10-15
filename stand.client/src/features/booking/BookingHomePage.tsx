@@ -1,9 +1,7 @@
-import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -33,7 +31,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={pagePadding}>
+            <Container maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Card variant="outlined">
                         <CardContent>
@@ -49,8 +47,6 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                                         return (
                                             <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
                                                 <ShiftDetailsTable shift={shift} />
-                                                <Divider sx={{ mt: 1.5 }} />
-                                                <ParticipantList participants={shift.participants} dashed />
                                             </Box>
                                         );
                                     })}
@@ -62,11 +58,15 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                             </Button>
                         </CardContent>
                     </Card>
-                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={onStart}>
-                        {bookingCopy.startBooking}
-                    </Button>
                 </Stack>
             </Container>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                    <Button variant="contained" size="large" fullWidth onClick={onStart} sx={{ minHeight: 56 }}>
+                        {bookingCopy.startBooking}
+                    </Button>
+                </Container>
+            </Box>
         </Box>
     );
 }
