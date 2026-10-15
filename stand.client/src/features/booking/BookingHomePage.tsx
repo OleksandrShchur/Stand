@@ -32,7 +32,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={pagePadding}>
+            <Container maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Card variant="outlined">
                         <CardContent>
@@ -59,11 +59,15 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                             </Button>
                         </CardContent>
                     </Card>
-                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={onStart}>
-                        {bookingCopy.startBooking}
-                    </Button>
                 </Stack>
             </Container>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={onStart} sx={{ minHeight: 56 }}>
+                        {bookingCopy.startBooking}
+                    </Button>
+                </Container>
+            </Box>
         </Box>
     );
 }
