@@ -1,7 +1,6 @@
 import ParticipantList from '../components/ParticipantList';
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
-import CheckIcon from '@mui/icons-material/Check';
+import { Box, Button, Card, CardContent, Container, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
@@ -9,8 +8,9 @@ import type { BookingSummaryDto, SlotAvailabilityDto } from '../../../api/types'
 import { formatDateFull, todayIso } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { isContinuousSelection, sortSlots } from '../slotSelection';
+import { pagePadding } from '../../../layoutSpacing';
 
-export default function ShiftDetailsStep({ date, locationId, locationName, locationAddress, timeSlotId, timeSlotIds, onConfirmed, onUnavailable }: {
+export default function ShiftDetailsStep({ date, locationId, locationName, locationAddress, timeSlotId, timeSlotIds, onConfirmed, onUnavailable, onBack }: {
     date: string;
     locationId: number;
     locationName: string;
@@ -19,6 +19,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     timeSlotIds?: number[];
     onConfirmed?: (summaries: BookingSummaryDto[]) => void;
     onUnavailable?: (message?: string) => void;
+    onBack: () => void;
 }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -61,9 +62,9 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     if (!slots.length) return null;
 
     return (
-        <Box>
+        <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
             <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
-            <Card variant="outlined">
+            <Card variant="outlined" sx={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                 <CardContent>
                     <Typography variant="h5" sx={{ fontWeight: 800 }}>
                         {formatDateFull(date)}
@@ -88,18 +89,24 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
             </Card>
 
             {bookingError && <Box sx={{ mt: 2 }}><ErrorState message={bookingError} /></Box>}
+            {canConfirm && !isContinuousSelection(slots) && (
+                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                    <Typography variant="body2" color="text.secondary">Запис на цей час недоступний.</Typography>
+                    {onUnavailable && <Button variant="outlined" fullWidth onClick={() => onUnavailable(bookingCopy.conflict)}>Обрати час ще раз</Button>}
+                </Stack>
+            )}
             {canConfirm && (
-                <Box sx={{ mt: 2 }}>
-                    {isContinuousSelection(slots) ? (
-                        <Button variant="contained" size="large" fullWidth startIcon={<CheckIcon />} disabled={submitting} onClick={confirm}>
-                            {submitting ? bookingCopy.confirming : bookingCopy.confirmAction}
-                        </Button>
-                    ) : (
-                        <Stack spacing={1.5}>
-                            <Typography variant="body2" color="text.secondary">Запис на цей час недоступний.</Typography>
-                            {onUnavailable && <Button variant="outlined" fullWidth onClick={() => onUnavailable(bookingCopy.conflict)}>Обрати час ще раз</Button>}
+                <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                    <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                        <Stack direction="row" spacing={1}>
+                            <Button variant="outlined" size="large" disabled={submitting} onClick={onBack} sx={{ minHeight: 56, flexShrink: 0 }}>
+                                {bookingCopy.back}
+                            </Button>
+                            <Button variant="contained" size="large" disabled={submitting || !isContinuousSelection(slots)} onClick={confirm} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
+                                {submitting ? bookingCopy.confirming : bookingCopy.confirmAction}
+                            </Button>
                         </Stack>
-                    )}
+                    </Container>
                 </Box>
             )}
         </Box>

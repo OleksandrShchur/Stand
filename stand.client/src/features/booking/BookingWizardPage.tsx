@@ -152,6 +152,7 @@ export default function BookingWizardPage() {
                                     locationName={state.locationName}
                                     locationAddress={state.locationAddress}
                                     onUnavailable={backToTime}
+                                    onBack={() => backToTime()}
                                     onConfirmed={state.step === 'contact' ? onConfirmed : undefined}
                                 />
                             )}
