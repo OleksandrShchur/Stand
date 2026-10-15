@@ -18,7 +18,6 @@ import {
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
-import AddIcon from '@mui/icons-material/Add';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
 import AppDialog from '../../components/AppDialog';
@@ -131,7 +130,7 @@ export default function BookingStatusPage() {
                             }}>
                                 {bookingCopy.home}
                             </Button>
-                            <Button variant="text" fullWidth startIcon={<AddIcon />} sx={{ minHeight: 48 }} onClick={() => navigate('/', { state: { startBooking: true } })}>
+                            <Button variant="text" fullWidth sx={{ minHeight: 48 }} onClick={() => navigate('/', { state: { startBooking: true } })}>
                                 {bookingCopy.bookMore}
                             </Button>
                         </Stack>

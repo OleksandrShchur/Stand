@@ -12,7 +12,6 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ukUA } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
-import AddIcon from '@mui/icons-material/Add';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
@@ -85,7 +84,7 @@ export default function MyShiftsPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="sm" sx={pagePadding}>
+            <Container maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minHeight: 44 }}>
                         <Tooltip title={bookingCopy.back}>
@@ -225,11 +224,23 @@ export default function MyShiftsPage() {
                             </CardContent>
                         </Card>
                     ))}
-                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={() => navigate('/', { state: { startBooking: true } })}>
-                        {bookingCopy.startBooking}
-                    </Button>
                 </Stack>
             </Container>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" size="large" onClick={() => {
+                            clearWizardState();
+                            navigate('/');
+                        }} sx={{ minHeight: 56, flexShrink: 0 }}>
+                            {bookingCopy.back}
+                        </Button>
+                        <Button variant="contained" size="large" onClick={() => navigate('/', { state: { startBooking: true } })} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
+                            {bookingCopy.startBooking}
+                        </Button>
+                    </Stack>
+                </Container>
+            </Box>
             <AppDialog
                 open={Boolean(shiftToCancel)}
                 onClose={() => { if (!cancelling) setShiftToCancel(null); }}

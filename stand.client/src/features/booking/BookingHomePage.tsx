@@ -2,7 +2,6 @@ import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import BrandHeader from '../../components/BrandHeader';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -61,9 +60,9 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                     </Card>
                 </Stack>
             </Container>
-            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
-                    <Button variant="contained" size="large" fullWidth startIcon={<AddIcon />} onClick={onStart} sx={{ minHeight: 56 }}>
+                    <Button variant="contained" size="large" fullWidth onClick={onStart} sx={{ minHeight: 56 }}>
                         {bookingCopy.startBooking}
                     </Button>
                 </Container>
