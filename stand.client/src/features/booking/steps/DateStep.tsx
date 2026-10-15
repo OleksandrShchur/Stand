@@ -12,6 +12,7 @@ import { pagePadding } from '../../../layoutSpacing';
 import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
 import { bookingCopy } from '../bookingCopy';
+import { loadCalendarWithAvailability } from '../locationAvailability';
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
 
@@ -43,7 +44,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
     const load = () => {
         setLoading(true);
         setError(null);
-        publicApi.getCalendar()
+        loadCalendarWithAvailability(publicApi)
             .then(applyCalendar)
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.'))
             .finally(() => setLoading(false));
@@ -54,7 +55,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
     useEffect(() => {
         let active = true;
         const refresh = () => {
-            publicApi.getCalendar().then((calendar) => {
+            loadCalendarWithAvailability(publicApi).then((calendar) => {
                 if (active) applyCalendar(calendar);
             }).catch(() => { /* Keep the last calendar when a background refresh fails. */ });
         };

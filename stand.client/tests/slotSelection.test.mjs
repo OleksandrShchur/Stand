@@ -15,7 +15,7 @@ const locationSource = readFileSync(new URL('../src/features/booking/locationAva
 const locationOutput = ts.transpileModule(locationSource, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText
     .replace(/from ['"]\.\/slotSelection['"]/g, `from '${selectionModuleUrl}'`)
     .replace(/from ['"]\.\/slotTimeStatus['"]/g, `from '${timeModuleUrl}'`);
-const { loadLocationsWithAvailability } = await import(`data:text/javascript;base64,${Buffer.from(locationOutput).toString('base64')}`);
+const { loadLocationsWithAvailability, loadCalendarWithAvailability } = await import(`data:text/javascript;base64,${Buffer.from(locationOutput).toString('base64')}`);
 
 const slot = (id, start, end, overrides = {}) => ({
     timeSlotId: id, startTime: start, endTime: end,
@@ -152,4 +152,58 @@ test('known server availability avoids extra slot requests', async () => {
         getSlots: async () => { assert.fail('Known availability should not trigger fallback requests'); },
     });
     assert.deepEqual(result, locations);
+});
+
+const calendar = {
+    bookableDates: ['2026-10-15', '2026-10-16'],
+    pastDates: ['2026-10-14'],
+    earliestBookableDate: '2026-10-15', latestBookableDate: '2026-10-29',
+};
+
+test('calendar makes 15 October read-only when every location has closed booking', async () => {
+    const result = await loadCalendarWithAvailability({
+        getCalendar: async () => calendar,
+        getLocations: async () => [{ id: 1 }, { id: 2 }],
+        getSlots: async () => [
+            slot(1, '09:00', '11:00', { isTooSoon: true, isBookable: false }),
+            slot(2, '15:00', '17:00', { isTooSoon: true, isBookable: false }),
+            slot(3, '17:00', '19:00', { isTooSoon: true, isBookable: false }),
+        ],
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.deepEqual(result.bookableDates, ['2026-10-16']);
+    assert.deepEqual(result.readOnlyDates, ['2026-10-15']);
+    assert.deepEqual(result.pastDates, ['2026-10-14']);
+    assert.deepEqual(calendar.bookableDates, ['2026-10-15', '2026-10-16']);
+});
+
+test('calendar keeps today bookable if any location still has an available shift', async () => {
+    const result = await loadCalendarWithAvailability({
+        getCalendar: async () => calendar,
+        getLocations: async () => [{ id: 1, hasAvailableBookings: false }, { id: 2, hasAvailableBookings: true }],
+        getSlots: async () => { assert.fail('Server availability should be reused'); },
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.equal(result, calendar);
+});
+
+test('calendar refresh changes today to read-only when the final slot closes', async () => {
+    const api = {
+        getCalendar: async () => calendar,
+        getLocations: async () => [{ id: 1 }],
+        getSlots: async () => [slot(1, '17:00', '19:00')],
+    };
+    const before = await loadCalendarWithAvailability(api, new Date('2026-10-15T16:30:00+03:00'));
+    const after = await loadCalendarWithAvailability(api, new Date('2026-10-15T17:00:00+03:00'));
+    assert.equal(before.bookableDates.includes('2026-10-15'), true);
+    assert.equal(after.bookableDates.includes('2026-10-15'), false);
+    assert.equal(after.readOnlyDates.includes('2026-10-15'), true);
+});
+
+test('already read-only or unavailable dates do not trigger additional availability requests', async () => {
+    const closed = { ...calendar, bookableDates: ['2026-10-16'], readOnlyDates: ['2026-10-15'] };
+    const result = await loadCalendarWithAvailability({
+        getCalendar: async () => closed,
+        getLocations: async () => { assert.fail('Already read-only calendar needs no fallback'); },
+        getSlots: async () => { assert.fail('Already read-only calendar needs no fallback'); },
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.equal(result, closed);
 });
