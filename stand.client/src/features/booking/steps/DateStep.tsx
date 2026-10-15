@@ -73,38 +73,40 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
                     <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
                 </Stack>
             </Stack>
-            <Box sx={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 44px', alignItems: 'center', mb: 2 }}>
-                <Tooltip title="Попередній місяць">
-                    <IconButton aria-label="Попередній місяць" onClick={() => changeMonth(-1)} sx={{ minWidth: 44, minHeight: 44 }}>
-                        <ChevronLeftIcon />
-                    </IconButton>
-                </Tooltip>
-                <Typography component="h2" variant="h6" aria-live="polite" sx={{ textAlign: 'center', textTransform: 'capitalize', fontSize: 18 }}>
-                    {monthLabel}
-                </Typography>
-                <Tooltip title="Наступний місяць">
-                    <IconButton aria-label="Наступний місяць" onClick={() => changeMonth(1)} sx={{ minWidth: 44, minHeight: 44 }}>
-                        <ChevronRightIcon />
-                    </IconButton>
-                </Tooltip>
-            </Box>
-            <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: { xs: 0.5, sm: 1 } }}>
-                {WEEKDAYS.map((day) => (
-                    <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 700, fontSize: 12, color: 'text.secondary', pb: 0.75 }}>
-                        {day}
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', p: 1 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 44px', alignItems: 'center', mb: 2 }}>
+                    <Tooltip title="Попередній місяць">
+                        <IconButton aria-label="Попередній місяць" onClick={() => changeMonth(-1)} sx={{ minWidth: 44, minHeight: 44 }}>
+                            <ChevronLeftIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Typography component="h2" variant="h6" aria-live="polite" sx={{ textAlign: 'center', textTransform: 'capitalize', fontSize: 18 }}>
+                        {monthLabel}
                     </Typography>
-                ))}
-                {cells.map((date, index) => date ? (
-                    <DayCell
-                        key={date}
-                        date={date}
-                        isAvailable={bookable.has(date) || pastDates.has(date)}
-                        readOnly={pastDates.has(date)}
-                        isSelected={selectedDate === date}
-                        isToday={date === today}
-                        onSelect={onSelect}
-                    />
-                ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}
+                    <Tooltip title="Наступний місяць">
+                        <IconButton aria-label="Наступний місяць" onClick={() => changeMonth(1)} sx={{ minWidth: 44, minHeight: 44 }}>
+                            <ChevronRightIcon />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: { xs: 0.5, sm: 1 } }}>
+                    {WEEKDAYS.map((day) => (
+                        <Typography key={day} variant="caption" sx={{ textAlign: 'center', fontWeight: 700, fontSize: 12, color: 'text.secondary', pb: 0.75 }}>
+                            {day}
+                        </Typography>
+                    ))}
+                    {cells.map((date, index) => date ? (
+                        <DayCell
+                            key={date}
+                            date={date}
+                            isAvailable={bookable.has(date) || pastDates.has(date)}
+                            readOnly={pastDates.has(date)}
+                            isSelected={selectedDate === date}
+                            isToday={date === today}
+                            onSelect={onSelect}
+                        />
+                    ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}
+                </Box>
             </Box>
             <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
