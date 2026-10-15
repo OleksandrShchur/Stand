@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { AppBar, Box, Button, Link, Stack, Toolbar, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
+import { AppBar, Box, Button, IconButton, Link, Stack, Toolbar, Typography } from '@mui/material';
 import AppDialog from './AppDialog';
-import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 
@@ -13,7 +14,9 @@ export default function BrandHeader() {
             <AppBar position="sticky" elevation={0}>
                 <Toolbar sx={{ py: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        <VolunteerActivismIcon fontSize="medium" />
+                        <IconButton component={RouterLink} to="/" color="inherit" aria-label="На головну">
+                            <HomeOutlinedIcon sx={{ fontSize: 30 }} />
+                        </IconButton>
                         <Box>
                             <Typography variant="subtitle1" component="div" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
                                 Стенди
