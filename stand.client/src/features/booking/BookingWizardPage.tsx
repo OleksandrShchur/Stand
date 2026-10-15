@@ -70,7 +70,7 @@ export default function BookingWizardPage() {
         }));
 
     const backToDate = () => setState({ step: 'date', date: state.date });
-    const backToLocation = () => setState((s) => ({ step: 'location', date: s.date }));
+    const backToLocation = () => setState((s) => ({ ...s, step: 'location' }));
     const backToTime = (message?: string) => {
         setConflictMessage(message ?? null);
         setState((s) => ({
@@ -116,7 +116,7 @@ export default function BookingWizardPage() {
                         )}
 
                         {state.step === 'location' && state.date && (
-                            <LocationStep date={state.date} onSelect={selectLocation} />
+                            <LocationStep date={state.date} selectedLocationId={state.locationId} onSelect={selectLocation} onBack={backToDate} />
                         )}
 
                         {state.step === 'time' && state.date && state.locationId && state.locationName && (
