@@ -1,21 +1,23 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Box, Button, IconButton, Paper, Stack, Tooltip, Typography } from '@mui/material';
+import { Box, Button, Container, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
-import { dateRangeIso, formatDateFull, parseIsoDate, todayIso } from '../../../utils/date';
+import { dateRangeIso, parseIsoDate, todayIso } from '../../../utils/date';
+import { pagePadding } from '../../../layoutSpacing';
 import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
 import { bookingCopy } from '../bookingCopy';
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
 
-export default function DateStep({ selectedDate, onSelect, onContinue }: {
+export default function DateStep({ selectedDate, onSelect, onContinue, onBack }: {
     selectedDate?: string;
     onSelect: (date: string) => void;
     onContinue: () => void;
+    onBack: () => void;
 }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -63,8 +65,14 @@ export default function DateStep({ selectedDate, onSelect, onContinue }: {
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (
-        <Box sx={{ pb: selectedDate ? 12 : 0 }}>
-            <Typography variant="h5" sx={{ mb: 2 }}>{bookingCopy.selectDate}</Typography>
+        <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="h5">{bookingCopy.selectDate}</Typography>
+                <Stack direction="row" spacing={0.5}>
+                    <StateBadge label={bookingCopy.available} tone="available" />
+                    <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
+                </Stack>
+            </Stack>
             <Box sx={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 44px', alignItems: 'center', mb: 2 }}>
                 <Tooltip title="Попередній місяць">
                     <IconButton aria-label="Попередній місяць" onClick={() => changeMonth(-1)} sx={{ minWidth: 44, minHeight: 44 }}>
@@ -98,34 +106,18 @@ export default function DateStep({ selectedDate, onSelect, onContinue }: {
                     />
                 ) : <Box key={`empty-${index}`} sx={{ aspectRatio: '1', minHeight: 44 }} />)}
             </Box>
-            <Stack direction="row" spacing={1} sx={{ mt: 2, flexWrap: 'wrap' }}>
-                <StateBadge label={bookingCopy.available} tone="available" />
-                <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
-            </Stack>
-            {selectedDate && (bookable.has(selectedDate) || pastDates.has(selectedDate)) && (
-                <Paper elevation={6} sx={{
-                    position: 'fixed',
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 10,
-                    borderRadius: '8px 8px 0 0',
-                    borderTop: '1px solid',
-                    borderColor: 'divider',
-                    p: 1.5,
-                    pb: 'max(12px, env(safe-area-inset-bottom))',
-                }}>
-                    <Stack direction="row" spacing={1.5} sx={{ maxWidth: 600, mx: 'auto', alignItems: 'center' }}>
-                        <Typography sx={{ flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700 }}>
-                            {formatDateFull(selectedDate)}
-                            {pastDates.has(selectedDate) && (
-                                <Typography component="span" sx={{ display: 'block', fontSize: 12, color: 'text.secondary' }}>{bookingCopy.readOnly}</Typography>
-                            )}
-                        </Typography>
-                        <Button variant="contained" onClick={onContinue}>{bookingCopy.next}</Button>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
+                    <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" size="large" onClick={onBack} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
+                            {bookingCopy.back}
+                        </Button>
+                        <Button variant="contained" size="large" onClick={onContinue} disabled={!selectedDate || (!bookable.has(selectedDate) && !pastDates.has(selectedDate))} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
+                            {bookingCopy.next}
+                        </Button>
                     </Stack>
-                </Paper>
-            )}
+                </Container>
+            </Box>
         </Box>
     );
 }

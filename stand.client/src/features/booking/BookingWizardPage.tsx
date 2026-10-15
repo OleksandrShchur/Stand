@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Button, Container, Fade, IconButton, Stack } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
+import { Box, Container, Fade } from '@mui/material';
 import BrandHeader from '../../components/BrandHeader';
 import WizardProgress from './components/WizardProgress';
 import DateStep from './steps/DateStep';
@@ -12,7 +10,6 @@ import ShiftDetailsStep from './steps/ShiftDetailsStep';
 import BookingHomePage from './BookingHomePage';
 import { clearWizardState, initialWizardState, loadWizardState, saveWizardState, type WizardState, type WizardStep } from './wizardState';
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
-import { bookingCopy } from './bookingCopy';
 import { todayIso } from '../../utils/date';
 import { pagePadding } from '../../layoutSpacing';
 
@@ -91,13 +88,6 @@ export default function BookingWizardPage() {
         navigate(`/booking/${summary.cancelToken}`, { state: { justBooked: true } });
     };
 
-    const handleBack = () => {
-        if (state.step === 'date') returnHome();
-        else if (state.step === 'location') backToDate();
-        else if (state.step === 'time') backToLocation();
-        else if (state.step === 'contact' || state.step === 'details') backToTime();
-    };
-
     const goToStep = (step: WizardStep) => {
         if (step === 'date') backToDate();
         if (step === 'location' && state.date) backToLocation();
@@ -108,34 +98,17 @@ export default function BookingWizardPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader onHome={returnHome} />
+            <BrandHeader onHome={returnHome} title="Запис" />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
             <Container maxWidth="sm" sx={pagePadding}>
-                <Stack direction="row" sx={{
-                    mb: 1,
-                    minHeight: 44,
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                }}>
-                    <IconButton onClick={handleBack} aria-label={bookingCopy.back} edge="start" sx={{ minWidth: 44, minHeight: 44, color: 'primary.dark' }}>
-                        <ArrowBackIcon />
-                    </IconButton>
-                    <Button
-                        onClick={returnHome}
-                        startIcon={<HomeOutlinedIcon />}
-                        sx={{ ml: 'auto', minHeight: 44 }}
-                    >
-                        {bookingCopy.home}
-                    </Button>
-                </Stack>
-
                 <Fade in key={state.step} timeout={250}>
                     <Box>
                         {state.step === 'date' && (
                             <DateStep
                                 selectedDate={state.date}
                                 onSelect={selectDate}
+                                onBack={returnHome}
                                 onContinue={() => {
                                     if (state.date) setState((s) => ({ ...s, step: 'location' }));
                                 }}
