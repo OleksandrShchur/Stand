@@ -85,7 +85,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
             <Snackbar
                 key={hint?.key}
                 open={Boolean(hint)}
-                autoHideDuration={8000}
+                autoHideDuration={16000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setHint(null); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
