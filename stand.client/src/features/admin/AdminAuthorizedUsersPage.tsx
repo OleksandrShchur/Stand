@@ -172,7 +172,7 @@ export default function AdminAuthorizedUsersPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
-                    <Button variant="contained" disabled={saving} onClick={save}>
+                    <Button loading={saving} variant="contained" disabled={saving} onClick={save}>
                         {saving ? 'Зберігаємо...' : 'Зберегти'}
                     </Button>
                 </DialogActions>
@@ -190,7 +190,7 @@ export default function AdminAuthorizedUsersPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button disabled={saving} onClick={() => setDeleteUser(null)} autoFocus>Скасувати</Button>
-                    <Button color="error" variant="contained" startIcon={<DeleteOutlineIcon />} disabled={saving} onClick={remove}>
+                    <Button loading={saving} color="error" variant="contained" startIcon={<DeleteOutlineIcon />} disabled={saving} onClick={remove}>
                         {saving ? 'Видаляємо...' : 'Видалити'}
                     </Button>
                 </DialogActions>

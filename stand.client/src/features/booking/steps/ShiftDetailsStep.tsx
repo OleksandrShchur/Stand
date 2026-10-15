@@ -34,9 +34,9 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
         publicApi.getSlots(date, locationId).then((slots) => {
             const ids = timeSlotIds?.length ? timeSlotIds : [timeSlotId];
             const found = slots.filter((item) => ids.includes(item.timeSlotId));
-            if (found.length !== ids.length) throw new Error('Одну з обраних змін не знайдено. Оберіть час ще раз.');
+            if (found.length !== ids.length) throw new Error('Один з обраних записів не знайдено. Оберіть час ще раз.');
             setSlots(sortSlots(found));
-        }).catch((e) => setError(e instanceof ApiError || e instanceof Error ? e.message : 'Не вдалося завантажити зміну.'))
+        }).catch((e) => setError(e instanceof ApiError || e instanceof Error ? e.message : 'Не вдалося завантажити запис.'))
             .finally(() => setLoading(false));
     };
     useEffect(load, [date, locationId, timeSlotId, timeSlotIds]);
@@ -57,7 +57,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
             }).finally(() => setSubmitting(false));
     };
 
-    if (loading) return <SkeletonList rows={3} />;
+    if (loading) return <SkeletonList label="Завантажуємо деталі чергування…" rows={3} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
     if (!slots.length) return null;
 
@@ -114,7 +114,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                             <Button variant="outlined" size="large" disabled={submitting} onClick={onBack} sx={{ minHeight: 56, flexShrink: 0 }}>
                                 {bookingCopy.back}
                             </Button>
-                            <Button variant="contained" size="large" disabled={submitting || !isContinuousSelection(slots)} onClick={confirm} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
+                            <Button loading={submitting} variant="contained" size="large" disabled={submitting || !isContinuousSelection(slots)} onClick={confirm} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
                                 {submitting ? bookingCopy.confirming : bookingCopy.confirmAction}
                             </Button>
                         </Stack>

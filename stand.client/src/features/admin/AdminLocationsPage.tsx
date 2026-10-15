@@ -21,6 +21,7 @@ export default function AdminLocationsPage() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [form, setForm] = useState<FormState>(emptyForm);
     const [saving, setSaving] = useState(false);
+    const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
 
     const load = () => {
@@ -53,8 +54,10 @@ export default function AdminLocationsPage() {
     };
 
     const toggleActive = (loc: LocationAdminDto) => {
+        if (updatingId !== null) return;
+        setUpdatingId(loc.id);
         const action = loc.isActive ? adminApi.deactivateLocation(loc.id) : adminApi.activateLocation(loc.id);
-        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.'));
+        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.')).finally(() => setUpdatingId(null));
     };
 
     if (loading) return <LoadingState />;
@@ -88,7 +91,7 @@ export default function AdminLocationsPage() {
                                 <TableCell align="center">{loc.capacity}</TableCell>
                                 <TableCell align="center">{loc.sortOrder}</TableCell>
                                 <TableCell align="center">
-                                    <Switch checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
+                                    <Switch aria-busy={updatingId === loc.id} disabled={updatingId !== null} checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
                                 </TableCell>
                                 <TableCell align="center">
                                     <IconButton size="small" onClick={() => openEdit(loc)}><EditIcon fontSize="small" /></IconButton>
@@ -99,7 +102,7 @@ export default function AdminLocationsPage() {
                 </Table>
             </TableContainer>
 
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} fullWidth maxWidth="sm">
+            <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="sm">
                 <DialogTitle>{editing ? 'Редагувати локацію' : 'Нова локація'}</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
                     <TextField label="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} fullWidth autoFocus />
@@ -126,8 +129,8 @@ export default function AdminLocationsPage() {
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setDialogOpen(false)}>Скасувати</Button>
-                    <Button variant="contained" disabled={saving || !form.name} onClick={save}>
+                    <Button disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
+                    <Button loading={saving} variant="contained" disabled={saving || !form.name} onClick={save}>
                         {saving ? 'Зберігаємо…' : 'Зберегти'}
                     </Button>
                 </DialogActions>

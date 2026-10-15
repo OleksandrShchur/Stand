@@ -37,6 +37,7 @@ export default function AdminBookingsPage() {
 
     const [cancelTarget, setCancelTarget] = useState<BookingAdminDto | null>(null);
     const [cancelling, setCancelling] = useState(false);
+    const [exporting, setExporting] = useState(false);
 
     const buildFilters = (): BookingFilters => ({
         date: date || undefined,
@@ -59,7 +60,8 @@ export default function AdminBookingsPage() {
 
     useEffect(() => {
         Promise.all([adminApi.listLocations(), adminApi.listTimeSlots()])
-            .then(([locs, slots]) => { setLocations(locs); setTimeSlots(slots); });
+            .then(([locs, slots]) => { setLocations(locs); setTimeSlots(slots); })
+            .catch(() => setError('Не вдалося завантажити фільтри. Оновіть сторінку, щоб спробувати ще раз.'));
     }, []);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -77,15 +79,18 @@ export default function AdminBookingsPage() {
     };
 
     const exportCsv = () => {
-        downloadFile(adminApi.exportCsvUrl(buildFilters()), 'bookings.csv').catch(() =>
-            setError('Не вдалося завантажити CSV.'));
+        if (exporting) return;
+        setExporting(true);
+        downloadFile(adminApi.exportCsvUrl(buildFilters()), 'bookings.csv')
+            .catch(() => setError('Не вдалося завантажити CSV.'))
+            .finally(() => setExporting(false));
     };
 
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
                 <Typography variant="h4">Записи</Typography>
-                <Button variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>Експорт CSV</Button>
+                <Button loading={exporting} loadingPosition="start" variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>Експорт CSV</Button>
             </Box>
 
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
@@ -106,7 +111,7 @@ export default function AdminBookingsPage() {
                     <TextField label="Статус" select value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 160 }} size="small">
                         {STATUS_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
                     </TextField>
-                    <Button variant="contained" startIcon={<RefreshIcon />} onClick={applyFilters}>Застосувати</Button>
+                    <Button loading={loading} loadingPosition="start" variant="contained" startIcon={<RefreshIcon />} onClick={applyFilters}>Застосувати</Button>
                 </Stack>
             </Paper>
 
@@ -166,7 +171,7 @@ export default function AdminBookingsPage() {
                 </TableContainer>
             )}
 
-            <Dialog open={!!cancelTarget} onClose={() => setCancelTarget(null)}>
+            <Dialog open={!!cancelTarget} onClose={() => { if (!cancelling) setCancelTarget(null); }}>
                 <DialogTitle>Скасувати запис?</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
@@ -174,8 +179,8 @@ export default function AdminBookingsPage() {
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setCancelTarget(null)}>Ні</Button>
-                    <Button color="error" variant="contained" disabled={cancelling} onClick={doCancel}>
+                    <Button disabled={cancelling} onClick={() => setCancelTarget(null)}>Ні</Button>
+                    <Button loading={cancelling} color="error" variant="contained" disabled={cancelling} onClick={doCancel}>
                         {cancelling ? 'Скасовуємо…' : 'Скасувати'}
                     </Button>
                 </DialogActions>

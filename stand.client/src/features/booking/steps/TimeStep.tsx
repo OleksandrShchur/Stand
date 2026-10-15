@@ -47,7 +47,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
 
     useEffect(load, [date, locationId]);
 
-    if (loading) return <SkeletonList rows={4} />;
+    if (loading) return <SkeletonList label="Завантажуємо час чергувань…" rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (

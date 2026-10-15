@@ -86,14 +86,14 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
         const reason = bookingWindow && date > bookingWindow.last
             ? `Запис відкрито лише до ${formatDateHuman(bookingWindow.last)}.`
             : bookingWindow && date < bookingWindow.first
-                ? 'На цю дату немає змін для перегляду.'
+                ? 'На цю дату немає записів для перегляду.'
                 : 'Запис на цю дату не відкрито. Оберіть доступний день.';
         setDateHint({ message: `${formatDateHuman(date)}: ${reason}`, key: Date.now() });
     };
 
     const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()}`;
 
-    if (loading) return <SkeletonList rows={4} />;
+    if (loading) return <SkeletonList label="Завантажуємо доступні дати…" rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;
 
     return (

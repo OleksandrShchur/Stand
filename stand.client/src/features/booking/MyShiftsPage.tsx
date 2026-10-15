@@ -94,12 +94,12 @@ export default function MyShiftsPage() {
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
             >
                 <Alert severity="success" variant="filled" onClose={() => setSuccessToastOpen(false)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
-                    Запис підтверджено. Кількість доданих змін: {bookedCount}.
+                    Запис підтверджено. Кількість доданих записів: {bookedCount}.
                 </Alert>
             </Snackbar>
-            <Container maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Container className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
-                    {loading && <SkeletonList rows={2} />}
+                    {loading && <SkeletonList label="Завантажуємо ваші записи…" rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}
                     {!loading && !error && shifts.length === 0 && (
                         <Card variant="outlined">
@@ -166,7 +166,7 @@ export default function MyShiftsPage() {
                                         day: ({ day }) => {
                                             const hasShift = shiftDates.has(day.format('YYYY-MM-DD'));
                                             return hasShift ? {
-                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші зміни`,
+                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші записи`,
                                                 sx: {
                                                     '&:not(.Mui-selected):not(.Mui-disabled)': {
                                                         bgcolor: 'var(--state-available-bg)',
@@ -237,7 +237,7 @@ export default function MyShiftsPage() {
                 actions={
                     <>
                         <Button variant="outlined" fullWidth disabled={cancelling} onClick={() => setShiftToCancel(null)}>{bookingCopy.keepBooking}</Button>
-                        <Button color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
+                        <Button loading={cancelling} color="error" variant="contained" fullWidth disabled={cancelling} onClick={cancel}>
                             {cancelling ? bookingCopy.cancelling : bookingCopy.confirmCancel}
                         </Button>
                     </>

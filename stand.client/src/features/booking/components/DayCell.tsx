@@ -21,7 +21,7 @@ export default function DayCell({
     onUnavailable?: (date: string) => void;
 }) {
     const disabled = !isAvailable;
-    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є зміни' : 'немає змін'}`;
+    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є записи' : 'немає записів'}`;
 
     return (
         <Button

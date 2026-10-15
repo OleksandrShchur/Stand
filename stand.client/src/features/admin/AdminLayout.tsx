@@ -51,7 +51,7 @@ export default function AdminLayout() {
     const [mobileOpen, setMobileOpen] = useState(false);
 
     if (loading) {
-        return <LoadingState label="Перевіряємо сесію…" />;
+        return <LoadingState fullScreen label="Перевіряємо сесію…" />;
     }
 
     if (!user) {
@@ -135,7 +135,7 @@ export default function AdminLayout() {
                 )}
 
                 <Box sx={pagePadding}>
-                    <Outlet />
+                    <Box key={location.pathname} className="content-enter"><Outlet /></Box>
                 </Box>
             </Box>
         </Box>

@@ -7,7 +7,7 @@
 - Redesigned time slots as light cards with selected/full/almost-full states, participant avatar chips, privacy note, and a sticky summary action bar.
 - Redesigned confirmation around the selected date/time, location, participant list including "Ви", post-confirm capacity, cancellation note, and disabled loading CTA.
 - Made completed stepper steps tappable with check icons and `aria-current="step"` for the active step.
-- Added success-screen actions for `.ics` calendar download, "Мої зміни", and "Записатись ще".
+- Added success-screen actions for `.ics` calendar download, "Мої записи", and "Записатись ще".
 - Added loading skeletons, inline conflict handling, retryable errors, and empty-state copy for dates without shifts.
 
 ## Backend/API needed

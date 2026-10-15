@@ -29,7 +29,7 @@ export default function UserLoginPage() {
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
 
     if (loading) {
-        return <LoadingState label="Перевіряємо сесію..." />;
+        return <LoadingState fullScreen label="Перевіряємо сесію..." />;
     }
 
     if (user) {
@@ -55,7 +55,7 @@ export default function UserLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Container className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -87,7 +87,7 @@ export default function UserLoginPage() {
                                 autoFocus
                             />
 
-                            <Button type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
+                            <Button loading={submitting} type="submit" variant="contained" size="large" disabled={submitting} fullWidth>
                                 {submitting ? 'Перевіряємо...' : 'Увійти'}
                             </Button>
                         </Box>

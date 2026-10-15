@@ -7,7 +7,7 @@ export default function ProtectedPublicRoute({ children }: { children: React.Rea
     const location = useLocation();
 
     if (loading) {
-        return <LoadingState label="Перевіряємо доступ..." />;
+        return <LoadingState fullScreen label="Перевіряємо доступ..." />;
     }
 
     if (!user) {
