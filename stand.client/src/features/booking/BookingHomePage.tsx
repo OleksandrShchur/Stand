@@ -1,4 +1,3 @@
-import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -49,8 +48,6 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
                                         return (
                                             <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
                                                 <ShiftDetailsTable shift={shift} />
-                                                <Divider sx={{ mt: 1.5 }} />
-                                                <ParticipantList participants={shift.participants} dashed />
                                             </Box>
                                         );
                                     })}
