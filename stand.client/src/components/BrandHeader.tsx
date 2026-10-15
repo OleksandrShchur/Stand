@@ -6,13 +6,13 @@ import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 
-export default function BrandHeader({ onHome }: { onHome?: () => void }) {
+export default function BrandHeader({ onHome, title = 'Головна' }: { onHome?: () => void; title?: string }) {
     const [supportOpen, setSupportOpen] = useState(false);
 
     return (
         <>
             <AppBar position="sticky" elevation={0}>
-                <Toolbar sx={{ py: 1 }}>
+                <Toolbar sx={{ py: 1, display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                         <IconButton
                             component={RouterLink}
@@ -28,15 +28,10 @@ export default function BrandHeader({ onHome }: { onHome?: () => void }) {
                         >
                             <HomeOutlinedIcon sx={{ fontSize: 30 }} />
                         </IconButton>
-                        <Box>
-                            <Typography variant="subtitle1" component="div" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
-                                Стенди
-                            </Typography>
-                            <Typography variant="caption" component="div" sx={{ opacity: 0.85, lineHeight: 1 }}>
-                                Запис
-                            </Typography>
-                        </Box>
                     </Box>
+                    <Typography variant="h6" component="div" sx={{ fontWeight: 700, textAlign: 'center' }}>
+                        {title}
+                    </Typography>
                     <Button
                         color="inherit"
                         aria-label="Технічна підтримка"
