@@ -1,6 +1,6 @@
-import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
+import type { CalendarDto, LocationDto, SlotAvailabilityDto } from '../../api/types';
 import { isSlotBookable } from './slotSelection';
-import { getSlotTimeStatus } from './slotTimeStatus';
+import { getKyivDateTime, getSlotTimeStatus } from './slotTimeStatus';
 
 interface AvailabilityApi {
     getLocations: (date: string) => Promise<LocationDto[]>;
@@ -19,4 +19,23 @@ export async function loadLocationsWithAvailability(date: string, api: Availabil
                 isSlotBookable(slot) && getSlotTimeStatus(date, slot, now) === 'upcoming'),
         };
     }));
+}
+
+export async function loadCalendarWithAvailability(
+    api: AvailabilityApi & { getCalendar: () => Promise<CalendarDto> },
+    now = new Date(),
+): Promise<CalendarDto> {
+    const calendar = await api.getCalendar();
+    const today = getKyivDateTime(now).date;
+    if (!calendar.bookableDates.includes(today)) return calendar;
+
+    // Verify today's remaining availability even when the calendar comes from an older server.
+    const locations = await loadLocationsWithAvailability(today, api, now);
+    if (locations.some((location) => location.hasAvailableBookings === true)) return calendar;
+
+    return {
+        ...calendar,
+        bookableDates: calendar.bookableDates.filter((date) => date !== today),
+        readOnlyDates: [...new Set([...(calendar.readOnlyDates ?? []), today])],
+    };
 }

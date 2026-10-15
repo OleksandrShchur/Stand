@@ -64,7 +64,6 @@ export default function SlotCard({
                 textAlign: 'left',
                 borderRadius: 1,
                 cursor: unavailable ? 'not-allowed' : 'pointer',
-                opacity: unavailable ? 0.55 : 1,
                 '&:focus-visible, &:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
             }}
         >
@@ -73,7 +72,7 @@ export default function SlotCard({
                 borderColor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-border)' : 'divider',
                 borderLeft: `6px solid ${unavailable ? '#9CA3AF' : selected ? 'var(--state-selected-bg)' : accent}`,
                 borderRadius: 1,
-                bgcolor: unavailable ? 'action.disabledBackground' : selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
+                bgcolor: unavailable ? '#EDF0EE' : selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
                 color: selected ? 'var(--state-selected-text)' : 'text.primary',
                 p: 1.5,
             }}>
