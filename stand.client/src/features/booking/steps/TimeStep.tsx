@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, Chip, Container, RadioGroup, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Chip, Container, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
@@ -8,24 +8,24 @@ import { formatDateFull, todayIso } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
+import { canAddSlot, isContinuousSelection, sortSlots, toggleSlot } from '../slotSelection';
 
-export default function TimeStep({ date, locationId, locationName, selectedSlotId, conflictMessage, onSelect, onBack }: {
+export default function TimeStep({ date, locationId, locationName, selectedSlotIds, conflictMessage, onSelect, onBack }: {
     date: string;
     locationId: number;
     locationName: string;
-    selectedSlotId?: number;
+    selectedSlotIds?: number[];
     conflictMessage?: string | null;
-    onSelect: (slot: SlotAvailabilityDto) => void;
+    onSelect: (slots: SlotAvailabilityDto[]) => void;
     onBack: () => void;
 }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [slots, setSlots] = useState<SlotAvailabilityDto[]>([]);
-    const [selectedId, setSelectedId] = useState(selectedSlotId);
+    const [selectedIds, setSelectedIds] = useState<number[]>(selectedSlotIds ?? []);
     const readOnly = date < todayIso();
-    const selectedSlot = slots.find((slot) => slot.timeSlotId === selectedId);
-    const canContinue = Boolean(selectedSlot && (readOnly || selectedSlot.isBookable ||
-        (selectedSlot.remaining <= 0 && !selectedSlot.isBlocked && !selectedSlot.isTooSoon)));
+    const selectedSlots = sortSlots(slots.filter((slot) => selectedIds.includes(slot.timeSlotId)));
+    const canContinue = selectedSlots.length === selectedIds.length && isContinuousSelection(selectedSlots);
 
     const load = () => {
         setLoading(true);
@@ -59,17 +59,18 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
             {slots.length === 0 ? (
                 <EmptyState message={bookingCopy.noSlotsForDate} />
             ) : (
-                <RadioGroup aria-labelledby="time-heading" value={selectedId ?? ''} sx={{ gap: listGap }}>
+                <Stack role="group" aria-labelledby="time-heading" spacing={listGap}>
                     {slots.map((slot) => (
                         <SlotCard
                             key={slot.timeSlotId}
                             slot={slot}
-                            selected={selectedId === slot.timeSlotId}
+                            selected={selectedIds.includes(slot.timeSlotId)}
+                            disabled={!selectedIds.includes(slot.timeSlotId) && !canAddSlot(slot, selectedSlots)}
                             readOnly={readOnly}
-                            onSelect={(slot) => setSelectedId(slot.timeSlotId)}
+                            onSelect={(slot) => setSelectedIds(toggleSlot(slot, selectedSlots).map((item) => item.timeSlotId))}
                         />
                     ))}
-                </RadioGroup>
+                </Stack>
             )}
             <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
@@ -77,7 +78,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                         <Button variant="outlined" size="large" onClick={onBack} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
                             {bookingCopy.back}
                         </Button>
-                        <Button variant="contained" size="large" disabled={!canContinue} onClick={() => { if (canContinue && selectedSlot) onSelect(selectedSlot); }} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
+                        <Button variant="contained" size="large" disabled={!canContinue} onClick={() => { if (canContinue) onSelect(selectedSlots); }} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>
                             {bookingCopy.next}
                         </Button>
                     </Stack>

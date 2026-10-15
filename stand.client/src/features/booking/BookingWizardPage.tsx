@@ -10,7 +10,6 @@ import ShiftDetailsStep from './steps/ShiftDetailsStep';
 import BookingHomePage from './BookingHomePage';
 import { clearWizardState, initialWizardState, loadWizardState, saveWizardState, type WizardState, type WizardStep } from './wizardState';
 import type { LocationDto, SlotAvailabilityDto } from '../../api/types';
-import { todayIso } from '../../utils/date';
 import { pagePadding } from '../../layoutSpacing';
 
 export default function BookingWizardPage() {
@@ -56,18 +55,22 @@ export default function BookingWizardPage() {
             locationName: location.name,
             locationAddress: location.address,
             timeSlotId: undefined,
+            timeSlotIds: undefined,
             startTime: undefined,
             endTime: undefined,
         }));
 
-    const selectTime = (slot: SlotAvailabilityDto) =>
+    const selectTime = (slots: SlotAvailabilityDto[]) => {
+        if (!slots.length) return;
         setState((s) => ({
             ...s,
-            step: slot.isBookable && s.date && s.date >= todayIso() ? 'contact' : 'details',
-            timeSlotId: slot.timeSlotId,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
+            step: 'contact',
+            timeSlotId: slots[0].timeSlotId,
+            timeSlotIds: slots.map((slot) => slot.timeSlotId),
+            startTime: slots[0].startTime,
+            endTime: slots[slots.length - 1].endTime,
         }));
+    };
 
     const backToDate = () => setState({ step: 'date', date: state.date });
     const backToLocation = () => setState((s) => ({ ...s, step: 'location' }));
@@ -80,12 +83,17 @@ export default function BookingWizardPage() {
             locationName: s.locationName,
             locationAddress: s.locationAddress,
             timeSlotId: s.timeSlotId,
+            timeSlotIds: s.timeSlotIds,
         }));
     };
 
-    const onConfirmed = (summary: { cancelToken: string }) => {
+    const onConfirmed = (summaries: { cancelToken: string }[]) => {
         clearWizardState();
-        navigate(`/booking/${summary.cancelToken}`, { state: { justBooked: true } });
+        if (summaries.length === 1) {
+            navigate(`/booking/${summaries[0].cancelToken}`, { state: { justBooked: true } });
+        } else {
+            navigate('/my-shifts', { state: { justBookedCount: summaries.length } });
+        }
     };
 
     const goToStep = (step: WizardStep) => {
@@ -124,7 +132,7 @@ export default function BookingWizardPage() {
                                 date={state.date}
                                 locationId={state.locationId}
                                 locationName={state.locationName}
-                                selectedSlotId={state.timeSlotId}
+                                selectedSlotIds={state.timeSlotIds ?? (state.timeSlotId ? [state.timeSlotId] : [])}
                                 conflictMessage={conflictMessage}
                                 onSelect={selectTime}
                                 onBack={backToLocation}
@@ -139,11 +147,12 @@ export default function BookingWizardPage() {
                                 <ShiftDetailsStep
                                     locationId={state.locationId}
                                     timeSlotId={state.timeSlotId}
+                                    timeSlotIds={state.timeSlotIds}
                                     date={state.date}
                                     locationName={state.locationName}
                                     locationAddress={state.locationAddress}
                                     onUnavailable={backToTime}
-                                    onConfirmed={state.step === 'contact' && state.date >= todayIso() ? onConfirmed : undefined}
+                                    onConfirmed={state.step === 'contact' ? onConfirmed : undefined}
                                 />
                             )}
                     </Box>

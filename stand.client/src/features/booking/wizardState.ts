@@ -7,6 +7,7 @@ export interface WizardState {
     locationName?: string;
     locationAddress?: string | null;
     timeSlotId?: number;
+    timeSlotIds?: number[];
     startTime?: string;
     endTime?: string;
 }

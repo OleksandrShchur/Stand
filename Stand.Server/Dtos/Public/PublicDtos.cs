@@ -54,6 +54,9 @@ public sealed record CancelRequestDto(string CancelToken);
 public sealed record CreateBookingRequestDto(
     string Date, int LocationId, int TimeSlotId);
 
+public sealed record CreateBookingsRequestDto(
+    string Date, int LocationId, List<int>? TimeSlotIds);
+
 public sealed record MyShiftDto(
     int Id,
     string Date,

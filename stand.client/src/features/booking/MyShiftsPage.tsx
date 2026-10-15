@@ -2,7 +2,7 @@ import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import AppDialog from '../../components/AppDialog';
@@ -22,6 +22,9 @@ import { pagePadding, sectionGap } from '../../layoutSpacing';
 
 export default function MyShiftsPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const [bookedCount, setBookedCount] = useState(() =>
+        (location.state as { justBookedCount?: number } | null)?.justBookedCount ?? 0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shifts, setShifts] = useState<MyShiftDto[]>([]);
@@ -84,6 +87,11 @@ export default function MyShiftsPage() {
             <BrandHeader title={`${bookingCopy.myShiftsButton}${!loading && !error ? ` (${shifts.length})` : ''}`} />
             <Container maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
+                    {bookedCount > 0 && (
+                        <Alert severity="success" onClose={() => setBookedCount(0)}>
+                            Запис підтверджено. Кількість змін: {bookedCount}.
+                        </Alert>
+                    )}
                     {loading && <SkeletonList rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}
                     {!loading && !error && shifts.length === 0 && (

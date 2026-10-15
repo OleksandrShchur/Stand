@@ -1,5 +1,5 @@
 import ParticipantList from './ParticipantList';
-import { Box, Radio, Stack, Typography } from '@mui/material';
+import { Box, Checkbox, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import BlockIcon from '@mui/icons-material/Block';
 import type { SlotAvailabilityDto } from '../../../api/types';
@@ -12,16 +12,18 @@ export default function SlotCard({
     mine,
     readOnly = false,
     onSelect,
+    disabled = false,
 }: {
     slot: SlotAvailabilityDto;
     selected: boolean;
     mine?: boolean;
     readOnly?: boolean;
     onSelect: (slot: SlotAvailabilityDto) => void;
+    disabled?: boolean;
 }) {
     const full = slot.remaining <= 0 || (!readOnly && slot.isFull);
     const canViewFullShift = slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon;
-    const unavailable = !readOnly && !slot.isBookable && !mine && !canViewFullShift;
+    const unavailable = !selected && (disabled || (!readOnly && !slot.isBookable && !mine && !canViewFullShift));
     const tone = readOnly ? 'unavailable' : mine ? 'mine' : 'full';
     const accent = mine ? 'var(--state-mine-border)' : full ? '#9CA3AF' : 'var(--state-available-border)';
     const badgeLabel = readOnly ? bookingCopy.pastShift : mine
@@ -56,7 +58,7 @@ export default function SlotCard({
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                             <Typography sx={{ fontSize: 18, fontWeight: 800 }}>{slot.startTime}-{slot.endTime}</Typography>
                             {badgeLabel && <StateBadge label={badgeLabel} tone={tone} />}
-                            <Radio
+                            <Checkbox
                                 value={slot.timeSlotId}
                                 checked={selected}
                                 disabled={unavailable}
