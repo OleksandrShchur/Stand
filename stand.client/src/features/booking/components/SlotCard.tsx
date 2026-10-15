@@ -13,6 +13,7 @@ export default function SlotCard({
     readOnly = false,
     onSelect,
     disabled = false,
+    onDisabledClick,
 }: {
     slot: SlotAvailabilityDto;
     selected: boolean;
@@ -20,6 +21,7 @@ export default function SlotCard({
     readOnly?: boolean;
     onSelect: (slot: SlotAvailabilityDto) => void;
     disabled?: boolean;
+    onDisabledClick?: () => void;
 }) {
     const full = slot.remaining <= 0 || (!readOnly && slot.isFull);
     const canViewFullShift = slot.remaining <= 0 && !slot.isBlocked && !slot.isTooSoon;
@@ -33,6 +35,23 @@ export default function SlotCard({
     return (
         <Box
             component="label"
+            role={unavailable ? 'button' : undefined}
+            tabIndex={unavailable ? 0 : undefined}
+            aria-disabled={unavailable || undefined}
+            aria-label={unavailable ? `${slot.startTime}-${slot.endTime}: недоступно. Дізнатися причину` : undefined}
+            onClickCapture={(event) => {
+                if (unavailable) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    onDisabledClick?.();
+                }
+            }}
+            onKeyDown={(event) => {
+                if (unavailable && (event.key === 'Enter' || event.key === ' ')) {
+                    event.preventDefault();
+                    onDisabledClick?.();
+                }
+            }}
             sx={{
                 width: '100%',
                 minHeight: 84,
@@ -40,15 +59,16 @@ export default function SlotCard({
                 textAlign: 'left',
                 borderRadius: 1,
                 cursor: unavailable ? 'not-allowed' : 'pointer',
-                '&:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
+                opacity: unavailable ? 0.55 : 1,
+                '&:focus-visible, &:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
             }}
         >
             <Box sx={{
                 border: '1px solid',
                 borderColor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-border)' : 'divider',
-                borderLeft: `6px solid ${selected ? 'var(--state-selected-bg)' : accent}`,
+                borderLeft: `6px solid ${unavailable ? '#9CA3AF' : selected ? 'var(--state-selected-bg)' : accent}`,
                 borderRadius: 1,
-                bgcolor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
+                bgcolor: unavailable ? 'action.disabledBackground' : selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-bg)' : '#FFFFFF',
                 color: selected ? 'var(--state-selected-text)' : 'text.primary',
                 p: 1.5,
             }}>
@@ -64,7 +84,7 @@ export default function SlotCard({
                                 disabled={unavailable}
                                 onChange={() => onSelect(slot)}
                                 slotProps={{ input: { 'aria-label': `${slot.startTime}-${slot.endTime}` } }}
-                                sx={{ p: 0, flexShrink: 0, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
+                                sx={{ p: 0, flexShrink: 0, pointerEvents: unavailable ? 'none' : undefined, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
                             />
                         </Stack>
                         {showParticipantNames && <ParticipantList participants={slot.participants} selected={selected} />}
