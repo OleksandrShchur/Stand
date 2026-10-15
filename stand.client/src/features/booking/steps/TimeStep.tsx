@@ -53,10 +53,12 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
     return (
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                <Typography id="time-heading" variant="h5">{bookingCopy.selectTime}</Typography>
+                <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+                    <Typography id="time-heading" variant="h5">{bookingCopy.selectTime}</Typography>
+                    {readOnly && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
+                </Stack>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
                     <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
-                    {readOnly && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                     <Chip label={locationName} size="small" variant="outlined" />
                 </Stack>
             </Stack>

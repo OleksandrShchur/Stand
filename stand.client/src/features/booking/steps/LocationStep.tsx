@@ -57,11 +57,11 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
     return (
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-                <Typography id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
-                <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
-                    <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
+                    <Typography id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
                     {!showAvailabilityChips && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                 </Stack>
+                <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
             </Stack>
 
             {locations.length === 0 ? (
