@@ -318,3 +318,5 @@ environment via `appsettings.{Environment}.json` or environment variables
 The repeatable 256 MiB capacity benchmark, isolated database setup and workload
 definition are in [perf/README.md](perf/README.md). Recorded measurements and
 their hosting limitations are in [perf/RESULTS.md](perf/RESULTS.md).
+Implemented improvements, deployment prerequisites and regression checks are in
+[perf/OPTIMIZATIONS.md](perf/OPTIMIZATIONS.md).
