@@ -312,3 +312,9 @@ environment via `appsettings.{Environment}.json` or environment variables
 - The bootstrap admin password comes from the seed script — rotate it
   (or add a new admin and disable it) before exposing the admin area beyond
   local development.
+
+## 12. Performance testing
+
+The repeatable 256 MiB capacity benchmark, isolated database setup and workload
+definition are in [perf/README.md](perf/README.md). Recorded measurements and
+their hosting limitations are in [perf/RESULTS.md](perf/RESULTS.md).
