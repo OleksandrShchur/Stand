@@ -54,7 +54,7 @@ export default function UserLoginPage() {
 
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
-            <BrandHeader />
+            <BrandHeader title="Вхід" />
             <Container className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
