@@ -34,7 +34,7 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
 
-        var result = await bookings.BookAsync(date, request.LocationId, request.TimeSlotId, userId, ct);
+        var result = await bookings.BookAsync(date, request.LocationId, request.TimeSlotId, userId, ct, ReadRequestId());
         return Ok(result);
     }
 
@@ -49,7 +49,7 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
         if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
             throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
 
-        return Ok(await bookings.BookManyAsync(date, request.LocationId, request.TimeSlotIds, userId, ct));
+        return Ok(await bookings.BookManyAsync(date, request.LocationId, request.TimeSlotIds, userId, ct, ReadRequestId()));
     }
 
     /// <summary>Fetches a booking summary by its cancel token (success / cancel pages).</summary>
@@ -71,5 +71,13 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
 
         var result = await bookings.CancelAsync(token, ct);
         return Ok(result);
+    }
+
+    private Guid? ReadRequestId()
+    {
+        if (!Request.Headers.TryGetValue("Idempotency-Key", out var value)) return null;
+        if (value.Count != 1 || !Guid.TryParse(value[0], out var key) || key == Guid.Empty)
+            throw new ValidationAppException("Некоректний ключ запиту.");
+        return key;
     }
 }

@@ -75,7 +75,7 @@ test('unavailable hints identify the actual availability restriction before adja
     assert.match(getSlotDisabledReason({ ...distant, remaining: 0 }, [first]), /немає вільних місць/);
     assert.match(getSlotDisabledReason({ ...distant, isBlocked: true, isFull: true }, [first]), /заблоковано/);
     assert.match(getSlotDisabledReason({ ...distant, isTooSoon: true, isFull: true }, [first]), /замало часу/);
-    assert.match(getSlotDisabledReason({ ...distant, isBookable: false }, [first]), /Запис на цей стенд недоступний/);
+    assert.match(getSlotDisabledReason({ ...distant, isBookable: false }, [first]), /Запис на цей час недоступний/);
     assert.match(getSlotDisabledReason(first, [], true), /минулі дати/);
 });
 
@@ -92,7 +92,7 @@ test('selected slots can still be unchecked when their availability changes', ()
     const changed = { ...first, isBookable: false, isBlocked: true };
     assert.equal(getSlotDisabledReason(changed, [changed]), null);
     assert.deepEqual(toggleSlot(changed, [changed, next]), []);
-    assert.match(getSlotDisabledReason(slot(3, '12:00', '13:00'), [changed, next]), /більше недоступна/);
+    assert.match(getSlotDisabledReason(slot(3, '12:00', '13:00'), [changed, next]), /більше недоступний/);
 });
 
 test('today distinguishes finished, running and upcoming shifts in Kyiv', () => {
@@ -120,9 +120,9 @@ test('Kyiv date boundaries work independently of the browser timezone', () => {
 
 test('finished and running hints take priority over capacity and lead-time flags', () => {
     const unavailable = { ...first, isBookable: false, isTooSoon: true, isFull: true, remaining: 0 };
-    assert.match(getSlotDisabledReason(unavailable, [], false, 'finished'), /вже завершена/);
+    assert.match(getSlotDisabledReason(unavailable, [], false, 'finished'), /вже завершено/);
     assert.match(getSlotDisabledReason(unavailable, [], false, 'in-progress'), /вже триває/);
-    assert.match(getSlotDisabledReason({ ...first, isFull: true }, []), /Запис на цей стенд недоступний/);
+    assert.match(getSlotDisabledReason({ ...first, isFull: true }, []), /Запис на цей час недоступний/);
     assert.equal(getSlotDisabledReason(unavailable, [unavailable], false, 'finished'), null);
 });
 
@@ -159,6 +159,16 @@ const calendar = {
     pastDates: ['2026-10-14'],
     earliestBookableDate: '2026-10-15', latestBookableDate: '2026-10-29',
 };
+
+test('current calendar availability avoids redundant location and slot requests', async () => {
+    const current = { ...calendar, readOnlyDates: [] };
+    const result = await loadCalendarWithAvailability({
+        getCalendar: async () => current,
+        getLocations: async () => assert.fail('Current server already checked today'),
+        getSlots: async () => assert.fail('Current server already checked today'),
+    }, new Date('2026-10-15T16:30:00+03:00'));
+    assert.equal(result, current);
+});
 
 test('calendar makes 15 October read-only when every location has closed booking', async () => {
     const result = await loadCalendarWithAvailability({

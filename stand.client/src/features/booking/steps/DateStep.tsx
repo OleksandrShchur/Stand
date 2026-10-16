@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useAvailabilityRefresh } from '../../../hooks/useAvailabilityRefresh';
+import { useCallback, useMemo, useState } from 'react';
 import { Alert, Box, Button, Container, IconButton, Snackbar, Stack, Tooltip, Typography } from '@mui/material';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -41,32 +42,17 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
         setToday(cal.earliestBookableDate);
     }, []);
 
-    const load = () => {
-        setLoading(true);
-        setError(null);
-        loadCalendarWithAvailability(publicApi)
-            .then(applyCalendar)
-            .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.'))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(load, [applyCalendar]);
-
-    useEffect(() => {
-        let active = true;
-        const refresh = () => {
-            loadCalendarWithAvailability(publicApi).then((calendar) => {
-                if (active) applyCalendar(calendar);
-            }).catch(() => { /* Keep the last calendar when a background refresh fails. */ });
-        };
-        const timer = setInterval(refresh, 30000);
-        window.addEventListener('focus', refresh);
-        return () => {
-            active = false;
-            clearInterval(timer);
-            window.removeEventListener('focus', refresh);
-        };
-    }, [applyCalendar]);
+    const load = useAvailabilityRefresh(async (signal, initial) => {
+        if (initial) { setLoading(true); setError(null); }
+        try {
+            const updated = await loadCalendarWithAvailability(publicApi, new Date(), signal);
+            if (!signal.aborted) applyCalendar(updated);
+        } catch (e) {
+            if (!signal.aborted && initial) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити календар.');
+        } finally {
+            if (!signal.aborted) setLoading(false);
+        }
+    }, 'calendar');
 
     const cells = useMemo(() => {
         const year = month.getFullYear();

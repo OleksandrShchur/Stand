@@ -11,7 +11,8 @@ namespace Stand.Server.Services;
 public sealed class AvailabilityService(
     StandDbContext db,
     IKyivClock clock,
-    IOptions<BookingOptions> options) : IAvailabilityService
+    IOptions<BookingOptions> options,
+    CurrentPublicUser currentUser) : IAvailabilityService
 {
     private readonly BookingOptions _options = options.Value;
 
@@ -127,7 +128,8 @@ public sealed class AvailabilityService(
         var isDateBookable = date >= min && date <= max &&
             await db.AvailableDates.AnyAsync(d => d.Date == date && d.IsActive, ct);
 
-        var location = await db.Locations.FirstOrDefaultAsync(l => l.Id == locationId, ct);
+        var location = await db.Locations.Where(l => l.Id == locationId)
+            .Select(l => new { l.IsActive, l.Capacity }).FirstOrDefaultAsync(ct);
         if (location is null)
         {
             throw new NotFoundAppException(ErrorCodes.LocationNotFound, "Локацію не знайдено.");
@@ -142,36 +144,31 @@ public sealed class AvailabilityService(
         var timeSlots = await db.TimeSlots
             .Where(t => t.IsActive || t.Bookings.Any(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed"))
             .OrderBy(t => t.SortOrder)
+            .Select(t => new
+            {
+                t.Id, t.StartTime, t.EndTime, t.IsActive,
+                IsBlocked = db.DateTimeSlotExceptions.Any(e => e.Date == date && e.IsBlocked && e.TimeSlotId == t.Id),
+            })
             .ToListAsync(ct);
-
-        var blockedTimeSlotIds = await db.DateTimeSlotExceptions
-            .Where(e => e.Date == date && e.IsBlocked)
-            .Select(e => e.TimeSlotId)
-            .ToListAsync(ct);
-        var blockedSet = blockedTimeSlotIds.ToHashSet();
 
         var now = clock.UtcNow;
-        var currentPhone = authorizedUserId is null ? null : PhoneNormalizer.TryNormalize(
-            await db.AuthorizedUsers.Where(u => u.Id == authorizedUserId)
-                .Select(u => u.Phone).FirstOrDefaultAsync(ct) ?? "");
-        var participants = await db.Bookings
-            .Where(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed" &&
-                (currentPhone == null || b.Phone != currentPhone))
-            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
-            .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName })
-            .ToListAsync(ct);
-        var participantsBySlot = participants.ToLookup(b => b.TimeSlotId);
-        var bookedCounts = await db.Bookings
+        var profile = authorizedUserId is null ? null : await currentUser.GetAsync(authorizedUserId.Value, ct);
+        var currentPhone = profile is null ? null : PhoneNormalizer.TryNormalize(profile.Phone);
+        var activeBookings = await db.Bookings
             .Where(b => b.Date == date && b.LocationId == locationId &&
-                        (b.Status == "Confirmed" || (b.Status == "Held" && b.HoldExpiresAtUtc > now)))
-            .GroupBy(b => b.TimeSlotId)
-            .Select(g => new { TimeSlotId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.TimeSlotId, g => g.Count, ct);
+                (b.Status == "Confirmed" || (b.Status == "Held" && b.HoldExpiresAtUtc > now)))
+            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
+            .Select(b => new { b.TimeSlotId, IsConfirmed = b.Status == "Confirmed", b.Phone, b.FirstName, b.LastName })
+            .ToListAsync(ct);
+        var participantsBySlot = activeBookings
+            .Where(b => b.IsConfirmed && (currentPhone == null || b.Phone != currentPhone))
+            .ToLookup(b => b.TimeSlotId);
+        var bookedCounts = activeBookings.GroupBy(b => b.TimeSlotId).ToDictionary(g => g.Key, g => g.Count());
 
         var result = new List<SlotAvailabilityDto>(timeSlots.Count);
         foreach (var slot in timeSlots)
         {
-            var isBlocked = blockedSet.Contains(slot.Id);
+            var isBlocked = slot.IsBlocked;
             var isTooSoon = IsSlotTooSoon(date, slot.StartTime);
             var booked = bookedCounts.GetValueOrDefault(slot.Id, 0);
             var remaining = Math.Max(0, location.Capacity - booked);

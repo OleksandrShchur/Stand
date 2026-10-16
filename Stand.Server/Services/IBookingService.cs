@@ -8,11 +8,11 @@ public interface IBookingService
 
     Task<BookingSummaryDto> BookAsync(
         DateOnly date, int locationId, int timeSlotId,
-        int authorizedUserId, CancellationToken ct);
+        int authorizedUserId, CancellationToken ct, Guid? requestId = null);
 
     Task<List<BookingSummaryDto>> BookManyAsync(
         DateOnly date, int locationId, IReadOnlyList<int> timeSlotIds,
-        int authorizedUserId, CancellationToken ct);
+        int authorizedUserId, CancellationToken ct, Guid? requestId = null);
 
     Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct);
 

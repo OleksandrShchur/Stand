@@ -15,18 +15,19 @@ export const publicApi = {
 
     me: () => api.get<PublicUserMeDto>('/api/auth/me'),
 
-    getCalendar: () => api.get<CalendarDto>('/api/calendar'),
+    getCalendar: (signal?: AbortSignal) => api.get<CalendarDto>('/api/calendar', signal),
 
-    getLocations: (date?: string) => api.get<LocationDto[]>(date ? `/api/locations?date=${encodeURIComponent(date)}` : '/api/locations'),
+    getLocations: (date?: string, signal?: AbortSignal) => api.get<LocationDto[]>(date ? `/api/locations?date=${encodeURIComponent(date)}` : '/api/locations', signal),
 
-    getSlots: (date: string, locationId: number) =>
-        api.get<SlotAvailabilityDto[]>(`/api/slots?date=${encodeURIComponent(date)}&locationId=${locationId}`),
+    getSlots: (date: string, locationId: number, signal?: AbortSignal) =>
+        api.get<SlotAvailabilityDto[]>(`/api/slots?date=${encodeURIComponent(date)}&locationId=${locationId}`, signal),
 
     book: (date: string, locationId: number, timeSlotId: number) =>
         api.post<BookingSummaryDto>('/api/bookings', { date, locationId, timeSlotId }),
 
-    bookMany: (date: string, locationId: number, timeSlotIds: number[]) =>
-        api.post<BookingSummaryDto[]>('/api/bookings/batch', { date, locationId, timeSlotIds }),
+    bookMany: (date: string, locationId: number, timeSlotIds: number[], requestId?: string) =>
+        api.post<BookingSummaryDto[]>('/api/bookings/batch', { date, locationId, timeSlotIds },
+            requestId ? { 'Idempotency-Key': requestId } : undefined),
 
     getByCancelToken: (cancelToken: string) =>
         api.get<BookingSummaryDto>(`/api/bookings/${cancelToken}`),

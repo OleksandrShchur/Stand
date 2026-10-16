@@ -12,7 +12,7 @@ namespace Stand.Server.Controllers.Public;
 
 [ApiController]
 [Route("api/auth")]
-public sealed class AuthController(IPublicUserAuthService authService) : ControllerBase
+public sealed class AuthController(IPublicUserAuthService authService, CurrentPublicUser currentUser) : ControllerBase
 {
     [HttpPost("login")]
     [EnableRateLimiting("phone-login")]
@@ -49,10 +49,11 @@ public sealed class AuthController(IPublicUserAuthService authService) : Control
 
     [HttpGet("me")]
     [Authorize(AuthenticationSchemes = PublicAuthConstants.AuthenticationScheme)]
-    public IActionResult Me()
+    public async Task<IActionResult> Me(CancellationToken ct)
     {
         var id = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var phone = User.FindFirstValue(ClaimTypes.MobilePhone)!;
-        return Ok(new PublicUserMeDto(id, phone));
+        var profile = await currentUser.GetAsync(id, ct)
+            ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+        return Ok(new PublicUserMeDto(id, profile.Phone));
     }
 }
