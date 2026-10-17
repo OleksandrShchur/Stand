@@ -3,7 +3,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent,
     Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-    IconButton, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme,
+    IconButton, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -19,6 +19,7 @@ import { LoadingState } from '../../components/StateMessage';
 import { formatDateFull, formatDateHuman, todayIso } from '../../utils/date';
 import { matchingDates, validateRanges } from './scheduleModel';
 import LocationSchedule from './LocationSchedule';
+import UkrainianDatePicker from '../../components/UkrainianDatePicker';
 
 const WEEKDAYS = [{ value: 1, label: 'Пн' }, { value: 2, label: 'Вт' }, { value: 3, label: 'Ср' },
     { value: 4, label: 'Чт' }, { value: 5, label: 'Пт' }, { value: 6, label: 'Сб' }, { value: 0, label: 'Нд' }];
@@ -153,15 +154,15 @@ export default function AdminSchedulePage() {
             <Box sx={{ display: 'grid', minWidth: 0, gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '300px minmax(0, 1fr)' }, gap: 2, alignItems: 'start', '& > *': { minWidth: 0 } }}>
                 <Card variant="outlined" sx={{ minWidth: 0 }}>
                     <CardContent>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0 }}>
+                        <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} onChange={chooseDate} />
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, mt: 1 }}>
                             <IconButton aria-label="Попередній день" disabled={busy} onClick={() => moveDay(-1)} sx={{ width: 44, height: 44, flexShrink: 0 }}><ChevronLeftIcon /></IconButton>
-                            <TextField label="Дата розкладу" type="date" fullWidth value={date} disabled={busy}
-                                onChange={e => chooseDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 0, '& input': { minWidth: 0, fontSize: 16 } }} />
+                            <Button fullWidth startIcon={<CalendarMonthOutlinedIcon />} aria-expanded={isMobile ? calendarOpen : undefined} aria-controls={isMobile ? 'schedule-calendar' : undefined}
+                                onClick={() => isMobile ? setCalendarOpen(open => !open) : chooseDate(todayIso())} sx={{ minWidth: 0 }}>
+                                {isMobile ? (calendarOpen ? 'Згорнути календар' : 'Обрати в календарі') : 'Сьогодні'}
+                            </Button>
                             <IconButton aria-label="Наступний день" disabled={busy} onClick={() => moveDay(1)} sx={{ width: 44, height: 44, flexShrink: 0 }}><ChevronRightIcon /></IconButton>
                         </Stack>
-                        <Button fullWidth startIcon={<CalendarMonthOutlinedIcon />} aria-expanded={calendarOpen} aria-controls="schedule-calendar" onClick={() => setCalendarOpen(open => !open)} sx={{ display: { xs: 'flex', md: 'none' }, mt: 1 }}>
-                            {calendarOpen ? 'Згорнути календар' : 'Обрати в календарі'}
-                        </Button>
                         <Box id="schedule-calendar" sx={{ display: { xs: calendarOpen ? 'block' : 'none', md: 'block' }, minWidth: 0, mt: 2 }}>
                         <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}>
                             <IconButton aria-label="Попередній місяць" onClick={() => moveMonth(-1)}><ChevronLeftIcon /></IconButton>
@@ -241,14 +242,14 @@ export default function AdminSchedulePage() {
                         </ToggleButtonGroup>
                         {copyMode === 'dates' ? <>
                             <Stack direction="row" spacing={1} sx={{ alignItems: 'start' }}>
-                                <TextField fullWidth label="Додати дату" type="date" value={extraDate} onChange={e => setExtraDate(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                                <UkrainianDatePicker label="Додати дату" name="copy-date" value={extraDate} onChange={setExtraDate} />
                                 <IconButton aria-label="Додати дату до копіювання" disabled={!extraDate || copyDates.includes(extraDate) || copyDates.length >= 366} onClick={() => { setCopyDates([...copyDates, extraDate]); setExtraDate(''); }} sx={{ mt: 0.5, minHeight: 44 }}><AddIcon /></IconButton>
                             </Stack>
                             <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>{copyDates.map(day => <Chip key={day} sx={{ maxWidth: '100%' }} label={formatDateFull(day)} onDelete={() => setCopyDates(copyDates.filter(d => d !== day))} />)}</Stack>
                         </> : <>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <TextField fullWidth label="Від" type="date" value={copyFrom} onChange={e => setCopyFrom(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-                                <TextField fullWidth label="До" type="date" value={copyTo} onChange={e => setCopyTo(e.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                                <UkrainianDatePicker label="Від" name="copy-from" value={copyFrom} onChange={setCopyFrom} />
+                                <UkrainianDatePicker label="До" name="copy-to" value={copyTo} onChange={setCopyTo} />
                             </Stack>
                             <Typography variant="body2" color="text.secondary">Оберіть дні тижня у періоді до одного року.</Typography>
                             <ToggleButtonGroup value={weekdays} onChange={(_, value) => setWeekdays(value)} fullWidth>{WEEKDAYS.map(day => <ToggleButton key={day.value} value={day.value} sx={{ px: 0, minWidth: 0 }}>{day.label}</ToggleButton>)}</ToggleButtonGroup>
