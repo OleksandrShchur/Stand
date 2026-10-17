@@ -5,9 +5,6 @@ public sealed class BookingOptions
 {
     public const string SectionName = "Booking";
 
-    /// <summary>How long a selected slot is held before it is released, in minutes.</summary>
-    public int HoldDurationMinutes { get; set; } = 2;
-
     /// <summary>How many days ahead (from today, inclusive) a date may be enabled for booking.</summary>
     public int HorizonDays { get; set; } = 14;
 

@@ -28,7 +28,6 @@ builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IPublicUserAuthService, PublicUserAuthService>();
 builder.Services.AddScoped<CurrentPublicUser>();
-builder.Services.AddHostedService<ExpiredHoldCleanupService>();
 
 // ---- MVC / API ----
 builder.Services.AddControllers();

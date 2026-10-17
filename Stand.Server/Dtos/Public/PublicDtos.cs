@@ -35,7 +35,7 @@ public sealed record CalendarDto(
 public sealed record BookingSummaryDto(
     string PublicNumber,
     string CancelToken,
-    string Status,
+    bool IsBooked,
     string Date,
     string LocationName,
     string? LocationAddress,
@@ -46,7 +46,7 @@ public sealed record BookingSummaryDto(
     string? Phone,
     string? Comment,
     string CreatedAtUtc,
-    string? ConfirmedAtUtc,
+    string? BookedAtUtc,
     string? CancelledAtUtc,
     List<ShiftParticipantDto> Participants);
 

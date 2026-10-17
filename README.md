@@ -180,23 +180,24 @@ rate-limited to 5 attempts/minute per IP.
   it (`AvailableDates` table / `/admin/dates`). Same-day (and any) slots are
   only bookable if their **start time is at least 1 hour** from now
   (`Booking:MinLeadTimeMinutes`, default 60); earlier slots show as
-  «Недоступно» and are rejected on hold with `SLOT_TOO_SOON`.
+  «Недоступно» and are rejected on booking with `SLOT_TOO_SOON`.
 - **Capacity:** configurable per location (seeded default **3**). Enforced
   under concurrent requests via a DB transaction with a `WITH (UPDLOCK,
-  HOLDLOCK)` row-locking count inside `BookingService`, so parallel hold
+  HOLDLOCK)` row-locking count inside `BookingService`, so parallel booking
   attempts for the same date/location/time slot are serialized rather than
   racing. This was load-tested with 10 simultaneous requests against a
   capacity-3 slot: exactly 3 succeeded, 7 correctly got `SLOT_FULL`.
 - **Immediate booking:** selecting an available slot opens the shift summary
   and participant list without reserving a place or starting a timer. The final
-  confirm button checks capacity and inserts a confirmed booking using the
+  confirm button checks capacity and inserts a booked record using the
   signed-in user's admin-managed name and phone. Unavailable
-  slots open a read-only final screen with the shift's confirmed participants.
-  The background cleanup service still expires holds created by older versions.
+  slots open a read-only final screen with the shift's booked participants.
+  A booking has one binary flag: `IsBooked`. There are no temporary holds,
+  pending confirmations, expiry timers, or background hold cleanup.
 - **Duplicate prevention:** one active booking per phone number per
   date+location+time slot, enforced both at the application layer (pre-check)
   and by a filtered unique index in SQL (`UQ_Bookings_Phone_Date_Location_TimeSlot`,
-  `WHERE Status <> 'Cancelled'`) as a race-safe backstop.
+  `WHERE IsBooked = 1 AND Phone IS NOT NULL`) as a race-safe backstop.
 - **Phone validation:** Ukrainian mobile numbers only, normalized server-side
   to `+380XXXXXXXXX` regardless of whether the visitor typed `0XXXXXXXXX`,
   `380XXXXXXXXX`, or `+380XXXXXXXXX`.
@@ -226,7 +227,7 @@ GET/POST/PUT  /api/admin/locations       + activate/deactivate
 GET/POST/PUT  /api/admin/timeslots       + activate/deactivate
 GET/PUT       /api/admin/dates           + POST /bulk
 GET/POST/DELETE /api/admin/exceptions
-GET  /api/admin/bookings                 filters: date, locationId, status, phone
+GET  /api/admin/bookings                 filters: date, locationId, timeSlotId, isBooked, phone
 POST /api/admin/bookings/{id}/cancel
 GET  /api/admin/bookings/export.csv
 GET  /api/admin/dashboard
@@ -262,7 +263,7 @@ doesn't lose the selected shift. No reservation expires while reviewing the shif
 ```json
 {
   "ConnectionStrings": { "Default": "Server=(localdb)\\MSSQLLocalDB;Database=StandDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true" },
-  "Booking": { "HoldDurationMinutes": 2, "HorizonDays": 14, "MinLeadTimeMinutes": 60, "TimeZoneId": "Europe/Kyiv" },
+  "Booking": { "HorizonDays": 14, "MinLeadTimeMinutes": 60, "TimeZoneId": "Europe/Kyiv" },
   "AdminAuth": { "SlidingExpirationHours": 12, "AbsoluteExpirationDays": 7 }
 }
 ```
@@ -287,7 +288,7 @@ environment via `appsettings.{Environment}.json` or environment variables
 | 8 | Duplicate booking prevention (same phone+date+location+time) | ✅ app-level pre-check + filtered unique index backstop |
 | 9 | Admin: cookie auth, sliding 12h / absolute 7d, rate-limited login | ✅ `Program.cs` cookie config + `AddRateLimiter` "login" policy |
 | 10 | Admin CRUD: locations, time slots, bookable dates, exceptions | ✅ `Admin*Controller`s + corresponding admin pages |
-| 11 | Admin bookings list: filters, cancel, CSV export | ✅ `AdminBookingsController` (`date`, `locationId`, `status`, `phone` filters; `/export.csv`) |
+| 11 | Admin bookings list: filters, cancel, CSV export | ✅ `AdminBookingsController` (`date`, `locationId`, `timeSlotId`, `isBooked`, `phone` filters; `/export.csv`) |
 | 12 | Admin dashboard | ✅ today/upcoming counts per location |
 | 13 | Multi-admin management | ✅ `/admin/users` + `AdminUsersController` (create/disable/enable) |
 | 14 | DB schema via idempotent numbered SQL scripts, safe to re-run on empty **and** already-migrated DB | ✅ `db/scripts/0001`–`0010` + `Stand.DbMigrator`; verified both from empty and already-applied |
@@ -352,7 +353,7 @@ of the editor; the day page shows a compact summary of each location.
   users have name/phone search and pagination. Booking filters can be expanded
   when needed, with CSV export and booking detail dialogs retained.
 
-**Deployment:** apply `db/scripts/0014_AddDateLocationSchedules.sql` with
+**Deployment:** apply pending SQL scripts, including `0014` and `0015`, with
 `Stand.DbMigrator` against the intended database before starting the new server.
 Use the existing configured connection or the migrator's `--connection` option;
 this is a SQL script migration, not an EF code-first migration. The change adds
@@ -393,3 +394,26 @@ and custom slots, editing, removal, previews, copy and unsaved-change dialogs.
 It does not save schedules or cancel bookings. Screenshots are written to
 `artifacts/admin-mobile/`. Width checks compare with the configured device
 width so an expanded mobile layout viewport cannot mask overflow.
+
+## 14. Booked or not booked
+
+Bookings expose a single `isBooked` boolean in the API and an `IsBooked` bit in
+SQL Server. `true` means booked; `false` means not booked. Only booked rows
+consume capacity, appear as participants/upcoming shifts, or count on the
+dashboard. Cancellation sets the flag to false immediately and retains the
+record and cancellation token as history. The same participant can then book
+that time again. Admins see booked records by default and can filter history
+with `isBooked=false`. CSV exports the same boolean; there are no held,
+pending, or separate confirmation states.
+
+Before starting this version, apply `0015_SimplifyBookingState.sql` using
+`Stand.DbMigrator` and the intended database connection, then restart the
+backend and use the matching client build. The migration preserves existing
+bookings and tokens, marks cancelled rows and unfinished legacy holds as not
+booked, renames `ConfirmedAtUtc` to `BookedAtUtc`, and removes the old `Status`
+and `HoldExpiresAtUtc` columns. Stored retry responses from the previous API
+remain usable: their stable tokens resolve to the current binary state.
+
+The SQL integration suite checks conversion and idempotency of the actual
+migration in a separate, rollback-only test schema, plus capacity, history,
+rebooking, binary filters and CSV, and retries after cancellation.

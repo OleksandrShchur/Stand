@@ -15,11 +15,10 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/StateMess
 import type { BookingAdminDto, LocationAdminDto, TimeSlotAdminDto } from '../../api/types';
 import { formatDateFull, todayIso } from '../../utils/date';
 
-const STATUS_OPTIONS = [
-    { value: '', label: 'Усі статуси' },
-    { value: 'Held', label: 'Утримується' },
-    { value: 'Confirmed', label: 'Підтверджено' },
-    { value: 'Cancelled', label: 'Скасовано' },
+const BOOKING_OPTIONS = [
+    { value: '', label: 'Усі записи' },
+    { value: 'true', label: 'Записано' },
+    { value: 'false', label: 'Не записано' },
 ];
 
 export default function AdminBookingsPage() {
@@ -35,7 +34,7 @@ export default function AdminBookingsPage() {
     const [locationId, setLocationId] = useState<number | ''>('');
     const [timeSlotId, setTimeSlotId] = useState<number | ''>('');
     const [phone, setPhone] = useState('');
-    const [status, setStatus] = useState('');
+    const [bookingState, setBookingState] = useState('true');
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
@@ -45,7 +44,7 @@ export default function AdminBookingsPage() {
     const [cancelError, setCancelError] = useState('');
     const [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<BookingAdminDto | null>(null);
-    const [applied, setApplied] = useState<BookingFilters>(() => ({ date: searchParams.get('date') || undefined }));
+    const [applied, setApplied] = useState<BookingFilters>(() => ({ date: searchParams.get('date') || undefined, isBooked: true }));
     const [refresh, setRefresh] = useState(0);
 
     const buildFilters = (): BookingFilters => ({
@@ -53,7 +52,7 @@ export default function AdminBookingsPage() {
         locationId: locationId || undefined,
         timeSlotId: timeSlotId || undefined,
         phone: phone || undefined,
-        status: status || undefined,
+        isBooked: bookingState === '' ? undefined : bookingState === 'true',
         page: page + 1,
         pageSize,
     });
@@ -113,11 +112,11 @@ export default function AdminBookingsPage() {
             <Typography color="text.secondary" sx={{ mb: 2 }}>Переглядайте деталі та учасників. Кожне скасування потребує підтвердження.</Typography>
             <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                 <Button variant="outlined" onClick={() => { setDate(todayIso()); setApplied({ ...buildFilters(), date: todayIso() }); setPage(0); }}>Сьогодні</Button>
-                <Button onClick={() => { setDate(''); setLocationId(''); setTimeSlotId(''); setPhone(''); setStatus(''); setApplied({}); setPage(0); }}>Усі записи</Button>
+                <Button onClick={() => { setDate(''); setLocationId(''); setTimeSlotId(''); setPhone(''); setBookingState(''); setApplied({}); setPage(0); }}>Усі записи</Button>
             </Stack>
 
             <Accordion variant="outlined" disableGutters sx={{ mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone, applied.status].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone].some(Boolean) || applied.isBooked !== undefined ? ' · застосовано' : ''}</Typography></AccordionSummary>
                 <AccordionDetails>
                 <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} useFlexGap sx={{ flexWrap: 'wrap', alignItems: { xs: 'stretch', sm: 'center' } }}>
                     <TextField label="Дата" type="date" value={date} onChange={(e) => setDate(e.target.value)}
@@ -133,8 +132,8 @@ export default function AdminBookingsPage() {
                         {timeSlots.map((s) => <MenuItem key={s.id} value={s.id}>{s.startTime}–{s.endTime}</MenuItem>)}
                     </TextField>
                     <TextField label="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ minWidth: 160 }} size="small" />
-                    <TextField label="Статус" select value={status} onChange={(e) => setStatus(e.target.value)} sx={{ minWidth: 160 }} size="small">
-                        {STATUS_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
+                    <TextField label="Запис" select value={bookingState} onChange={(e) => setBookingState(e.target.value)} sx={{ minWidth: 160 }} size="small">
+                        {BOOKING_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
                     </TextField>
                     <Button loading={loading} loadingPosition="start" variant="contained" startIcon={<RefreshIcon />} onClick={applyFilters}>Застосувати</Button>
                 </Stack>
@@ -154,7 +153,7 @@ export default function AdminBookingsPage() {
                     {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
                         <Stack direction="row" spacing={1} sx={{ mb: 1, justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="caption">№ {b.publicNumber}</Typography>
-                            <Chip size="small" label={statusLabel(b.status)} color={statusColor(b.status)} />
+                            <Chip size="small" label={b.isBooked ? 'Записано' : 'Не записано'} color={b.isBooked ? 'success' : 'default'} />
                         </Stack>
                         <Typography variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
                         <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
@@ -162,7 +161,7 @@ export default function AdminBookingsPage() {
                         {b.phone && <Link href={`tel:${b.phone}`} sx={{ display: 'inline-block', py: 1.25 }}>{b.phone}</Link>}
                         <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                             <Button fullWidth variant="outlined" onClick={() => setDetail(b)}>Деталі</Button>
-                            {b.status !== 'Cancelled' && <Button fullWidth color="error" onClick={() => requestCancel(b)}>Скасувати запис</Button>}
+                            {b.isBooked && <Button fullWidth color="error" onClick={() => requestCancel(b)}>Скасувати запис</Button>}
                         </Stack>
                     </CardContent></Card>)}
                 </Stack>
@@ -176,7 +175,7 @@ export default function AdminBookingsPage() {
                                 <TableCell>Локація</TableCell>
                                 <TableCell>Імʼя</TableCell>
                                 <TableCell>Телефон</TableCell>
-                                <TableCell>Статус</TableCell>
+                                <TableCell>Запис</TableCell>
                                 <TableCell align="center">Дії</TableCell>
                             </TableRow>
                         </TableHead>
@@ -190,11 +189,11 @@ export default function AdminBookingsPage() {
                                     <TableCell>{[b.firstName, b.lastName].filter(Boolean).join(' ')}</TableCell>
                                     <TableCell>{b.phone}</TableCell>
                                     <TableCell>
-                                        <Chip size="small" label={statusLabel(b.status)} color={statusColor(b.status)} />
+                                        <Chip size="small" label={b.isBooked ? 'Записано' : 'Не записано'} color={b.isBooked ? 'success' : 'default'} />
                                     </TableCell>
                                     <TableCell align="center">
                                         <Button onClick={() => setDetail(b)}>Деталі</Button>
-                                        {b.status !== 'Cancelled' && (
+                                        {b.isBooked && (
                                             <IconButton aria-label={`Скасувати запис ${b.publicNumber}`} onClick={() => requestCancel(b)}>
                                                 <CancelOutlinedIcon fontSize="small" />
                                             </IconButton>
@@ -223,12 +222,12 @@ export default function AdminBookingsPage() {
                 <DialogTitle id="booking-detail-title">Деталі запису</DialogTitle>
                 <DialogContent>{detail && <Stack spacing={1.5}>
                     <BookingDetails booking={detail} />
-                    <Typography>Статус: {statusLabel(detail.status)}</Typography>
+                    <Typography>{detail.isBooked ? 'Записано' : 'Не записано'}</Typography>
                     {detail.comment && <Typography sx={{ whiteSpace: 'pre-wrap' }}>Коментар: {detail.comment}</Typography>}
                     <Typography variant="body2" color="text.secondary">Створено: {new Date(detail.createdAtUtc).toLocaleString('uk-UA')}</Typography>
                 </Stack>}</DialogContent>
                 <DialogActions sx={{ p: 2 }}><Button onClick={() => setDetail(null)}>Закрити</Button>
-                    {detail && detail.status !== 'Cancelled' && <Button color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
+                    {detail?.isBooked && <Button color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
                 </DialogActions>
             </Dialog>
             <Dialog open={!!cancelTarget} onClose={() => { if (!cancelling) setCancelTarget(null); }} fullWidth maxWidth="sm" aria-labelledby="booking-cancel-title" aria-describedby="booking-cancel-warning">
@@ -255,21 +254,4 @@ function BookingDetails({ booking }: { booking: BookingAdminDto }) {
         <Typography>{formatDateFull(booking.date)}</Typography><Typography sx={{ fontWeight: 700 }}>{booking.startTime}–{booking.endTime}</Typography>
         <Typography>{booking.locationName}</Typography>{booking.phone && <Link href={`tel:${booking.phone}`} sx={{ display: 'inline-block', py: 1 }}>{booking.phone}</Link>}
     </Box>;
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case 'Confirmed': return 'Підтверджено';
-        case 'Cancelled': return 'Скасовано';
-        case 'Held': return 'Утримується';
-        default: return status;
-    }
-}
-
-function statusColor(status: string): 'success' | 'default' | 'warning' {
-    switch (status) {
-        case 'Confirmed': return 'success';
-        case 'Cancelled': return 'default';
-        default: return 'warning';
-    }
 }

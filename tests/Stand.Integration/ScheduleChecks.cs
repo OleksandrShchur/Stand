@@ -94,7 +94,7 @@ internal static class ScheduleChecks
             await using (var db = new StandDbContext(dbOptions))
             {
                 var summary = await Bookings(db).GetByCancelTokenAsync(Guid.Parse(token), default);
-                Check(summary.Status == "Confirmed" && summary.StartTime == "09:00" && summary.EndTime == "12:00", "Closing a location preserves booking status and original times");
+                Check(summary.IsBooked && summary.StartTime == "09:00" && summary.EndTime == "12:00", "Closing a location preserves the booked flag and original times");
                 var slots = await Availability(db).GetSlotsAsync(date, place.Id, default);
                 Check(slots.Count == 1 && slots[0].IsBlocked && !slots[0].IsBookable && slots[0].Booked == 1,
                     "Preserved bookings remain viewable while removed slots reject new bookings");
@@ -112,7 +112,7 @@ internal static class ScheduleChecks
                 var bookingId = await db.Bookings.Where(b => b.CancelToken == Guid.Parse(token)).Select(b => b.Id).SingleAsync();
                 await admin.Cancel(bookingId, default);
                 await admin.Cancel(bookingId, default);
-                Check((await Bookings(db).GetByCancelTokenAsync(Guid.Parse(token), default)).Status == "Cancelled", "Admin cancellation is safe to retry");
+                Check(!(await Bookings(db).GetByCancelTokenAsync(Guid.Parse(token), default)).IsBooked, "Admin cancellation is safe to retry");
             }
             var invalid = changed with { Locations = [new(place.Id, [new("09:00", "12:00"), new("11:00", "13:00")])] };
             try { await Write(invalid); throw new Exception("Accepted overlapping ranges"); }

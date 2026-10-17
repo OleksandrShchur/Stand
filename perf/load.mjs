@@ -126,11 +126,11 @@ await Promise.all(clients.map(async (client, index) => {
           const result = await request(client, '/api/bookings', {date,locationId:location,timeSlotId:slot.timeSlotId}, true);
           if (result.status === 409) conflicts++;
           else {
-            if (!result.json?.cancelToken || result.json.status !== 'Confirmed') { validationFailures++; throw Error('Invalid booking'); }
+            if (!result.json?.cancelToken || result.json.isBooked !== true) { validationFailures++; throw Error('Invalid booking'); }
             bookings++;
             pendingBookings.set(result.json.cancelToken,client);
             const cancelled = await request(client, '/api/bookings/cancel', {cancelToken:result.json.cancelToken});
-            if (cancelled.json?.status !== 'Cancelled') { validationFailures++; throw Error('Invalid cancellation'); }
+            if (cancelled.json?.isBooked !== false) { validationFailures++; throw Error('Invalid cancellation'); }
             pendingBookings.delete(result.json.cancelToken);
           }
         }
@@ -153,7 +153,7 @@ for (const [cancelToken,client] of pendingBookings) {
   for (let attempt=0; attempt<3; attempt++) {
     try {
       const cancelled = await request(client,'/api/bookings/cancel',{cancelToken});
-      if (cancelled.json?.status === 'Cancelled') { pendingBookings.delete(cancelToken); break; }
+      if (cancelled.json?.isBooked === false) { pendingBookings.delete(cancelToken); break; }
     } catch {}
     await sleep(1000);
   }

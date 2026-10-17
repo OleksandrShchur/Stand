@@ -18,7 +18,7 @@ export interface BookingFilters {
     locationId?: number;
     timeSlotId?: number;
     phone?: string;
-    status?: string;
+    isBooked?: boolean;
     page?: number;
     pageSize?: number;
 }

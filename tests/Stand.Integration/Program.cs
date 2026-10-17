@@ -51,6 +51,7 @@ await setup.Database.ExecuteSqlInterpolatedAsync($"""
 var userIds = users.Select(u => u.Id).ToArray();
 try
 {
+    await BookingStateMigrationChecks.Run(connection);
     await using (var db = new StandDbContext(DbOptions(counter)))
     {
         var current = new CurrentPublicUser(db);
@@ -69,20 +70,35 @@ try
         await setup.AuthorizedUsers.Where(u => u.Id == users[0].Id).ExecuteUpdateAsync(s => s.SetProperty(u => u.IsActive, true));
     }
 
-    var holds = new[]
+    var history = new[]
     {
-        new Booking { PublicNumber = Guid.NewGuid().ToString("N")[..20], LocationId = location.Id, Date = date, TimeSlotId = slotIds[4], Status = "Held", HoldExpiresAtUtc = clock.UtcNow.AddMinutes(5) },
-        new Booking { PublicNumber = Guid.NewGuid().ToString("N")[..20], LocationId = location.Id, Date = date, TimeSlotId = slotIds[4], Status = "Held", HoldExpiresAtUtc = clock.UtcNow.AddMinutes(-5) },
+        new Booking { PublicNumber = Guid.NewGuid().ToString("N")[..20], LocationId = location.Id, Date = date, TimeSlotId = slotIds[4], IsBooked = false, Phone = users[2].Phone, FirstName = "Inactive", LastName = "History" },
+        new Booking { PublicNumber = Guid.NewGuid().ToString("N")[..20], LocationId = location.Id, Date = date, TimeSlotId = slotIds[4], IsBooked = false, Phone = users[2].Phone, FirstName = "Inactive", LastName = "History" },
+        new Booking { PublicNumber = Guid.NewGuid().ToString("N")[..20], LocationId = location.Id, Date = date, TimeSlotId = slotIds[4], IsBooked = true, Phone = users[3].Phone, FirstName = "Booked", LastName = "Participant" },
     };
-    setup.AddRange(holds);
+    setup.AddRange(history);
     await setup.SaveChangesAsync();
     await using (var db = new StandDbContext(DbOptions()))
     {
         var slots = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db))
             .GetSlotsAsync(date, location.Id, default, users[0].Id);
-        var held = slots.Single(s => s.TimeSlotId == slotIds[4]);
-        Check(held.Booked == 1 && held.Remaining == 2 && held.Participants.Count == 0,
-            "Active holds count toward capacity; expired holds and held names do not");
+        var slot = slots.Single(s => s.TimeSlotId == slotIds[4]);
+        Check(slot.Booked == 1 && slot.Remaining == 2 && slot.Participants.Count == 1 && slot.Participants[0].FirstName == "Booked",
+            "Only booked rows consume capacity or appear as participants; inactive history is ignored");
+        var booking = await Service(db).BookAsync(date, location.Id, slotIds[4], users[0].Id, default);
+        Check(booking.IsBooked, "A booking is immediately booked without any pending or held state");
+        await Service(db).CancelAsync(Guid.Parse(booking.CancelToken), default);
+        var afterCancel = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db)).GetSlotsAsync(date, location.Id, default, users[0].Id);
+        Check(afterCancel.Single(s => s.TimeSlotId == slotIds[4]).Remaining == 2, "Cancellation frees the place immediately");
+        var rebooked = await Service(db).BookAsync(date, location.Id, slotIds[4], users[0].Id, default);
+        Check(rebooked.IsBooked && rebooked.CancelToken != booking.CancelToken, "The same participant can book again after cancellation");
+        var admin = new Stand.Server.Controllers.Admin.AdminBookingsController(db);
+        var inactive = (Stand.Server.Dtos.Admin.BookingListResultDto)((Microsoft.AspNetCore.Mvc.OkObjectResult)
+            await admin.List(date.ToString("yyyy-MM-dd"), location.Id, slotIds[4], null, false, ct: default)).Value!;
+        Check(inactive.Items.Count == 3 && inactive.Items.All(item => !item.IsBooked), "The admin false filter returns only inactive history");
+        var csv = (Microsoft.AspNetCore.Mvc.FileContentResult)await admin.ExportCsv(date.ToString("yyyy-MM-dd"), location.Id, slotIds[4], null, false, default);
+        var csvText = System.Text.Encoding.UTF8.GetString(csv.FileContents);
+        Check(csvText.Contains(",IsBooked,") && !csvText.Contains(",Status,"), "CSV exposes only the binary booking flag");
     }
 
     var attempts = await Task.WhenAll(users.Select(async user =>
@@ -107,6 +123,10 @@ try
         "Idempotent retries insert a batch only once");
     var replay = await BookBatch(users[0].Id, pair, key);
     Check(replay.Select(b => b.CancelToken).SequenceEqual(repeated[0].Select(b => b.CancelToken)), "Committed responses replay across request scopes");
+    var binaryJson = "\"isBooked\":true";
+    var legacyJson = "\"status\":\"Confirmed\"";
+    await setup.Database.ExecuteSqlInterpolatedAsync($"UPDATE dbo.BookingRequests SET ResponseJson = REPLACE(ResponseJson, {binaryJson}, {legacyJson}) WHERE AuthorizedUserId = {users[0].Id} AND RequestId = {key}");
+    Check((await BookBatch(users[0].Id, pair, key)).All(b => b.IsBooked), "Legacy replay JSON resolves to the current booked state");
     try { await BookBatch(users[0].Id, [slotIds[3]], key); throw new Exception("Reused key accepted changed payload"); }
     catch (ConflictAppException ex) when (ex.ErrorCode == ErrorCodes.Conflict) { Console.WriteLine("PASS Changed payload rejects reused key"); }
     await BookBatch(users[1].Id, [slotIds[3]], key);
@@ -120,7 +140,9 @@ try
         var token = Guid.Parse(replay[0].CancelToken);
         var first = await Service(db).CancelAsync(token, default);
         var second = await Service(db).CancelAsync(token, default);
-        Check(first.Status == "Cancelled" && second.Status == "Cancelled", "Cancellation retries succeed idempotently");
+        Check(!first.IsBooked && !second.IsBooked, "Cancellation retries succeed idempotently");
+        var replayAfterCancel = await BookBatch(users[0].Id, pair, key);
+        Check(!replayAfterCancel[0].IsBooked && replayAfterCancel[1].IsBooked, "Replay keeps cancelled bookings inactive instead of resurrecting them");
     }
 
     var failure = new CommandCounter { FailParticipantRead = true };

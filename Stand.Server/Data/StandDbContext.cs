@@ -60,11 +60,11 @@ public partial class StandDbContext : DbContext
 
             entity.HasIndex(e => new { e.Phone, e.Date, e.LocationId, e.TimeSlotId }, "UQ_Bookings_Phone_Date_Location_TimeSlot")
                 .IsUnique()
-                .HasFilter("([Status]<>'Cancelled' AND [Phone] IS NOT NULL)");
+                .HasFilter("([IsBooked]=1 AND [Phone] IS NOT NULL)");
 
             entity.Property(e => e.CancelToken).HasDefaultValueSql("(newid())", "DF_Bookings_CancelToken");
             entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())", "DF_Bookings_CreatedAtUtc");
-            entity.Property(e => e.Status).HasDefaultValue("Held", "DF_Bookings_Status");
+            entity.Property(e => e.IsBooked).HasDefaultValue(true, "DF_Bookings_IsBooked");
 
             entity.HasOne(d => d.Location).WithMany(p => p.Bookings)
                 .OnDelete(DeleteBehavior.ClientSetNull)

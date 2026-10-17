@@ -42,8 +42,7 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
                 .Select(l => l.Id).ToListAsync(ct)).Select(id => new ScheduleLocationDto(id,
                     slots.Select(s => Range(s.StartTime, s.EndTime)).ToList())).ToList();
         }
-        var bookings = await db.Bookings.AsNoTracking().Where(b => b.Date == day && b.Status != "Cancelled" &&
-            (b.Status == "Confirmed" || b.HoldExpiresAtUtc > DateTime.UtcNow))
+        var bookings = await db.Bookings.AsNoTracking().Where(b => b.Date == day && b.IsBooked)
             .Select(b => new { b.Id, b.LocationId, b.Location.Name, b.TimeSlot.StartTime, b.TimeSlot.EndTime }).ToListAsync(ct);
         return new DayScheduleDto(date, entry?.IsActive == true, custom, locations,
             bookings.Select(b => new ScheduleBookingDto(b.Id, b.LocationId, b.Name,
@@ -84,7 +83,7 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         if (locations.Count != locationIds.Count || (dto.IsActive && locations.Any(l => !l.IsActive)))
             throw new ValidationAppException("Оберіть наявні активні локації. Неактивну локацію спочатку увімкніть у довіднику.");
         var bookings = await db.Bookings.Where(b => dates.Contains(b.Date) &&
-            (b.Status == "Confirmed" || (b.Status == "Held" && b.HoldExpiresAtUtc > DateTime.UtcNow)))
+            b.IsBooked)
             .Select(b => new { b.LocationId, b.TimeSlot.StartTime, b.TimeSlot.EndTime }).ToListAsync(ct);
         var affected = bookings.Count(b => !dto.IsActive || !ranges.TryGetValue(b.LocationId, out var slots) ||
             !slots.Contains((b.StartTime, b.EndTime)));

@@ -8,9 +8,9 @@ response cache was added.
   reuses it in authentication and domain services. A new request always checks
   SQL again, preserving immediate user-disable checks without a cache TTL.
 * The authenticated slots path now executes five SQL reads instead of eight.
-  Slot blocking is projected with slot metadata, and confirmed participants and
-  unexpired holds come from one active-bookings read. Counts include the user's
-  own booking; participant lists exclude that user and exclude holds.
+  Slot blocking is projected with slot metadata, and booked participants come
+  from one active-bookings read (`IsBooked = 1`). Counts include the user's
+  own booking; participant lists exclude that user. Inactive history is ignored.
 * Current calendars no longer trigger a second today's-location check. Older
   servers retain their fallback. A shared polling controller pauses hidden tabs,
   coalesces focus/visibility events, prevents overlapping refreshes and aborts
@@ -30,7 +30,7 @@ response cache was added.
 Measured local verification
 
 * SQL Server integration checks cover actual query counts, immediate disable
-  checks, holds/participants, concurrent capacity, concurrent/durable request
+  checks, binary booking state/participants, concurrent capacity, concurrent/durable request
   replay, mismatched payloads, per-user key scope, cancellation replay and rollback
   when response construction fails. A real SQL deadlock error is captured on
   test-owned rows and injected after INSERT to verify full-transaction retry and

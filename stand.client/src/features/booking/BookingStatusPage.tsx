@@ -90,7 +90,7 @@ export default function BookingStatusPage() {
 
                 {booking && !loading && (
                     <Stack spacing={sectionGap}>
-                        {justBooked && booking.status === 'Confirmed' && (
+                        {justBooked && booking.isBooked && (
                             <Box sx={{ textAlign: 'center', pt: 0, pb: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
                                 <Typography variant="h5" sx={{ fontWeight: 700 }}>{bookingCopy.success}</Typography>
@@ -100,7 +100,7 @@ export default function BookingStatusPage() {
                             </Box>
                         )}
 
-                        {booking.status === 'Cancelled' && (
+                        {!booking.isBooked && (
                             <Alert severity="warning" sx={{ borderRadius: 2 }}>Цей запис скасовано.</Alert>
                         )}
 
@@ -109,8 +109,8 @@ export default function BookingStatusPage() {
                                 <Stack direction="row" sx={{ mb: 2, justifyContent: 'flex-end' }}>
                                     <Chip
                                         size="small"
-                                        label={statusLabel(booking.status)}
-                                        color={statusColor(booking.status)}
+                                        label={booking.isBooked ? 'Записано' : 'Не записано'}
+                                        color={booking.isBooked ? 'success' : 'default'}
                                     />
                                 </Stack>
                                 <Stack spacing={1.25}>
@@ -135,7 +135,7 @@ export default function BookingStatusPage() {
                             </Button>
                         </Stack>
 
-                        {booking.status === 'Confirmed' && (
+                        {booking.isBooked && (
                             <Box sx={{ borderTop: '1px solid', borderColor: 'divider', pt: 1, textAlign: 'center' }}>
                                 <Button
                                     variant="text"
@@ -184,21 +184,4 @@ function Row({ label, value }: { label: string; value: string }) {
             <Typography variant="body2" sx={{ fontWeight: 600, textAlign: 'right' }}>{value}</Typography>
         </Stack>
     );
-}
-
-function statusLabel(status: string): string {
-    switch (status) {
-        case 'Confirmed': return 'Підтверджено';
-        case 'Cancelled': return 'Скасовано';
-        case 'Held': return 'Утримується';
-        default: return status;
-    }
-}
-
-function statusColor(status: string): 'success' | 'default' | 'warning' {
-    switch (status) {
-        case 'Confirmed': return 'success';
-        case 'Cancelled': return 'default';
-        default: return 'warning';
-    }
 }
