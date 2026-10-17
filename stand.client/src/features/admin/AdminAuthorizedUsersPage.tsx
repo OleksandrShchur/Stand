@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Link, Pagination, Stack,
     InputAdornment, ListItemIcon, ListItemText, Menu, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
@@ -14,17 +14,23 @@ import { LoadingState, ErrorState } from '../../components/StateMessage';
 import type { AuthorizedUserAdminDto } from '../../api/types';
 import { digitsOnly, formatUaPhone, formatUaPhoneDigits, toUaPhone, uaPhoneValidationError } from '../../utils/phone';
 
+const PAGE_SIZE = 10;
+
 export default function AdminAuthorizedUsersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [items, setItems] = useState<AuthorizedUserAdminDto[]>([]);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(1);
+    const listStart = useRef<HTMLDivElement>(null);
     const filtered = useMemo(() => {
         const term = search.trim().toLocaleLowerCase('uk-UA');
         return items.filter(user => `${user.firstName} ${user.lastName} ${user.phone}`.toLocaleLowerCase('uk-UA').includes(term));
     }, [items, search]);
-    const visibleItems = filtered.slice((page - 1) * 20, page * 20);
+    const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const currentPage = Math.min(page, pageCount);
+    const firstItem = (currentPage - 1) * PAGE_SIZE;
+    const visibleItems = filtered.slice(firstItem, firstItem + PAGE_SIZE);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [phoneDigits, setPhoneDigits] = useState('');
     const [firstName, setFirstName] = useState('');
@@ -87,6 +93,23 @@ export default function AdminAuthorizedUsersPage() {
 
     const validationError = uaPhoneValidationError(phoneDigits);
 
+    const pagination = (label: string) => pageCount > 1 && <Pagination
+        count={pageCount} page={currentPage} siblingCount={0} boundaryCount={1}
+        onChange={(_, next) => {
+            setPage(next);
+            setActionMenu(null);
+            requestAnimationFrame(() => listStart.current?.scrollIntoView({ block: 'start' }));
+        }}
+        getItemAriaLabel={(type, number, selected) => {
+            if (type === 'page') return `${selected ? 'Поточна сторінка' : 'Перейти на сторінку'} ${number}`;
+            if (type === 'previous') return 'Попередня сторінка';
+            if (type === 'next') return 'Наступна сторінка';
+            return type === 'first' ? 'Перша сторінка' : 'Остання сторінка';
+        }}
+        aria-label={label}
+        sx={{ display: 'flex', justifyContent: 'center', '& .MuiPaginationItem-root': { minWidth: 36, height: 44, mx: 0 } }}
+    />;
+
     if (loading) return <LoadingState />;
 
     return (
@@ -98,7 +121,11 @@ export default function AdminAuthorizedUsersPage() {
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
             <TextField fullWidth label="Пошук за ім’ям або телефоном" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} sx={{ mb: 2 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Знайдено користувачів: {filtered.length}</Typography>
+            <Box ref={listStart} sx={{ mb: 2, scrollMarginTop: { xs: 72, md: 16 } }}>
+                <Typography variant="body2" color="text.secondary" aria-live="polite">
+                    {filtered.length > 0 ? `Користувачі ${firstItem + 1}–${firstItem + visibleItems.length} з ${filtered.length}` : 'Знайдено користувачів: 0'}
+                </Typography>
+            </Box>
 
             <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
                 {visibleItems.map(u => <Card key={u.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
@@ -148,7 +175,7 @@ export default function AdminAuthorizedUsersPage() {
                     </TableBody>
                 </Table>
             </TableContainer>
-            {filtered.length > 20 && <Pagination count={Math.ceil(filtered.length / 20)} page={page} onChange={(_, next) => setPage(next)} siblingCount={0} size="small" sx={{ mt: 2 }} aria-label="Сторінки користувачів" />}
+            {pageCount > 1 && <Box sx={{ mt: 2 }}>{pagination('Сторінки користувачів під списком')}</Box>}
 
             <Menu id="user-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)}
                 onClose={() => setActionMenu(null)}

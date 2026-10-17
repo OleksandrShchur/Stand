@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import {
     Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack,
-    Paper, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
+    ListItemIcon, ListItemText, Menu, MenuItem, Paper, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
@@ -23,6 +25,9 @@ export default function AdminLocationsPage() {
     const [saving, setSaving] = useState(false);
     const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
+    const [actionMenu, setActionMenu] = useState<{ anchor: HTMLElement; location: LocationAdminDto } | null>(null);
+    const [deleteLocation, setDeleteLocation] = useState<LocationAdminDto | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
 
     const load = () => {
         setLoading(true);
@@ -60,6 +65,23 @@ export default function AdminLocationsPage() {
         action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.')).finally(() => setUpdatingId(null));
     };
 
+    const remove = () => {
+        if (!deleteLocation || saving) return;
+        setSaving(true);
+        setDeleteError(null);
+        adminApi.deleteLocation(deleteLocation.id)
+            .then(() => { setDeleteLocation(null); load(); })
+            .catch(e => setDeleteError(e instanceof ApiError ? e.message : 'Не вдалося видалити локацію. Спробуйте ще раз.'))
+            .finally(() => setSaving(false));
+    };
+
+    const actionsButton = (loc: LocationAdminDto) => <IconButton aria-label={`Дії локації ${loc.name}`} aria-haspopup="menu"
+        aria-controls={actionMenu?.location.id === loc.id ? 'location-actions-menu' : undefined}
+        aria-expanded={actionMenu?.location.id === loc.id ? true : undefined}
+        disabled={saving || updatingId !== null}
+        onClick={event => setActionMenu({ anchor: event.currentTarget, location: loc })}
+        sx={{ width: 44, height: 44, flexShrink: 0 }}><MoreVertIcon /></IconButton>;
+
     if (loading) return <LoadingState />;
 
     return (
@@ -72,14 +94,18 @@ export default function AdminLocationsPage() {
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
 
             <Alert severity="info" sx={{ mb: 2 }}>Тут зберігаються назви, адреси та місткість. Дати й час кожної локації налаштовуються у «Розкладі». Вимкнення локації закриває нові записи на всіх датах; наявні записи залишаються чинними.</Alert>
-            <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
-                {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent>
-                    <Typography variant="h6">{loc.name}</Typography>
-                    <Typography color="text.secondary">{loc.address}</Typography>
-                    <Typography sx={{ mt: 1, mb: 1 }}>{loc.capacity} місць на інтервал</Typography>
-                    <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
+                {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                        <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                            <Typography variant="h6">{loc.name}</Typography>
+                            {loc.address && <Typography variant="body2" color="text.secondary">{loc.address}</Typography>}
+                        </Box>
+                        {actionsButton(loc)}
+                    </Stack>
+                    <Stack direction="row" useFlexGap sx={{ mt: 0.5, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Typography variant="body2">{loc.capacity} місць на інтервал</Typography>
                         <Chip size="small" label={loc.isActive ? 'Активна' : 'Неактивна'} color={loc.isActive ? 'success' : 'default'} />
-                        <Button variant="outlined" startIcon={<EditIcon />} onClick={() => openEdit(loc)}>Редагувати</Button>
                     </Stack>
                 </CardContent></Card>)}
             </Stack>
@@ -107,13 +133,45 @@ export default function AdminLocationsPage() {
                                     <Switch aria-busy={updatingId === loc.id} disabled={updatingId !== null} checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
                                 </TableCell>
                                 <TableCell align="center">
-                                    <IconButton aria-label={`Редагувати ${loc.name}`} onClick={() => openEdit(loc)}><EditIcon fontSize="small" /></IconButton>
+                                    {actionsButton(loc)}
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <Menu id="location-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)} onClose={() => setActionMenu(null)}
+                slotProps={{ paper: { sx: { minWidth: 180 } } }} sx={{ '& .MuiMenuItem-root': { minHeight: 48 } }}>
+                <MenuItem onClick={() => {
+                    if (actionMenu) openEdit(actionMenu.location);
+                    setActionMenu(null);
+                }}>
+                    <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon><ListItemText>Редагувати</ListItemText>
+                </MenuItem>
+                <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+                    if (actionMenu) { setDeleteLocation(actionMenu.location); setDeleteError(null); }
+                    setActionMenu(null);
+                }}>
+                    <ListItemIcon sx={{ color: 'inherit' }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon><ListItemText>Видалити</ListItemText>
+                </MenuItem>
+            </Menu>
+
+            <Dialog open={Boolean(deleteLocation)} onClose={() => { if (!saving) setDeleteLocation(null); }} fullWidth maxWidth="xs"
+                aria-labelledby="delete-location-title" aria-describedby="delete-location-description">
+                <DialogTitle id="delete-location-title">Видалити локацію?</DialogTitle>
+                <DialogContent>
+                    <Typography sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>{deleteLocation?.name}</Typography>
+                    {deleteLocation?.address && <Typography color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>{deleteLocation.address}</Typography>}
+                    <Typography id="delete-location-description" sx={{ mt: 2 }}>Локацію та її час у розкладі на всіх датах буде видалено. Цю дію неможливо скасувати.</Typography>
+                    <Alert severity="warning" sx={{ mt: 2 }}>Локацію з наявними чи скасованими записами видалити не можна. Щоб закрити нові записи, вимкніть її через «Редагувати».</Alert>
+                    {deleteError && <Box sx={{ mt: 2 }}><ErrorState message={deleteError} /></Box>}
+                </DialogContent>
+                <DialogActions>
+                    <Button autoFocus disabled={saving} onClick={() => setDeleteLocation(null)}>Скасувати</Button>
+                    <Button loading={saving} disabled={saving} color="error" variant="contained" onClick={remove}>Видалити</Button>
+                </DialogActions>
+            </Dialog>
 
             <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="sm">
                 <DialogTitle>{editing ? 'Редагувати локацію' : 'Нова локація'}</DialogTitle>

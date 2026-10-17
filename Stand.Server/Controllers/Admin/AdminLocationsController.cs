@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Stand.Server.Common;
 using Stand.Server.Data;
 using Stand.Server.Data.Entities;
 using Stand.Server.Dtos.Admin;
+using Stand.Server.Services;
 
 namespace Stand.Server.Controllers.Admin;
 
@@ -66,6 +68,32 @@ public sealed class AdminLocationsController(StandDbContext db) : ControllerBase
 
     [HttpPost("{id:int}/deactivate")]
     public async Task<IActionResult> Deactivate(int id, CancellationToken ct) => await SetActive(id, false, ct);
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        const string hasBookings = "Локація має записи, зокрема історію скасованих записів, тому її не можна видалити. Вимкніть її через «Редагувати», щоб закрити нові записи та зберегти наявні.";
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await ScheduleLock.AcquireCatalogAsync(db, ct);
+        var entity = await db.Locations.FirstOrDefaultAsync(l => l.Id == id, ct)
+            ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Локацію не знайдено.");
+        if (await db.Bookings.AnyAsync(b => b.LocationId == id, ct))
+            throw new ConflictAppException(ErrorCodes.Conflict, hasBookings);
+
+        await db.ScheduleSlots.Where(s => s.LocationId == id).ExecuteDeleteAsync(ct);
+        db.Locations.Remove(entity);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            await tx.CommitAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.InnerException is SqlException { Number: 547 })
+        {
+            // A booking may have been created after the check. Roll back the schedule removal too.
+            throw new ConflictAppException(ErrorCodes.Conflict, hasBookings);
+        }
+        return NoContent();
+    }
 
     private async Task<IActionResult> SetActive(int id, bool isActive, CancellationToken ct)
     {
