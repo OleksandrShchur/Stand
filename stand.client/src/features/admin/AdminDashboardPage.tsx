@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Box, Card, CardContent, Grid, LinearProgress, Stack, Typography } from '@mui/material';
+import { Box, Button, Card, CardContent, Grid, LinearProgress, Stack, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
@@ -28,18 +29,23 @@ export default function AdminDashboardPage() {
 
     return (
         <Box>
-            <Typography variant="h4" sx={{ mb: 3 }}>Дашборд</Typography>
+            <Typography variant="h4" sx={{ mb: 1 }}>Огляд</Typography>
+            <Typography color="text.secondary" sx={{ mb: 2 }}>Керуйте розкладом і переглядайте записи на чергування.</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
+                <Button component={RouterLink} to="/admin/schedule" variant="contained">Налаштувати розклад</Button>
+                <Button component={RouterLink} to="/admin/bookings" variant="outlined">Переглянути записи</Button>
+            </Stack>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <StatCard label="Підтверджено на сьогодні" value={data.todayConfirmedCount} />
-                <StatCard label="Підтверджено на 14 днів" value={data.upcomingConfirmedCount} />
+                <StatCard label="Майбутніх записів" value={data.upcomingConfirmedCount} />
                 <StatCard label="Активних утримань" value={data.upcomingHeldCount} />
             </Grid>
 
             <Typography variant="h6" sx={{ mb: 1.5 }}>Заповненість сьогодні за локаціями</Typography>
             <FillRateList items={data.todayByLocation} />
 
-            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Заповненість на 14 днів за локаціями</Typography>
+            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Заповненість у періоді запису за локаціями</Typography>
             <FillRateList items={data.upcomingByLocation} />
         </Box>
     );
@@ -64,7 +70,7 @@ function FillRateList({ items }: { items: LocationFillRateDto[] }) {
             {items.map((loc) => (
                 <Card key={loc.locationId} variant="outlined">
                     <CardContent sx={{ py: 1.5 }}>
-                        <Stack direction="row" sx={{ mb: 0.75, justifyContent: 'space-between' }}>
+                        <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 0.75, gap: 0.5, justifyContent: 'space-between' }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{loc.locationName}</Typography>
                             <Typography variant="caption" color="text.secondary">
                                 {loc.confirmed} підтв. / {loc.held} утрим. · {loc.fillRatePercent}%

@@ -42,7 +42,7 @@ var users = Enumerable.Range(0, 4).Select(i => new AuthorizedUser
 setup.Add(location);
 setup.AddRange(users);
 await setup.SaveChangesAsync();
-var slotIds = await setup.TimeSlots.Where(s => s.IsActive).OrderBy(s => s.StartTime).Select(s => s.Id).ToArrayAsync();
+var slotIds = await setup.TimeSlots.Where(s => s.IsActive && !s.IsScheduleOnly).OrderBy(s => s.StartTime).Select(s => s.Id).ToArrayAsync();
 if (slotIds.Length < 5) throw new Exception("Seed at least five active slots before running integration checks.");
 await setup.Database.ExecuteSqlInterpolatedAsync($"""
     IF NOT EXISTS (SELECT 1 FROM dbo.AvailableDates WHERE [Date] = {date})
@@ -175,6 +175,7 @@ try
     }
     Check(exhausted.Injected == 3 && !await setup.Bookings.AnyAsync(b => b.LocationId == location.Id && b.Phone == users[3].Phone && b.TimeSlotId == slotIds[3]),
         "Deadlock retries stop after three attempts and leave no partial booking");
+    await ScheduleChecks.Run(connection);
     Console.WriteLine("All integration checks passed.");
 }
 finally

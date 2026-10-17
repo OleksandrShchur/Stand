@@ -133,6 +133,25 @@ export interface AvailableDateAdminDto {
     isActive: boolean;
 }
 
+export interface ScheduleRangeDto { startTime: string; endTime: string }
+export interface ScheduleLocationDto { locationId: number; slots: ScheduleRangeDto[] }
+export interface DayScheduleDto {
+    date: string;
+    isActive: boolean;
+    isCustom: boolean;
+    locations: ScheduleLocationDto[];
+    bookings: { id: number; locationId: number; locationName: string; startTime: string; endTime: string }[];
+    horizonDays: number;
+    minLeadTimeMinutes: number;
+}
+export interface SaveScheduleDto {
+    dates: string[];
+    isActive: boolean;
+    locations: ScheduleLocationDto[];
+    acknowledgeExistingBookings?: boolean;
+}
+export interface ScheduleSaveResultDto { updatedDates: number; preservedBookings: number }
+
 export interface DateTimeSlotExceptionAdminDto {
     id: number;
     date: string;

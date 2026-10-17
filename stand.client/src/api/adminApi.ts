@@ -10,6 +10,7 @@ import type {
     DateTimeSlotExceptionAdminDto,
     LocationAdminDto,
     TimeSlotAdminDto,
+    DayScheduleDto, SaveScheduleDto, ScheduleSaveResultDto,
 } from './types';
 
 export interface BookingFilters {
@@ -33,6 +34,9 @@ function toQuery(params: object): string {
 }
 
 export const adminApi = {
+    getSchedule: (date: string) => api.get<DayScheduleDto>(`/api/admin/schedule${toQuery({ date })}`),
+    previewSchedule: (dto: SaveScheduleDto) => api.post<ScheduleSaveResultDto>('/api/admin/schedule/preview', dto),
+    saveSchedule: (dto: SaveScheduleDto) => api.put<ScheduleSaveResultDto>('/api/admin/schedule', dto),
     // Auth
     login: (login: string, password: string) => api.post<AdminMeDto>('/api/admin/auth/login', { login, password }),
     logout: () => api.post<void>('/api/admin/auth/logout'),
@@ -47,7 +51,7 @@ export const adminApi = {
     deactivateLocation: (id: number) => api.post<LocationAdminDto>(`/api/admin/locations/${id}/deactivate`),
 
     // Time slots
-    listTimeSlots: () => api.get<TimeSlotAdminDto[]>('/api/admin/timeslots'),
+    listTimeSlots: (includeScheduleOnly = false) => api.get<TimeSlotAdminDto[]>(`/api/admin/timeslots${toQuery({ includeScheduleOnly })}`),
     createTimeSlot: (dto: Omit<TimeSlotAdminDto, 'id'>) => api.post<TimeSlotAdminDto>('/api/admin/timeslots', dto),
     updateTimeSlot: (id: number, dto: Omit<TimeSlotAdminDto, 'id'>) =>
         api.put<TimeSlotAdminDto>(`/api/admin/timeslots/${id}`, dto),

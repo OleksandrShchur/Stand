@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-    Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
+    Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Link, Pagination, Stack,
     InputAdornment, ListItemIcon, ListItemText, Menu, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     TextField, Tooltip, Typography,
 } from '@mui/material';
@@ -18,6 +18,13 @@ export default function AdminAuthorizedUsersPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [items, setItems] = useState<AuthorizedUserAdminDto[]>([]);
+    const [search, setSearch] = useState('');
+    const [page, setPage] = useState(1);
+    const filtered = useMemo(() => {
+        const term = search.trim().toLocaleLowerCase('uk-UA');
+        return items.filter(user => `${user.firstName} ${user.lastName} ${user.phone}`.toLocaleLowerCase('uk-UA').includes(term));
+    }, [items, search]);
+    const visibleItems = filtered.slice((page - 1) * 20, page * 20);
     const [dialogOpen, setDialogOpen] = useState(false);
     const [phoneDigits, setPhoneDigits] = useState('');
     const [firstName, setFirstName] = useState('');
@@ -33,7 +40,7 @@ export default function AdminAuthorizedUsersPage() {
     const load = () => {
         setLoading(true);
         setError(null);
-        adminApi.listAuthorizedUsers().then(setItems)
+        adminApi.listAuthorizedUsers().then(users => { setItems(users); setPage(1); })
             .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити користувачів.'))
             .finally(() => setLoading(false));
     };
@@ -84,14 +91,26 @@ export default function AdminAuthorizedUsersPage() {
 
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                 <Typography variant="h4">Користувачі сайту</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => openForm()}>Додати</Button>
             </Box>
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
+            <TextField fullWidth label="Пошук за ім’ям або телефоном" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} sx={{ mb: 2 }} />
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Знайдено користувачів: {filtered.length}</Typography>
 
-            <TableContainer component={Paper} variant="outlined">
+            <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
+                {visibleItems.map(u => <Card key={u.id} variant="outlined"><CardContent>
+                    <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</Typography>
+                    <Link href={`tel:${u.phone}`} sx={{ display: 'inline-block', py: 1.25 }}>{formatUaPhone(u.phone)}</Link>
+                    <Stack direction="row" spacing={1}>
+                        <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} onClick={() => openForm(u)}>Редагувати</Button>
+                        <Button fullWidth color="error" onClick={() => { setDeleteUser(u); setDeleteError(null); }}>Видалити</Button>
+                    </Stack>
+                </CardContent></Card>)}
+            </Stack>
+            <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
                 <Table size="small">
                     <TableHead>
                         <TableRow>
@@ -102,7 +121,7 @@ export default function AdminAuthorizedUsersPage() {
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {items.map((u) => (
+                        {visibleItems.map((u) => (
                             <TableRow key={u.id} hover>
                                 <TableCell sx={{ overflowWrap: 'anywhere' }}>{u.firstName || '-'}</TableCell>
                                 <TableCell sx={{ overflowWrap: 'anywhere' }}>{u.lastName || '-'}</TableCell>
@@ -122,6 +141,7 @@ export default function AdminAuthorizedUsersPage() {
                     </TableBody>
                 </Table>
             </TableContainer>
+            {filtered.length > 20 && <Pagination count={Math.ceil(filtered.length / 20)} page={page} onChange={(_, next) => setPage(next)} siblingCount={0} size="small" sx={{ mt: 2 }} aria-label="Сторінки користувачів" />}
 
             <Menu id="user-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)}
                 onClose={() => setActionMenu(null)}>

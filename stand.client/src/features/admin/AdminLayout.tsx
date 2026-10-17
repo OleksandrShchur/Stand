@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar,
+    BottomNavigation,
+    BottomNavigationAction,
     Box,
     Drawer,
     IconButton,
@@ -10,6 +12,7 @@ import {
     ListItemIcon,
     ListItemText,
     Toolbar,
+    Paper,
     Typography,
     useMediaQuery,
     useTheme,
@@ -17,9 +20,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardOutlinedIcon from '@mui/icons-material/DashboardOutlined';
 import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
-import AccessTimeOutlinedIcon from '@mui/icons-material/AccessTimeOutlined';
 import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
-import EventBusyOutlinedIcon from '@mui/icons-material/EventBusyOutlined';
 import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
@@ -32,12 +33,10 @@ import { pagePadding } from '../../layoutSpacing';
 const DRAWER_WIDTH = 248;
 
 const NAV_ITEMS = [
-    { to: '/admin', label: 'Дашборд', icon: <DashboardOutlinedIcon />, end: true },
+    { to: '/admin', label: 'Огляд', icon: <DashboardOutlinedIcon />, end: true },
+    { to: '/admin/schedule', label: 'Розклад', icon: <CalendarMonthOutlinedIcon /> },
     { to: '/admin/bookings', label: 'Записи', icon: <ListAltOutlinedIcon /> },
     { to: '/admin/locations', label: 'Локації', icon: <PlaceOutlinedIcon /> },
-    { to: '/admin/timeslots', label: 'Часові інтервали', icon: <AccessTimeOutlinedIcon /> },
-    { to: '/admin/dates', label: 'Доступні дати', icon: <CalendarMonthOutlinedIcon /> },
-    { to: '/admin/exceptions', label: 'Винятки за датою', icon: <EventBusyOutlinedIcon /> },
     { to: '/admin/authorized-users', label: 'Користувачі сайту', icon: <PersonAddAltOutlinedIcon /> },
     { to: '/admin/users', label: 'Адміністратори', icon: <GroupOutlinedIcon /> },
 ];
@@ -102,7 +101,7 @@ export default function AdminLayout() {
     );
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box sx={{ display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
             {isDesktop ? (
                 <Drawer
                     variant="permanent"
@@ -122,11 +121,11 @@ export default function AdminLayout() {
                 </Drawer>
             )}
 
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: '1 1 0%', width: 0, minWidth: 0 }}>
                 {!isDesktop && (
                     <AppBar position="sticky" elevation={0}>
                         <Toolbar>
-                            <IconButton color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+                            <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
                                 <MenuIcon />
                             </IconButton>
                             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Адмін-панель</Typography>
@@ -134,10 +133,18 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box sx={pagePadding}>
-                    <Box key={location.pathname} className="content-enter"><Outlet /></Box>
+                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(80px + env(safe-area-inset-bottom))', md: 4 } }}>
+                    <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
                 </Box>
             </Box>
+            {!isDesktop && <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
+                <BottomNavigation showLabels value={['/admin', '/admin/schedule', '/admin/bookings'].includes(location.pathname) ? location.pathname : 'menu'}>
+                    <BottomNavigationAction component={NavLink} to="/admin" value="/admin" label="Огляд" icon={<DashboardOutlinedIcon />} />
+                    <BottomNavigationAction component={NavLink} to="/admin/schedule" value="/admin/schedule" label="Розклад" icon={<CalendarMonthOutlinedIcon />} />
+                    <BottomNavigationAction component={NavLink} to="/admin/bookings" value="/admin/bookings" label="Записи" icon={<ListAltOutlinedIcon />} />
+                    <BottomNavigationAction value="menu" label="Меню" icon={<MenuIcon />} onClick={() => setMobileOpen(true)} />
+                </BottomNavigation>
+            </Paper>}
         </Box>
     );
 }

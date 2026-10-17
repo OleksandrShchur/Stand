@@ -34,7 +34,8 @@ public sealed class AvailabilityService(
         var (min, max) = GetBookableWindow();
 
         var dates = await db.AvailableDates
-            .Where(d => d.IsActive && d.Date >= min && d.Date <= max)
+            .Where(d => d.IsActive && d.Date >= min && d.Date <= max &&
+                (!d.UseCustomSchedule || db.ScheduleSlots.Any(s => s.Date == d.Date && s.Location.IsActive)))
             .OrderBy(d => d.Date)
             .Select(d => d.Date)
             .ToListAsync(ct);
@@ -49,6 +50,10 @@ public sealed class AvailabilityService(
             .ToListAsync(ct);
 
         var readOnlyDates = new List<string>();
+        // Closed days with bookings remain visible for reviewing existing shifts.
+        var bookedDates = await db.Bookings.Where(b => b.Date >= min && b.Date <= max && b.Status == "Confirmed")
+            .Select(b => b.Date).Distinct().ToListAsync(ct);
+        readOnlyDates.AddRange(bookedDates.Except(dates).Select(d => d.ToString("yyyy-MM-dd")));
         if (dates.Contains(min))
         {
             var hasBookableSlot = await GetBookableLocationsQuery(min).AnyAsync(ct);
@@ -73,8 +78,10 @@ public sealed class AvailabilityService(
         var bookableLocationIds = date is null ? [] :
             await GetBookableLocationsQuery(date.Value).Select(location => location.Id).ToListAsync(ct);
         return await db.Locations
-            .Where(l => l.IsActive || (date != null && date < clock.TodayLocal &&
-                l.Bookings.Any(b => b.Date == date && b.Status == "Confirmed")))
+            .Where(l => date == null ? l.IsActive :
+                (l.IsActive && (!db.AvailableDates.Any(d => d.Date == date && d.UseCustomSchedule) ||
+                    db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == l.Id))) ||
+                l.Bookings.Any(b => b.Date == date && b.Status == "Confirmed"))
             .OrderBy(l => l.SortOrder)
             .ThenBy(l => l.Name)
             .Select(l => new LocationDto(l.Id, l.Name, l.Address, l.Capacity,
@@ -95,11 +102,13 @@ public sealed class AvailabilityService(
 
         return db.Locations.Where(location => location.IsActive && date >= min && date <= max &&
             db.AvailableDates.Any(day => day.Date == date && day.IsActive) &&
-            db.TimeSlots.Any(slot => slot.IsActive &&
+            db.TimeSlots.Any(slot =>
+                (db.AvailableDates.Any(day => day.Date == date && day.UseCustomSchedule)
+                    ? db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == location.Id && s.TimeSlotId == slot.Id)
+                    : slot.IsActive && !slot.IsScheduleOnly && !db.DateTimeSlotExceptions.Any(exception =>
+                        exception.Date == date && exception.TimeSlotId == slot.Id && exception.IsBlocked)) &&
                 (date > earliestDate || (date == earliestDate && slot.StartTime >= earliestTime)) &&
                 (date > min || slot.EndTime > currentTime) &&
-                !db.DateTimeSlotExceptions.Any(exception =>
-                    exception.Date == date && exception.TimeSlotId == slot.Id && exception.IsBlocked) &&
                 db.Bookings.Count(booking => booking.Date == date && booking.TimeSlotId == slot.Id &&
                     booking.LocationId == location.Id &&
                     (booking.Status == "Confirmed" || (booking.Status == "Held" && booking.HoldExpiresAtUtc > nowUtc))) < location.Capacity));
@@ -135,19 +144,24 @@ public sealed class AvailabilityService(
             throw new NotFoundAppException(ErrorCodes.LocationNotFound, "Локацію не знайдено.");
         }
 
-        if (!location.IsActive && !(date < min &&
+        if (!location.IsActive && !(
             await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed", ct)))
         {
             throw new ValidationAppException("Ця локація зараз недоступна.", ErrorCodes.LocationInactive);
         }
 
         var timeSlots = await db.TimeSlots
-            .Where(t => t.IsActive || t.Bookings.Any(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed"))
-            .OrderBy(t => t.SortOrder)
+            .Where(t => (db.AvailableDates.Any(d => d.Date == date && d.UseCustomSchedule)
+                ? db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == locationId && s.TimeSlotId == t.Id)
+                : t.IsActive && !t.IsScheduleOnly) ||
+                t.Bookings.Any(b => b.Date == date && b.LocationId == locationId && b.Status == "Confirmed"))
+            .OrderBy(t => t.StartTime).ThenBy(t => t.EndTime)
             .Select(t => new
             {
                 t.Id, t.StartTime, t.EndTime, t.IsActive,
-                IsBlocked = db.DateTimeSlotExceptions.Any(e => e.Date == date && e.IsBlocked && e.TimeSlotId == t.Id),
+                IsBlocked = db.AvailableDates.Any(d => d.Date == date && d.UseCustomSchedule)
+                    ? !db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == locationId && s.TimeSlotId == t.Id)
+                    : !t.IsActive || t.IsScheduleOnly || db.DateTimeSlotExceptions.Any(e => e.Date == date && e.IsBlocked && e.TimeSlotId == t.Id),
             })
             .ToListAsync(ct);
 
@@ -183,7 +197,7 @@ public sealed class AvailabilityService(
                 IsFull: isBlocked || isTooSoon || remaining <= 0,
                 IsBlocked: isBlocked,
                 IsTooSoon: isTooSoon,
-                IsBookable: isDateBookable && location.IsActive && slot.IsActive && !isBlocked && !isTooSoon && remaining > 0,
+                IsBookable: isDateBookable && location.IsActive && !isBlocked && !isTooSoon && remaining > 0,
                 Participants: participantsBySlot[slot.Id]
                     .Select(b => new ShiftParticipantDto(b.FirstName, b.LastName)).ToList()));
         }

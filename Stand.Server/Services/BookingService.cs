@@ -123,6 +123,7 @@ public sealed class BookingService(
         var phone = PhoneNormalizer.TryNormalize(user.Phone)
             ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
 
+        await ScheduleLock.AcquireAsync(db, date, false, ct);
         await availability.EnsureDateBookableAsync(date, ct);
 
         var location = await db.Locations.FirstOrDefaultAsync(l => l.Id == locationId, ct)
@@ -146,14 +147,18 @@ public sealed class BookingService(
         var blockedIds = await db.DateTimeSlotExceptions
             .Where(e => e.Date == date && timeSlotIds.Contains(e.TimeSlotId) && e.IsBlocked)
             .Select(e => e.TimeSlotId).ToListAsync(ct);
+        var isCustomSchedule = await db.AvailableDates.AnyAsync(d => d.Date == date && d.UseCustomSchedule, ct);
+        var scheduledIds = isCustomSchedule ? await db.ScheduleSlots
+            .Where(s => s.Date == date && s.LocationId == locationId && timeSlotIds.Contains(s.TimeSlotId))
+            .Select(s => s.TimeSlotId).ToListAsync(ct) : [];
         foreach (var timeSlot in timeSlots)
         {
-            if (!timeSlot.IsActive)
+            if (isCustomSchedule ? !scheduledIds.Contains(timeSlot.Id) : (!timeSlot.IsActive || timeSlot.IsScheduleOnly))
             {
                 throw new ValidationAppException("Цей час зараз недоступний.", ErrorCodes.TimeSlotBlocked);
             }
 
-            if (blockedIds.Contains(timeSlot.Id))
+            if (!isCustomSchedule && blockedIds.Contains(timeSlot.Id))
             {
                 throw new ValidationAppException("Цей час недоступний для обраної дати.", ErrorCodes.TimeSlotBlocked);
             }
