@@ -47,6 +47,7 @@ export const adminApi = {
     createLocation: (dto: Omit<LocationAdminDto, 'id'>) => api.post<LocationAdminDto>('/api/admin/locations', dto),
     updateLocation: (id: number, dto: Omit<LocationAdminDto, 'id'>) =>
         api.put<LocationAdminDto>(`/api/admin/locations/${id}`, dto),
+    deleteLocation: (id: number) => api.del<void>(`/api/admin/locations/${id}`),
     activateLocation: (id: number) => api.post<LocationAdminDto>(`/api/admin/locations/${id}/activate`),
     deactivateLocation: (id: number) => api.post<LocationAdminDto>(`/api/admin/locations/${id}/deactivate`),
 

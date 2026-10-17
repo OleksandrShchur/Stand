@@ -198,6 +198,7 @@ try
     Check(exhausted.Injected == 3 && !await setup.Bookings.AnyAsync(b => b.LocationId == location.Id && b.Phone == users[3].Phone && b.TimeSlotId == slotIds[3]),
         "Deadlock retries stop after three attempts and leave no partial booking");
     await ScheduleChecks.Run(connection);
+    await LocationChecks.Run(connection);
     Console.WriteLine("All integration checks passed.");
 }
 finally

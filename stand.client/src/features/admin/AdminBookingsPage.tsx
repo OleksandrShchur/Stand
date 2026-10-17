@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
     Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link,
     IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
-    TablePagination, TableRow, TextField, Typography,
+    TablePagination, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
 } from '@mui/material';
 import DownloadIcon from '@mui/icons-material/Download';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
@@ -109,11 +109,22 @@ export default function AdminBookingsPage() {
                 <Button loading={exporting} loadingPosition="start" variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>Експорт CSV</Button>
             </Box>
 
-            <Typography color="text.secondary" sx={{ mb: 2 }}>Переглядайте деталі та учасників. Кожне скасування потребує підтвердження.</Typography>
-            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
-                <Button variant="outlined" onClick={() => { setDate(todayIso()); setApplied({ ...buildFilters(), date: todayIso() }); setPage(0); }}>Сьогодні</Button>
-                <Button onClick={() => { setDate(''); setLocationId(''); setTimeSlotId(''); setPhone(''); setBookingState(''); setApplied({}); setPage(0); }}>Усі записи</Button>
-            </Stack>
+            <ToggleButtonGroup exclusive fullWidth color="primary" aria-label="Період записів"
+                value={applied.date === todayIso() ? 'today' : applied.date ? null : 'all'}
+                onChange={(_, value: 'today' | 'all' | null) => {
+                    if (value === null) return;
+                    if (value === 'today') {
+                        setDate(todayIso());
+                        setApplied({ ...buildFilters(), date: todayIso() });
+                    } else {
+                        setDate(''); setLocationId(''); setTimeSlotId(''); setPhone(''); setBookingState(''); setApplied({});
+                    }
+                    setPage(0);
+                }}
+                sx={{ mb: 2, maxWidth: { sm: 360 }, '& .MuiToggleButton-root': { minHeight: 44 } }}>
+                <ToggleButton value="today">Сьогодні</ToggleButton>
+                <ToggleButton value="all">Усі записи</ToggleButton>
+            </ToggleButtonGroup>
 
             <Accordion variant="outlined" disableGutters sx={{ mb: 2 }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone].some(Boolean) || applied.isBooked !== undefined ? ' · застосовано' : ''}</Typography></AccordionSummary>
@@ -151,14 +162,9 @@ export default function AdminBookingsPage() {
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
                     {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                        <Stack direction="row" spacing={1} sx={{ mb: 1, justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="caption">№ {b.publicNumber}</Typography>
-                            <Chip size="small" label={b.isBooked ? 'Записано' : 'Не записано'} color={b.isBooked ? 'success' : 'default'} />
-                        </Stack>
                         <Typography variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
                         <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
                         <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
-                        {b.phone && <Link href={`tel:${b.phone}`} sx={{ display: 'inline-block', py: 1.25 }}>{b.phone}</Link>}
                         <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
                             <Button fullWidth variant="outlined" onClick={() => setDetail(b)}>Деталі</Button>
                             {b.isBooked && <Button fullWidth color="error" onClick={() => requestCancel(b)}>Скасувати запис</Button>}
