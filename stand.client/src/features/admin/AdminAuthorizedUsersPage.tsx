@@ -100,13 +100,20 @@ export default function AdminAuthorizedUsersPage() {
             <TextField fullWidth label="Пошук за ім’ям або телефоном" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} sx={{ mb: 2 }} />
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Знайдено користувачів: {filtered.length}</Typography>
 
-            <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
-                {visibleItems.map(u => <Card key={u.id} variant="outlined"><CardContent>
-                    <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</Typography>
-                    <Link href={`tel:${u.phone}`} sx={{ display: 'inline-block', py: 1.25 }}>{formatUaPhone(u.phone)}</Link>
-                    <Stack direction="row" spacing={1}>
-                        <Button fullWidth variant="outlined" startIcon={<EditOutlinedIcon />} onClick={() => openForm(u)}>Редагувати</Button>
-                        <Button fullWidth color="error" onClick={() => { setDeleteUser(u); setDeleteError(null); }}>Видалити</Button>
+            <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
+                {visibleItems.map(u => <Card key={u.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
+                    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</Typography>
+                            <Link href={`tel:${u.phone}`} sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 36 }}>{formatUaPhone(u.phone)}</Link>
+                        </Box>
+                        <IconButton aria-label={`Дії користувача ${[u.firstName, u.lastName].filter(Boolean).join(' ')}`} aria-haspopup="menu"
+                            aria-controls={actionMenu?.user.id === u.id ? 'user-actions-menu' : undefined}
+                            aria-expanded={actionMenu?.user.id === u.id ? true : undefined}
+                            onClick={(e) => setActionMenu({ anchor: e.currentTarget, user: u })}
+                            sx={{ width: 44, height: 44, flexShrink: 0 }}>
+                            <MoreVertIcon />
+                        </IconButton>
                     </Stack>
                 </CardContent></Card>)}
             </Stack>
@@ -144,7 +151,9 @@ export default function AdminAuthorizedUsersPage() {
             {filtered.length > 20 && <Pagination count={Math.ceil(filtered.length / 20)} page={page} onChange={(_, next) => setPage(next)} siblingCount={0} size="small" sx={{ mt: 2 }} aria-label="Сторінки користувачів" />}
 
             <Menu id="user-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)}
-                onClose={() => setActionMenu(null)}>
+                onClose={() => setActionMenu(null)}
+                slotProps={{ paper: { sx: { minWidth: 180 } } }}
+                sx={{ '& .MuiMenuItem-root': { minHeight: 48 } }}>
                 <MenuItem onClick={() => {
                     if (actionMenu) openForm(actionMenu.user);
                     setActionMenu(null);
