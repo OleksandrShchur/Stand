@@ -96,9 +96,15 @@ try {
     await screenshot('393-calendar');
     await tap(button('Згорнути календар'));
 
-    const currentDate = await evaluate("document.querySelector('input[type=date]').value");
+    const displayedDate = await evaluate("document.querySelector('input[name=\"schedule-date\"]').value");
+    assert.match(displayedDate, /^\d{2}\.\d{2}\.\d{4}$/, 'Schedule date must use dd.MM.yyyy even with an English browser locale');
+    const currentDate = displayedDate.split('.').reverse().join('-');
     const future = new Date(`${currentDate}T12:00:00Z`); future.setUTCDate(future.getUTCDate() + 60);
-    await input('input[type=date]', future.toISOString().slice(0, 10));
+    await tap(button('Обрати в календарі'));
+    const monthDifference = (future.getUTCFullYear() - Number(currentDate.slice(0, 4))) * 12 + future.getUTCMonth() + 1 - Number(currentDate.slice(5, 7));
+    for (let month = 0; month < monthDifference; month++) await tap("document.querySelector('[aria-label=\"Наступний місяць\"]')");
+    await tap(`[...document.querySelectorAll('#schedule-calendar button')].find(b=>b.textContent.trim()===${JSON.stringify(String(future.getUTCDate()))})`);
+    assert.equal(await evaluate("document.querySelector('input[name=\"schedule-date\"]').value"), `${String(future.getUTCDate()).padStart(2, '0')}.${String(future.getUTCMonth() + 1).padStart(2, '0')}.${future.getUTCFullYear()}`);
     await wait("document.querySelectorAll('input[type=checkbox]:checked').length === 0 && document.body.innerText.includes('День закритий для запису')");
     await tap("document.querySelector('input[type=checkbox]')");
     await tap("document.querySelectorAll('input[type=checkbox]')[1]");
@@ -148,6 +154,25 @@ try {
     await wait(`${dialog}?.innerText.includes('Залишити незбережені зміни?')`);
     await tap(button('Відкинути зміни'));
     await wait("location.pathname === '/admin/bookings' && !!document.querySelector('h4')");
+    await wait(`${button('Скасувати запис')} !== undefined`);
+    assert.ok(await evaluate("[...document.querySelectorAll('.MuiChip-label')].every(chip=>chip.textContent==='Записано')"), 'The default booking list contains booked records only');
+    await tap("document.querySelector('.MuiAccordionSummary-root')");
+    await tap("document.querySelectorAll('[role=combobox]')[2]");
+    await wait("[...document.querySelectorAll('[role=option]')].some(option=>option.textContent==='Не записано')");
+    await tap("[...document.querySelectorAll('[role=option]')].find(option=>option.textContent==='Не записано')");
+    await tap(button('Застосувати'));
+    await wait("[...document.querySelectorAll('.MuiChip-label')].some(chip=>chip.textContent==='Не записано')");
+    assert.ok(await evaluate("[...document.querySelectorAll('.MuiChip-label')].every(chip=>chip.textContent==='Не записано')"), 'Not-booked filter must submit false correctly');
+    assert.equal(await evaluate(`${button('Скасувати запис')} !== undefined`), false, 'Inactive history cannot be cancelled again in the UI');
+    await tap("document.querySelectorAll('[role=combobox]')[2]");
+    await tap("[...document.querySelectorAll('[role=option]')].find(option=>option.textContent==='Записано')");
+    await tap(button('Застосувати'));
+    await wait(`${button('Скасувати запис')} !== undefined`);
+    await tap(button('Скасувати запис'));
+    await wait(`${dialog}?.innerText.includes('Так, скасувати запис')`);
+    await screenshot('booking-state-cancel-warning');
+    await tap(button('Залишити запис'));
+    console.log('PASS binary booking filter and cancellation confirmation on a phone');
     for (const width of [320, 393, 414]) {
         deviceWidth = width;
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: true, screenWidth: width, screenHeight: 852 });
@@ -162,7 +187,7 @@ try {
     deviceWidth = 1280;
     await send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 1000, deviceScaleFactor: 1, mobile: false });
     await navigate('/admin/schedule');
-    await wait("!!document.querySelector('input[type=date]')");
+    await wait("!!document.querySelector('input[name=\"schedule-date\"]')");
     await wait("document.querySelectorAll('input[type=checkbox]').length > 1");
     await checkWidth('Desktop schedule');
     await screenshot('desktop-schedule');

@@ -37,15 +37,13 @@ export default function AdminDashboardPage() {
             </Stack>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
-                <StatCard label="Підтверджено на сьогодні" value={data.todayConfirmedCount} />
-                <StatCard label="Майбутніх записів" value={data.upcomingConfirmedCount} />
-                <StatCard label="Активних утримань" value={data.upcomingHeldCount} />
+                <StatCard label="Записів на сьогодні" value={data.todayBookedCount} />
             </Grid>
 
             <Typography variant="h6" sx={{ mb: 1.5 }}>Заповненість сьогодні за локаціями</Typography>
             <FillRateList items={data.todayByLocation} />
 
-            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Заповненість у періоді запису за локаціями</Typography>
+            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Загальна заповненість запису за локаціями</Typography>
             <FillRateList items={data.upcomingByLocation} />
         </Box>
     );
@@ -53,7 +51,7 @@ export default function AdminDashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
     return (
-        <Grid size={{ xs: 12, sm: 4 }}>
+        <Grid size={12}>
             <Card variant="outlined">
                 <CardContent>
                     <Typography variant="body2" color="text.secondary">{label}</Typography>
@@ -73,7 +71,7 @@ function FillRateList({ items }: { items: LocationFillRateDto[] }) {
                         <Stack direction={{ xs: 'column', sm: 'row' }} sx={{ mb: 0.75, gap: 0.5, justifyContent: 'space-between' }}>
                             <Typography variant="body2" sx={{ fontWeight: 600 }}>{loc.locationName}</Typography>
                             <Typography variant="caption" color="text.secondary">
-                                {loc.confirmed} підтв. / {loc.held} утрим. · {loc.fillRatePercent}%
+                                Записів: {loc.booked} · {loc.fillRatePercent}%
                             </Typography>
                         </Stack>
                         <LinearProgress

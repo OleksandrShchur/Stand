@@ -65,7 +65,7 @@ export interface BookingSummaryDto {
     publicNumber: string;
     cancelToken: string;
     participants: ShiftParticipantDto[];
-    status: 'Held' | 'Confirmed' | 'Cancelled';
+    isBooked: boolean;
     date: string;
     locationName: string;
     locationAddress?: string | null;
@@ -76,7 +76,7 @@ export interface BookingSummaryDto {
     phone?: string | null;
     comment?: string | null;
     createdAtUtc: string;
-    confirmedAtUtc?: string | null;
+    bookedAtUtc?: string | null;
     cancelledAtUtc?: string | null;
 }
 
@@ -175,9 +175,9 @@ export interface BookingAdminDto {
     lastName?: string | null;
     phone?: string | null;
     comment?: string | null;
-    status: 'Held' | 'Confirmed' | 'Cancelled';
+    isBooked: boolean;
     createdAtUtc: string;
-    confirmedAtUtc?: string | null;
+    bookedAtUtc?: string | null;
     cancelledAtUtc?: string | null;
 }
 
@@ -192,15 +192,13 @@ export interface LocationFillRateDto {
     locationId: number;
     locationName: string;
     capacity: number;
-    confirmed: number;
-    held: number;
+    booked: number;
     fillRatePercent: number;
 }
 
 export interface DashboardDto {
-    todayConfirmedCount: number;
-    upcomingConfirmedCount: number;
-    upcomingHeldCount: number;
+    todayBookedCount: number;
+    upcomingBookedCount: number;
     todayByLocation: LocationFillRateDto[];
     upcomingByLocation: LocationFillRateDto[];
 }

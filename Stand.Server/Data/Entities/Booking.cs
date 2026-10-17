@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Stand.Server.Data.Entities;
 
-[Index("Date", "LocationId", "TimeSlotId", "Status", Name = "IX_Bookings_Date_Location_TimeSlot_Status")]
+[Index("Date", "LocationId", "TimeSlotId", "IsBooked", Name = "IX_Bookings_Date_Location_TimeSlot_IsBooked")]
 [Index("CancelToken", Name = "UQ_Bookings_CancelToken", IsUnique = true)]
 [Index("PublicNumber", Name = "UQ_Bookings_PublicNumber", IsUnique = true)]
 public partial class Booking
@@ -35,22 +35,18 @@ public partial class Booking
     [StringLength(500)]
     public string? Comment { get; set; }
 
-    [StringLength(20)]
-    public string Status { get; set; } = null!;
+    public bool IsBooked { get; set; }
 
     [Precision(3)]
     public DateTime CreatedAtUtc { get; set; }
 
     [Precision(3)]
-    public DateTime? ConfirmedAtUtc { get; set; }
+    public DateTime? BookedAtUtc { get; set; }
 
     [Precision(3)]
     public DateTime? CancelledAtUtc { get; set; }
 
     public Guid CancelToken { get; set; }
-
-    [Precision(3)]
-    public DateTime? HoldExpiresAtUtc { get; set; }
 
     [ForeignKey("LocationId")]
     [InverseProperty("Bookings")]

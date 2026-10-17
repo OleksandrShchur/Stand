@@ -16,10 +16,6 @@ public static class ErrorCodes
     public const string TimeSlotBlocked = "TIME_SLOT_BLOCKED";
     public const string SlotTooSoon = "SLOT_TOO_SOON";
     public const string SlotFull = "SLOT_FULL";
-    public const string HoldNotFound = "HOLD_NOT_FOUND";
-    public const string HoldExpired = "HOLD_EXPIRED";
-    public const string AlreadyConfirmed = "ALREADY_CONFIRMED";
-    public const string AlreadyCancelled = "ALREADY_CANCELLED";
     public const string DuplicatePhoneSlot = "DUPLICATE_PHONE_SLOT";
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
     public const string AccountDisabled = "ACCOUNT_DISABLED";

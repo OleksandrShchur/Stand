@@ -55,20 +55,19 @@ public sealed record BookingAdminDto(
     string? LastName,
     string? Phone,
     string? Comment,
-    string Status,
+    bool IsBooked,
     string CreatedAtUtc,
-    string? ConfirmedAtUtc,
+    string? BookedAtUtc,
     string? CancelledAtUtc);
 
 public sealed record BookingListResultDto(List<BookingAdminDto> Items, int TotalCount, int Page, int PageSize);
 
 // ---- Dashboard ----
 public sealed record LocationFillRateDto(
-    int LocationId, string LocationName, int Capacity, int Confirmed, int Held, int FillRatePercent);
+    int LocationId, string LocationName, int Capacity, int Booked, int FillRatePercent);
 
 public sealed record DashboardDto(
-    int TodayConfirmedCount,
-    int UpcomingConfirmedCount,
-    int UpcomingHeldCount,
+    int TodayBookedCount,
+    int UpcomingBookedCount,
     List<LocationFillRateDto> TodayByLocation,
     List<LocationFillRateDto> UpcomingByLocation);

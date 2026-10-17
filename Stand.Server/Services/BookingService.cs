@@ -38,7 +38,7 @@ public sealed class BookingService(
         var today = DateOnly.FromDateTime(now);
         var time = TimeOnly.FromDateTime(now);
         var shifts = await db.Bookings.AsNoTracking()
-            .Where(b => b.Phone == phone && b.Status == "Confirmed" &&
+            .Where(b => b.Phone == phone && b.IsBooked &&
                 (b.Date > today || (b.Date == today && b.TimeSlot.EndTime > time)))
             .OrderBy(b => b.Date)
             .ThenBy(b => b.TimeSlot.StartTime)
@@ -54,7 +54,7 @@ public sealed class BookingService(
                 b.CancelToken,
                 Participants = db.Bookings
                     .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
-                        other.TimeSlotId == b.TimeSlotId && other.Status == "Confirmed" && other.Phone != phone)
+                        other.TimeSlotId == b.TimeSlotId && other.IsBooked && other.Phone != phone)
                     .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
                     .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName)).ToList(),
             })
@@ -111,8 +111,13 @@ public sealed class BookingService(
                     throw new ConflictAppException(ErrorCodes.Conflict, "Ключ запиту вже використано для іншого запису.");
                 var response = JsonSerializer.Deserialize<List<BookingSummaryDto>>(replay.ResponseJson, ReplayJson)
                     ?? throw new InvalidOperationException("Invalid stored booking response.");
+                // Old replay JSON may still contain status strings. Tokens are stable;
+                // read the current binary state so a cancelled booking stays inactive.
+                var current = new List<BookingSummaryDto>(response.Count);
+                foreach (var saved in response)
+                    current.Add(await GetByCancelTokenAsync(Guid.Parse(saved.CancelToken), ct));
                 await tx.CommitAsync(ct);
-                return response;
+                return current;
             }
         }
 
@@ -176,10 +181,10 @@ public sealed class BookingService(
         var now = clock.UtcNow;
         foreach (var timeSlot in timeSlots.OrderBy(t => t.Id))
         {
-            var activeCount = await CountActiveWithLockAsync(date, locationId, timeSlot.Id, now, ct);
+            var activeCount = await CountActiveWithLockAsync(date, locationId, timeSlot.Id, ct);
 
             if (await db.Bookings.AnyAsync(b => b.Date == date && b.LocationId == locationId &&
-                b.TimeSlotId == timeSlot.Id && b.Phone == phone && b.Status != "Cancelled", ct))
+                b.TimeSlotId == timeSlot.Id && b.Phone == phone && b.IsBooked, ct))
                 throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
                     "З цим номером телефону вже є запис на цю дату, локацію та час.");
 
@@ -200,11 +205,11 @@ public sealed class BookingService(
                 LocationId = locationId,
                 Date = date,
                 TimeSlotId = timeSlot.Id,
-                Status = "Confirmed",
+                IsBooked = true,
                 FirstName = fn,
                 LastName = ln,
                 Phone = phone,
-                ConfirmedAtUtc = now,
+                BookedAtUtc = now,
                 Location = location,
                 TimeSlot = timeSlot,
             };
@@ -225,7 +230,7 @@ public sealed class BookingService(
         // A failed response query can no longer leave a committed booking behind.
         var participants = await db.Bookings
             .Where(b => b.Date == date && b.LocationId == locationId && timeSlotIds.Contains(b.TimeSlotId) &&
-                b.Status == "Confirmed" && b.Phone != phone)
+                b.IsBooked && b.Phone != phone)
             .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
             .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName }).ToListAsync(ct);
         var summaries = created.Select(booking => ToSummary(booking, participants
@@ -266,16 +271,16 @@ public sealed class BookingService(
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
         var summary = await ToSummaryAsync(booking, ct);
-        if (booking.Status == "Cancelled") return summary;
+        if (!booking.IsBooked) return summary;
 
-        booking.Status = "Cancelled";
+        booking.IsBooked = false;
         booking.CancelledAtUtc = clock.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return summary with { Status = booking.Status, CancelledAtUtc = booking.CancelledAtUtc?.ToString("O") };
+        return summary with { IsBooked = booking.IsBooked, CancelledAtUtc = booking.CancelledAtUtc?.ToString("O") };
     }
 
-    private async Task<int> CountActiveWithLockAsync(DateOnly date, int locationId, int timeSlotId, DateTime now, CancellationToken ct)
+    private async Task<int> CountActiveWithLockAsync(DateOnly date, int locationId, int timeSlotId, CancellationToken ct)
     {
         try
         {
@@ -285,7 +290,7 @@ public sealed class BookingService(
                 WHERE [Date] = {date}
                   AND LocationId = {locationId}
                   AND TimeSlotId = {timeSlotId}
-                  AND (Status = 'Confirmed' OR (Status = 'Held' AND HoldExpiresAtUtc > {now}))
+                  AND IsBooked = 1
                 """).SingleAsync(ct);
         }
         catch (SqlException ex)
@@ -303,7 +308,7 @@ public sealed class BookingService(
     {
         var participants = await db.Bookings.AsNoTracking()
             .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
-                other.TimeSlotId == b.TimeSlotId && other.Status == "Confirmed" &&
+                other.TimeSlotId == b.TimeSlotId && other.IsBooked &&
                 other.Id != b.Id && (b.Phone == null || other.Phone != b.Phone))
             .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
             .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName))
@@ -315,7 +320,7 @@ public sealed class BookingService(
     private static BookingSummaryDto ToSummary(Booking b, List<ShiftParticipantDto> participants) => new(
             b.PublicNumber,
             b.CancelToken.ToString(),
-            b.Status,
+            b.IsBooked,
             b.Date.ToString("yyyy-MM-dd"),
             b.Location.Name,
             b.Location.Address,
@@ -326,7 +331,7 @@ public sealed class BookingService(
             b.Phone,
             b.Comment,
             b.CreatedAtUtc.ToString("O"),
-            b.ConfirmedAtUtc?.ToString("O"),
+            b.BookedAtUtc?.ToString("O"),
             b.CancelledAtUtc?.ToString("O"),
             participants);
 

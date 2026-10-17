@@ -19,12 +19,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         [FromQuery] int? locationId,
         [FromQuery] int? timeSlotId,
         [FromQuery] string? phone,
-        [FromQuery] string? status,
+        [FromQuery] bool? isBooked,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
         CancellationToken ct = default)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, status);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked);
 
         var total = await query.CountAsync(ct);
         page = Math.Max(1, page);
@@ -47,12 +47,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Id == id, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
-        if (booking.Status == "Cancelled")
+        if (!booking.IsBooked)
         {
             return NoContent();
         }
 
-        booking.Status = "Cancelled";
+        booking.IsBooked = false;
         booking.CancelledAtUtc = DateTime.UtcNow;
         await db.SaveChangesAsync(ct);
 
@@ -65,10 +65,10 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         [FromQuery] int? locationId,
         [FromQuery] int? timeSlotId,
         [FromQuery] string? phone,
-        [FromQuery] string? status,
+        [FromQuery] bool? isBooked,
         CancellationToken ct = default)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, status);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked);
 
         var entities = await query
             .OrderBy(b => b.Date).ThenBy(b => b.TimeSlot.SortOrder)
@@ -77,13 +77,13 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         var items = entities.Select(ToDto).ToList();
 
         var sb = new StringBuilder();
-        sb.AppendLine("PublicNumber,Date,Location,TimeStart,TimeEnd,FirstName,LastName,Phone,Comment,Status,CreatedAtUtc");
+        sb.AppendLine("PublicNumber,Date,Location,TimeStart,TimeEnd,FirstName,LastName,Phone,Comment,IsBooked,CreatedAtUtc");
         foreach (var b in items)
         {
             sb.AppendLine(string.Join(',', new[]
             {
                 Csv(b.PublicNumber), Csv(b.Date), Csv(b.LocationName), Csv(b.StartTime), Csv(b.EndTime),
-                Csv(b.FirstName), Csv(b.LastName), Csv(b.Phone), Csv(b.Comment), Csv(b.Status), Csv(b.CreatedAtUtc),
+                Csv(b.FirstName), Csv(b.LastName), Csv(b.Phone), Csv(b.Comment), Csv(b.IsBooked ? "true" : "false"), Csv(b.CreatedAtUtc),
             }));
         }
 
@@ -92,7 +92,7 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
     }
 
     private IQueryable<Data.Entities.Booking> BuildFilteredQuery(
-        string? date, int? locationId, int? timeSlotId, string? phone, string? status)
+        string? date, int? locationId, int? timeSlotId, string? phone, bool? isBooked)
     {
         var query = db.Bookings.Include(b => b.Location).Include(b => b.TimeSlot).AsQueryable();
 
@@ -117,9 +117,9 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
             query = query.Where(b => b.Phone != null && b.Phone.Contains(normalized));
         }
 
-        if (!string.IsNullOrWhiteSpace(status))
+        if (isBooked.HasValue)
         {
-            query = query.Where(b => b.Status == status);
+            query = query.Where(b => b.IsBooked == isBooked.Value);
         }
 
         return query;
@@ -139,9 +139,9 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
             b.LastName,
             b.Phone,
             b.Comment,
-            b.Status,
+            b.IsBooked,
             b.CreatedAtUtc.ToString("O"),
-            b.ConfirmedAtUtc.HasValue ? b.ConfirmedAtUtc.Value.ToString("O") : null,
+            b.BookedAtUtc.HasValue ? b.BookedAtUtc.Value.ToString("O") : null,
             b.CancelledAtUtc.HasValue ? b.CancelledAtUtc.Value.ToString("O") : null);
 
     private static string Csv(string? value)

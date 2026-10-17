@@ -19,27 +19,20 @@ public sealed class AdminDashboardController(StandDbContext db, IKyivClock clock
     {
         var today = clock.TodayLocal;
         var horizonEnd = today.AddDays(options.Value.HorizonDays);
-        var now = clock.UtcNow;
+        var todayBooked = await db.Bookings.CountAsync(b => b.Date == today && b.IsBooked, ct);
 
-        var todayConfirmed = await db.Bookings.CountAsync(b => b.Date == today && b.Status == "Confirmed", ct);
-
-        var upcomingConfirmed = await db.Bookings.CountAsync(
-            b => b.Date > today && b.Date <= horizonEnd && b.Status == "Confirmed", ct);
-
-        var upcomingHeld = await db.Bookings.CountAsync(
-            b => b.Date >= today && b.Date <= horizonEnd && b.Status == "Held" && b.HoldExpiresAtUtc > now, ct);
+        var upcomingBooked = await db.Bookings.CountAsync(
+            b => b.Date > today && b.Date <= horizonEnd && b.IsBooked, ct);
 
         var todayByLocation = await FillRateByLocationAsync(today, today, ct);
         var upcomingByLocation = await FillRateByLocationAsync(today, horizonEnd, ct);
 
-        return Ok(new DashboardDto(todayConfirmed, upcomingConfirmed, upcomingHeld, todayByLocation, upcomingByLocation));
+        return Ok(new DashboardDto(todayBooked, upcomingBooked, todayByLocation, upcomingByLocation));
     }
 
     private async Task<List<LocationFillRateDto>> FillRateByLocationAsync(DateOnly fromDate, DateOnly toDate, CancellationToken ct)
     {
-        var now = clock.UtcNow;
-
-        var locations = await db.Locations.Where(l => l.IsActive || l.Bookings.Any(b => b.Date >= fromDate && b.Date <= toDate && b.Status == "Confirmed"))
+        var locations = await db.Locations.Where(l => l.IsActive || l.Bookings.Any(b => b.Date >= fromDate && b.Date <= toDate && b.IsBooked))
             .OrderBy(l => l.SortOrder).ToListAsync(ct);
 
         var scheduled = await (from location in db.Locations
@@ -54,21 +47,20 @@ public sealed class AdminDashboardController(StandDbContext db, IKyivClock clock
 
         var counts = await db.Bookings
             .Where(b => b.Date >= fromDate && b.Date <= toDate &&
-                        (b.Status == "Confirmed" || (b.Status == "Held" && b.HoldExpiresAtUtc > now)))
-            .GroupBy(b => new { b.LocationId, b.Status })
-            .Select(g => new { g.Key.LocationId, g.Key.Status, Count = g.Count() })
-            .ToListAsync(ct);
+                        b.IsBooked)
+            .GroupBy(b => b.LocationId)
+            .Select(g => new { LocationId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.LocationId, g => g.Count, ct);
 
         var result = new List<LocationFillRateDto>();
         foreach (var loc in locations)
         {
-            var confirmed = counts.Where(c => c.LocationId == loc.Id && c.Status == "Confirmed").Sum(c => c.Count);
-            var held = counts.Where(c => c.LocationId == loc.Id && c.Status == "Held").Sum(c => c.Count);
+            var booked = counts.GetValueOrDefault(loc.Id);
 
             var capacity = loc.Capacity * scheduled.GetValueOrDefault(loc.Id);
-            var fillRate = capacity <= 0 ? (confirmed + held > 0 ? 100 : 0) : (int)Math.Round(100.0 * (confirmed + held) / capacity);
+            var fillRate = capacity <= 0 ? (booked > 0 ? 100 : 0) : (int)Math.Round(100.0 * booked / capacity);
 
-            result.Add(new LocationFillRateDto(loc.Id, loc.Name, loc.Capacity, confirmed, held, Math.Min(100, fillRate)));
+            result.Add(new LocationFillRateDto(loc.Id, loc.Name, loc.Capacity, booked, Math.Min(100, fillRate)));
         }
 
         return result;
