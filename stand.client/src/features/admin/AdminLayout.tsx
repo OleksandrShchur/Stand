@@ -101,7 +101,7 @@ export default function AdminLayout() {
     );
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box sx={{ display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
             {isDesktop ? (
                 <Drawer
                     variant="permanent"
@@ -121,7 +121,7 @@ export default function AdminLayout() {
                 </Drawer>
             )}
 
-            <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Box sx={{ flex: '1 1 0%', width: 0, minWidth: 0 }}>
                 {!isDesktop && (
                     <AppBar position="sticky" elevation={0}>
                         <Toolbar>
@@ -133,8 +133,8 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box sx={{ ...pagePadding, pb: { xs: 'calc(100px + env(safe-area-inset-bottom))', md: 4 } }}>
-                    <Box key={location.pathname} className="content-enter"><Outlet /></Box>
+                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(80px + env(safe-area-inset-bottom))', md: 4 } }}>
+                    <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
                 </Box>
             </Box>
             {!isDesktop && <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>

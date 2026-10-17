@@ -326,6 +326,10 @@ Implemented improvements, deployment prerequisites and regression checks are in
 Open `/admin/schedule` (Розклад). Select a date, open or close the day, enable its
 locations, and set times separately for each location. Save and Copy stay above
 the phone navigation bar. Existing users keep the same booking screens.
+On phones, the calendar is collapsed behind **Обрати в календарі**. Use
+**Налаштувати час** on a location to open its full-screen editor. Add or edit
+times there, tap **Готово**, then save the day. Time inputs use the full width
+of the editor; the day page shows a compact summary of each location.
 
 - **Серія інтервалів:** enter 09:00–17:00 and 60 minutes to generate eight
   hourly slots. Any whole-minute duration is supported; the period must divide
@@ -376,3 +380,16 @@ locks. Time ranges referenced by bookings are not rewritten.
 Validation: `npm test` and `npm run build` in `stand.client`; the SQL integration
 checks in `tests/Stand.Integration` use only the disposable `StandPerfTest`
 database. Apply the migration to that test database before running them.
+
+The mobile browser regression is `node tests/admin-mobile.mjs` from the repo
+root. Point `ADMIN_BASE_URL` at a running local app backed by the isolated test
+database and `ADMIN_CHROME_URL` at Chrome's debugging endpoint (default
+`http://127.0.0.1:9237`). Launch installed Chrome with a separate user profile
+and `--remote-debugging-port=9237`; no browser dependency is installed by the
+test. Optional `ADMIN_TEST_LOGIN` and `ADMIN_TEST_PASSWORD` select the test
+account. The script checks actual device widths of 320, 393 and 414 CSS pixels,
+uses screen-coordinate touch events, and exercises calendar selection, hourly
+and custom slots, editing, removal, previews, copy and unsaved-change dialogs.
+It does not save schedules or cancel bookings. Screenshots are written to
+`artifacts/admin-mobile/`. Width checks compare with the configured device
+width so an expanded mobile layout viewport cannot mask overflow.
