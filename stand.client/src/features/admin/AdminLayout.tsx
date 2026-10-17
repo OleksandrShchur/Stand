@@ -31,12 +31,15 @@ import { pagePadding } from '../../layoutSpacing';
 
 const DRAWER_WIDTH = 248;
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
     { to: '/admin', label: 'Огляд', icon: <DashboardOutlinedIcon />, end: true },
     { to: '/admin/schedule', label: 'Розклад', icon: <CalendarMonthOutlinedIcon /> },
     { to: '/admin/bookings', label: 'Записи', icon: <ListAltOutlinedIcon /> },
     { to: '/admin/locations', label: 'Локації', icon: <PlaceOutlinedIcon /> },
-    { to: '/admin/authorized-users', label: 'Користувачі сайту', icon: <PersonAddAltOutlinedIcon /> },
+    { to: '/admin/authorized-users', label: 'Користувачі сайту', bottomLabel: 'Користувачі', icon: <PersonAddAltOutlinedIcon /> },
+];
+
+const SIDE_NAV_ITEMS = [
     { to: '/admin/users', label: 'Адміністратори', icon: <GroupOutlinedIcon /> },
 ];
 
@@ -66,12 +69,11 @@ export default function AdminLayout() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
             </Toolbar>
             <List sx={{ flex: 1 }}>
-                {NAV_ITEMS.map((item) => (
+                {SIDE_NAV_ITEMS.map((item) => (
                     <ListItemButton
                         key={item.to}
                         component={NavLink}
                         to={item.to}
-                        end={item.end}
                         onClick={() => setMobileOpen(false)}
                         sx={{
                             mx: 1,
@@ -131,17 +133,19 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(80px + env(safe-area-inset-bottom))', md: 4 } }}>
+                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: 'calc(80px + env(safe-area-inset-bottom))' }}>
                     <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
                 </Box>
             </Box>
-            {!isDesktop && <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
-                <BottomNavigation showLabels value={['/admin', '/admin/schedule', '/admin/bookings'].includes(location.pathname) ? location.pathname : false} sx={{ '& .MuiBottomNavigationAction-root': { maxWidth: 'none' } }}>
-                    <BottomNavigationAction component={NavLink} to="/admin" value="/admin" label="Огляд" icon={<DashboardOutlinedIcon />} />
-                    <BottomNavigationAction component={NavLink} to="/admin/schedule" value="/admin/schedule" label="Розклад" icon={<CalendarMonthOutlinedIcon />} />
-                    <BottomNavigationAction component={NavLink} to="/admin/bookings" value="/admin/bookings" label="Записи" icon={<ListAltOutlinedIcon />} />
+            <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: { xs: 0, md: DRAWER_WIDTH }, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
+                <BottomNavigation component="nav" aria-label="Основна навігація адміністратора" showLabels
+                    value={PRIMARY_NAV_ITEMS.some(item => item.to === location.pathname) ? location.pathname : false}
+                    sx={{ '& .MuiBottomNavigationAction-root': { flex: '1 1 0%', minWidth: 0, maxWidth: 'none', px: 0.5 },
+                        '& .MuiBottomNavigationAction-label, & .MuiBottomNavigationAction-label.Mui-selected': { fontSize: { xs: '0.625rem', sm: '0.75rem' } } }}>
+                    {PRIMARY_NAV_ITEMS.map(item => <BottomNavigationAction key={item.to} component={NavLink} to={item.to} end={item.end}
+                        value={item.to} label={item.bottomLabel ?? item.label} aria-label={item.label} icon={item.icon} />)}
                 </BottomNavigation>
-            </Paper>}
+            </Paper>
         </Box>
     );
 }
