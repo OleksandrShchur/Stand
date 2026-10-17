@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-    Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton,
+    Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack,
     Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -56,14 +56,22 @@ export default function AdminUsersPage() {
 
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                 <Typography variant="h4">Адміністратори</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Додати</Button>
             </Box>
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
 
-            <TableContainer component={Paper} variant="outlined">
+            <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
+                {items.map(u => <Card key={u.id} variant="outlined"><CardContent>
+                    <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
+                    <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} sx={{ my: 1 }} />
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Останній вхід: {u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : 'Ще не входив'}</Typography>
+                    {u.id !== currentUser?.id && <Button variant="outlined" disabled={updatingId !== null} onClick={() => toggle(u)}>{u.isActive ? 'Вимкнути доступ' : 'Увімкнути доступ'}</Button>}
+                </CardContent></Card>)}
+            </Stack>
+            <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
                 <Table size="small">
                     <TableHead>
                         <TableRow>

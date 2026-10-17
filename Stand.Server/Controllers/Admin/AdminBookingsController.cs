@@ -49,7 +49,7 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
 
         if (booking.Status == "Cancelled")
         {
-            throw new ConflictAppException(ErrorCodes.AlreadyCancelled, "Цей запис вже скасовано.");
+            return NoContent();
         }
 
         booking.Status = "Cancelled";

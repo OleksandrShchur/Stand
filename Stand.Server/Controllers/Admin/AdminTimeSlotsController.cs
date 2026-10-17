@@ -14,9 +14,10 @@ namespace Stand.Server.Controllers.Admin;
 public sealed class AdminTimeSlotsController(StandDbContext db) : ControllerBase
 {
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct)
+    public async Task<IActionResult> List(CancellationToken ct, [FromQuery] bool includeScheduleOnly = false)
     {
         var items = await db.TimeSlots
+            .Where(t => includeScheduleOnly || !t.IsScheduleOnly)
             .OrderBy(t => t.SortOrder)
             .ToListAsync(ct);
 
@@ -43,6 +44,11 @@ public sealed class AdminTimeSlotsController(StandDbContext db) : ControllerBase
         var entity = await db.TimeSlots.FirstOrDefaultAsync(t => t.Id == id, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Час не знайдено.");
 
+        if (entity.IsScheduleOnly || ((entity.StartTime != start || entity.EndTime != end) &&
+            (await db.Bookings.AnyAsync(b => b.TimeSlotId == id, ct) || await db.ScheduleSlots.AnyAsync(s => s.TimeSlotId == id, ct))))
+            throw new ConflictAppException(ErrorCodes.Conflict,
+                "Час використовується у записах або розкладі. Додайте новий інтервал у розкладі дня, щоб зберегти початковий час записів.");
+
         entity.StartTime = start;
         entity.EndTime = end;
         entity.SortOrder = dto.SortOrder;
@@ -63,6 +69,9 @@ public sealed class AdminTimeSlotsController(StandDbContext db) : ControllerBase
     {
         var entity = await db.TimeSlots.FirstOrDefaultAsync(t => t.Id == id, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Час не знайдено.");
+
+        if (entity.IsScheduleOnly)
+            throw new ValidationAppException("Цим часом можна керувати лише у розкладі дня.");
 
         entity.IsActive = isActive;
         entity.UpdatedAtUtc = DateTime.UtcNow;

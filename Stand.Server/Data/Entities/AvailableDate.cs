@@ -16,6 +16,8 @@ public partial class AvailableDate
 
     public bool IsActive { get; set; }
 
+    public bool UseCustomSchedule { get; set; }
+
     [Precision(3)]
     public DateTime CreatedAtUtc { get; set; }
 

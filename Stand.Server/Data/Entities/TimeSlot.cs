@@ -22,6 +22,8 @@ public partial class TimeSlot
 
     public bool IsActive { get; set; }
 
+    public bool IsScheduleOnly { get; set; }
+
     [Precision(3)]
     public DateTime CreatedAtUtc { get; set; }
 

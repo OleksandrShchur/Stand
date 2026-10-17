@@ -320,3 +320,59 @@ definition are in [perf/README.md](perf/README.md). Recorded measurements and
 their hosting limitations are in [perf/RESULTS.md](perf/RESULTS.md).
 Implemented improvements, deployment prerequisites and regression checks are in
 [perf/OPTIMIZATIONS.md](perf/OPTIMIZATIONS.md).
+
+## 13. Mobile admin schedule
+
+Open `/admin/schedule` (Розклад). Select a date, open or close the day, enable its
+locations, and set times separately for each location. Save and Copy stay above
+the phone navigation bar. Existing users keep the same booking screens.
+
+- **Серія інтервалів:** enter 09:00–17:00 and 60 minutes to generate eight
+  hourly slots. Any whole-minute duration is supported; the period must divide
+  evenly, so no partial slot is created silently.
+- **Один інтервал:** add custom ranges individually, such as 09:00–12:00,
+  12:00–13:00 and 14:00–17:00. Breaks are allowed; overlapping ranges within
+  one location are rejected. Times stay within one day.
+- **Копіювати:** copy the current draft (day status, locations and times) to
+  individual dates or selected weekdays in a date range of up to one year.
+  This replaces each target day's schedule. A preview lists the target dates,
+  exact times and the number of affected bookings before confirmation.
+- Closing a day/location or removing/changing a range **preserves bookings**
+  at their original time. These shifts remain viewable and are closed to new
+  bookings. Cancel each booking separately from Записи; the confirmation modal
+  identifies the participant, date, location and time and explains the effects.
+  No automatic notification is sent. Admins cannot create or move bookings.
+- A schedule can be prepared beyond the public booking horizon; the existing
+  configured horizon and minimum lead time still apply to public booking.
+- Locations, site users and administrators have mobile card layouts. Site
+  users have name/phone search and pagination. Booking filters can be expanded
+  when needed, with CSV export and booking detail dialogs retained.
+
+**Deployment:** apply `db/scripts/0014_AddDateLocationSchedules.sql` with
+`Stand.DbMigrator` against the intended database before starting the new server.
+Use the existing configured connection or the migrator's `--connection` option;
+this is a SQL script migration, not an EF code-first migration. The change adds
+`AvailableDates.UseCustomSchedule`, `TimeSlots.IsScheduleOnly` and `ScheduleSlots`.
+The EF mappings were checked against an actual LocalDB scaffold. Existing dates
+retain their global slots/exceptions until first saved in the new editor;
+new dates start empty. Custom ranges do not become global slots. The previous
+`/admin/dates`, `/admin/timeslots` and `/admin/exceptions` UI routes redirect to
+the combined schedule editor.
+
+New admin API endpoints (existing cookie authorization):
+
+```text
+GET  /api/admin/schedule?date=yyyy-MM-dd
+POST /api/admin/schedule/preview
+PUT  /api/admin/schedule
+```
+
+The PUT and preview accept `{ dates, isActive, locations: [{ locationId, slots:
+[{ startTime, endTime }] }], acknowledgeExistingBookings }`. Replacing a schedule
+with affected bookings requires acknowledgment. The operation is atomic across
+all selected dates and coordinated with in-flight bookings using transaction
+locks. Time ranges referenced by bookings are not rewritten.
+
+Validation: `npm test` and `npm run build` in `stand.client`; the SQL integration
+checks in `tests/Stand.Integration` use only the disposable `StandPerfTest`
+database. Apply the migration to that test database before running them.

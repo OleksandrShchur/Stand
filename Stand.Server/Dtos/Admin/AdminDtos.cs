@@ -25,6 +25,17 @@ public sealed record SetDateDto(string Date, bool IsActive);
 public sealed record BulkEnableDatesDto(
     int Year, int Month, List<int> Weekdays /* 0=Sun..6=Sat */, bool IsActive);
 
+// ---- Date -> location -> immutable time ranges ----
+public sealed record ScheduleRangeDto(string StartTime, string EndTime);
+public sealed record ScheduleLocationInputDto(int LocationId, List<ScheduleRangeDto> Slots);
+public sealed record SaveScheduleDto(List<string> Dates, bool IsActive, List<ScheduleLocationInputDto> Locations,
+    bool AcknowledgeExistingBookings = false);
+public sealed record ScheduleBookingDto(int Id, int LocationId, string LocationName, string StartTime, string EndTime);
+public sealed record ScheduleLocationDto(int LocationId, List<ScheduleRangeDto> Slots);
+public sealed record DayScheduleDto(string Date, bool IsActive, bool IsCustom, List<ScheduleLocationDto> Locations,
+    List<ScheduleBookingDto> Bookings, int HorizonDays, int MinLeadTimeMinutes);
+public sealed record ScheduleSaveResultDto(int UpdatedDates, int PreservedBookings);
+
 // ---- Per-date time exceptions ----
 public sealed record DateTimeSlotExceptionAdminDto(
     int Id, string Date, int TimeSlotId, string StartTime, string EndTime, bool IsBlocked, string? Note);
