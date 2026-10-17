@@ -38,13 +38,12 @@ export default function AdminDashboardPage() {
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <StatCard label="Записів на сьогодні" value={data.todayBookedCount} />
-                <StatCard label="Майбутніх записів" value={data.upcomingBookedCount} />
             </Grid>
 
             <Typography variant="h6" sx={{ mb: 1.5 }}>Заповненість сьогодні за локаціями</Typography>
             <FillRateList items={data.todayByLocation} />
 
-            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Заповненість у періоді запису за локаціями</Typography>
+            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Загальна заповненість запису за локаціями</Typography>
             <FillRateList items={data.upcomingByLocation} />
         </Box>
     );
@@ -52,7 +51,7 @@ export default function AdminDashboardPage() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
     return (
-        <Grid size={{ xs: 12, sm: 6 }}>
+        <Grid size={12}>
             <Card variant="outlined">
                 <CardContent>
                     <Typography variant="body2" color="text.secondary">{label}</Typography>

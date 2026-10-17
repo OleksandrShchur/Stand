@@ -25,7 +25,6 @@ import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
-import VolunteerActivismIcon from '@mui/icons-material/VolunteerActivism';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState } from '../../components/StateMessage';
 import { pagePadding } from '../../layoutSpacing';
@@ -64,8 +63,7 @@ export default function AdminLayout() {
     const drawerContent = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Toolbar sx={{ gap: 1 }}>
-                <VolunteerActivismIcon color="primary" />
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди</Typography>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
             </Toolbar>
             <List sx={{ flex: 1 }}>
                 {NAV_ITEMS.map((item) => (
@@ -138,11 +136,10 @@ export default function AdminLayout() {
                 </Box>
             </Box>
             {!isDesktop && <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
-                <BottomNavigation showLabels value={['/admin', '/admin/schedule', '/admin/bookings'].includes(location.pathname) ? location.pathname : 'menu'}>
+                <BottomNavigation showLabels value={['/admin', '/admin/schedule', '/admin/bookings'].includes(location.pathname) ? location.pathname : false} sx={{ '& .MuiBottomNavigationAction-root': { maxWidth: 'none' } }}>
                     <BottomNavigationAction component={NavLink} to="/admin" value="/admin" label="Огляд" icon={<DashboardOutlinedIcon />} />
                     <BottomNavigationAction component={NavLink} to="/admin/schedule" value="/admin/schedule" label="Розклад" icon={<CalendarMonthOutlinedIcon />} />
                     <BottomNavigationAction component={NavLink} to="/admin/bookings" value="/admin/bookings" label="Записи" icon={<ListAltOutlinedIcon />} />
-                    <BottomNavigationAction value="menu" label="Меню" icon={<MenuIcon />} onClick={() => setMobileOpen(true)} />
                 </BottomNavigation>
             </Paper>}
         </Box>
