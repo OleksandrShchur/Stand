@@ -9,6 +9,7 @@ import { formatDateFull, todayIso } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { isContinuousSelection, sortSlots } from '../slotSelection';
 import { pagePadding } from '../../../layoutSpacing';
+import { bookingRequestKey, clearBookingRequest } from '../bookingRequest';
 
 export default function ShiftDetailsStep({ date, locationId, locationName, locationAddress, timeSlotId, timeSlotIds, onConfirmed, onUnavailable, onBack }: {
     date: string;
@@ -45,7 +46,11 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
         if (!isContinuousSelection(slots) || !onConfirmed || !canConfirm || submitting) return;
         setSubmitting(true);
         setBookingError(null);
-        publicApi.bookMany(date, locationId, slots.map((slot) => slot.timeSlotId)).then(onConfirmed)
+        const ids = slots.map((slot) => slot.timeSlotId);
+        publicApi.bookMany(date, locationId, ids, bookingRequestKey(date, locationId, ids)).then((summaries) => {
+            clearBookingRequest();
+            onConfirmed(summaries);
+        })
             .catch((e) => {
                 const conflict = e instanceof ApiError && ['SLOT_FULL', 'SLOT_TOO_SOON', 'DATE_NOT_BOOKABLE', 'TIME_SLOT_BLOCKED', 'LOCATION_INACTIVE', 'DUPLICATE_PHONE_SLOT'].includes(e.errorCode ?? '');
                 if (conflict) {

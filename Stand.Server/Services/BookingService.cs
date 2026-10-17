@@ -1,4 +1,8 @@
 using Microsoft.Data.SqlClient;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Stand.Server.Common;
@@ -14,17 +18,18 @@ public sealed class BookingService(
     IKyivClock clock,
     IAvailabilityService availability,
     IOptions<BookingOptions> options,
-    ILogger<BookingService> logger) : IBookingService
+    ILogger<BookingService> logger,
+    CurrentPublicUser currentUser) : IBookingService
 {
     private const int UniqueConstraintViolationSqlError = 2601;
     private const int UniqueIndexViolationSqlError = 2627;
 
     private readonly BookingOptions _options = options.Value;
+    private static readonly JsonSerializerOptions ReplayJson = new(JsonSerializerDefaults.Web);
 
     public async Task<List<MyShiftDto>> GetMyUpcomingShiftsAsync(int authorizedUserId, CancellationToken ct)
     {
-        var user = await db.AuthorizedUsers.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
+        var user = await currentUser.GetAsync(authorizedUserId, ct)
             ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
         var phone = PhoneNormalizer.TryNormalize(user.Phone)
             ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
@@ -68,19 +73,49 @@ public sealed class BookingService(
 
     public async Task<BookingSummaryDto> BookAsync(
         DateOnly date, int locationId, int timeSlotId,
-        int authorizedUserId, CancellationToken ct)
-        => (await BookManyAsync(date, locationId, [timeSlotId], authorizedUserId, ct)).Single();
+        int authorizedUserId, CancellationToken ct, Guid? requestId = null)
+        => (await BookManyAsync(date, locationId, [timeSlotId], authorizedUserId, ct, requestId)).Single();
 
-    public async Task<List<BookingSummaryDto>> BookManyAsync(
+    public Task<List<BookingSummaryDto>> BookManyAsync(
         DateOnly date, int locationId, IReadOnlyList<int> timeSlotIds,
-        int authorizedUserId, CancellationToken ct)
+        int authorizedUserId, CancellationToken ct, Guid? requestId = null)
+        => RetryDeadlocksAsync(() => BookManyCoreAsync(date, locationId, timeSlotIds, authorizedUserId, ct, requestId), ct);
+
+    private async Task<List<BookingSummaryDto>> BookManyCoreAsync(
+        DateOnly date, int locationId, IReadOnlyList<int> timeSlotIds,
+        int authorizedUserId, CancellationToken ct, Guid? requestId)
     {
         if (timeSlotIds.Count == 0 || timeSlotIds.Distinct().Count() != timeSlotIds.Count)
             throw new ValidationAppException("Оберіть одну або кілька послідовних записів без повторів.");
 
-        var user = await db.AuthorizedUsers.AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == authorizedUserId && u.IsActive, ct)
+        var user = await currentUser.GetAsync(authorizedUserId, ct)
             ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var fingerprint = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new
+        {
+            date = date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            locationId,
+            timeSlotIds = timeSlotIds.Order().ToArray(),
+        }))));
+        if (requestId is Guid key)
+        {
+            // Concurrent retries wait for the original transaction, then replay.
+            var replay = await db.Database.SqlQuery<BookingRequestReplay>($"""
+                SELECT Fingerprint, ResponseJson FROM dbo.BookingRequests WITH (UPDLOCK, HOLDLOCK)
+                WHERE AuthorizedUserId = {authorizedUserId} AND RequestId = {key}
+                """).SingleOrDefaultAsync(ct);
+            if (replay is not null)
+            {
+                if (replay.Fingerprint != fingerprint)
+                    throw new ConflictAppException(ErrorCodes.Conflict, "Ключ запиту вже використано для іншого запису.");
+                var response = JsonSerializer.Deserialize<List<BookingSummaryDto>>(replay.ResponseJson, ReplayJson)
+                    ?? throw new InvalidOperationException("Invalid stored booking response.");
+                await tx.CommitAsync(ct);
+                return response;
+            }
+        }
+
         var fn = user.FirstName.Trim();
         var ln = user.LastName.Trim();
         if (fn.Length is < 1 or > 100 || ln.Length is < 1 or > 100)
@@ -108,6 +143,9 @@ public sealed class BookingService(
                 throw new ValidationAppException("Оберіть послідовні записи без перерв та накладань.");
         }
 
+        var blockedIds = await db.DateTimeSlotExceptions
+            .Where(e => e.Date == date && timeSlotIds.Contains(e.TimeSlotId) && e.IsBlocked)
+            .Select(e => e.TimeSlotId).ToListAsync(ct);
         foreach (var timeSlot in timeSlots)
         {
             if (!timeSlot.IsActive)
@@ -115,9 +153,7 @@ public sealed class BookingService(
                 throw new ValidationAppException("Цей час зараз недоступний.", ErrorCodes.TimeSlotBlocked);
             }
 
-            var isBlocked = await db.DateTimeSlotExceptions
-                .AnyAsync(e => e.Date == date && e.TimeSlotId == timeSlot.Id && e.IsBlocked, ct);
-            if (isBlocked)
+            if (blockedIds.Contains(timeSlot.Id))
             {
                 throw new ValidationAppException("Цей час недоступний для обраної дати.", ErrorCodes.TimeSlotBlocked);
             }
@@ -132,8 +168,6 @@ public sealed class BookingService(
         }
 
         // Lock every selected slot in a consistent order, then save all bookings together.
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
-
         var now = clock.UtcNow;
         foreach (var timeSlot in timeSlots.OrderBy(t => t.Id))
         {
@@ -182,17 +216,31 @@ public sealed class BookingService(
             throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
                 "З цим номером телефону вже є запис на цю дату, локацію та час.");
         }
+        // Build the response before commit, with one participant query for the batch.
+        // A failed response query can no longer leave a committed booking behind.
+        var participants = await db.Bookings
+            .Where(b => b.Date == date && b.LocationId == locationId && timeSlotIds.Contains(b.TimeSlotId) &&
+                b.Status == "Confirmed" && b.Phone != phone)
+            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
+            .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName }).ToListAsync(ct);
+        var summaries = created.Select(booking => ToSummary(booking, participants
+            .Where(p => p.TimeSlotId == booking.TimeSlotId)
+            .Select(p => new ShiftParticipantDto(p.FirstName, p.LastName)).ToList())).ToList();
+        if (requestId is Guid completedKey)
+        {
+            var json = JsonSerializer.Serialize(summaries, ReplayJson);
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT dbo.BookingRequests (AuthorizedUserId, RequestId, Fingerprint, ResponseJson)
+                VALUES ({authorizedUserId}, {completedKey}, {fingerprint}, {json})
+                """, ct);
+        }
         await tx.CommitAsync(ct);
-
-        var summaries = new List<BookingSummaryDto>();
-        foreach (var booking in created)
-            summaries.Add(await ToSummaryAsync(booking, ct));
         return summaries;
     }
 
     public async Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct)
     {
-        var booking = await db.Bookings
+        var booking = await db.Bookings.AsNoTracking()
             .Include(b => b.Location)
             .Include(b => b.TimeSlot)
             .FirstOrDefaultAsync(b => b.CancelToken == cancelToken, ct)
@@ -201,7 +249,10 @@ public sealed class BookingService(
         return await ToSummaryAsync(booking, ct);
     }
 
-    public async Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct)
+    public Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct)
+        => RetryDeadlocksAsync(() => CancelCoreAsync(cancelToken, ct), ct);
+
+    private async Task<BookingSummaryDto> CancelCoreAsync(Guid cancelToken, CancellationToken ct)
     {
         var booking = await db.Bookings
             .Include(b => b.Location)
@@ -209,16 +260,14 @@ public sealed class BookingService(
             .FirstOrDefaultAsync(b => b.CancelToken == cancelToken, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
-        if (booking.Status == "Cancelled")
-        {
-            throw new ConflictAppException(ErrorCodes.AlreadyCancelled, "Цей запис вже скасовано.");
-        }
+        var summary = await ToSummaryAsync(booking, ct);
+        if (booking.Status == "Cancelled") return summary;
 
         booking.Status = "Cancelled";
         booking.CancelledAtUtc = clock.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return await ToSummaryAsync(booking, ct);
+        return summary with { Status = booking.Status, CancelledAtUtc = booking.CancelledAtUtc?.ToString("O") };
     }
 
     private async Task<int> CountActiveWithLockAsync(DateOnly date, int locationId, int timeSlotId, DateTime now, CancellationToken ct)
@@ -255,7 +304,10 @@ public sealed class BookingService(
             .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName))
             .ToListAsync(ct);
 
-        return new(
+        return ToSummary(b, participants);
+    }
+
+    private static BookingSummaryDto ToSummary(Booking b, List<ShiftParticipantDto> participants) => new(
             b.PublicNumber,
             b.CancelToken.ToString(),
             b.Status,
@@ -272,5 +324,31 @@ public sealed class BookingService(
             b.ConfirmedAtUtc?.ToString("O"),
             b.CancelledAtUtc?.ToString("O"),
             participants);
+
+    private async Task<T> RetryDeadlocksAsync<T>(Func<Task<T>> operation, CancellationToken ct)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try { return await operation(); }
+            catch (Exception ex) when (attempt < 2 && IsDeadlock(ex))
+            {
+                db.ChangeTracker.Clear();
+                logger.LogWarning("Retrying booking operation after SQL deadlock, attempt {Attempt}", attempt + 1);
+                await Task.Delay(TimeSpan.FromMilliseconds(Random.Shared.Next(25, 100) * (attempt + 1)), ct);
+            }
+        }
     }
+
+    private static bool IsDeadlock(Exception ex)
+    {
+        for (Exception? current = ex; current is not null; current = current.InnerException)
+            if (current is SqlException sql && sql.Errors.Cast<SqlError>().Any(e => e.Number == 1205)) return true;
+        return false;
+    }
+}
+
+public sealed class BookingRequestReplay
+{
+    public string Fingerprint { get; set; } = "";
+    public string ResponseJson { get; set; } = "";
 }

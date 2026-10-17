@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useAvailabilityRefresh } from '../../../hooks/useAvailabilityRefresh';
+import { useState } from 'react';
 import { Box, Button, Card, Chip, Container, FormControlLabel, Radio, RadioGroup, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
@@ -24,32 +25,17 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
     const selectedLocation = locations.find((location) => location.id === selectedId);
     const showAvailabilityChips = date >= getKyivDateTime(new Date()).date;
 
-    const load = () => {
-        setLoading(true);
-        setError(null);
-        loadLocationsWithAvailability(date, publicApi)
-            .then(setLocations)
-            .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити локації.'))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(load, [date]);
-
-    useEffect(() => {
-        let active = true;
-        const refresh = () => {
-            loadLocationsWithAvailability(date, publicApi).then((updated) => {
-                if (active) setLocations(updated);
-            }).catch(() => { /* Keep the last successful availability during connection failures. */ });
-        };
-        const timer = setInterval(refresh, 30000);
-        window.addEventListener('focus', refresh);
-        return () => {
-            active = false;
-            clearInterval(timer);
-            window.removeEventListener('focus', refresh);
-        };
-    }, [date]);
+    const load = useAvailabilityRefresh(async (signal, initial) => {
+        if (initial) { setLoading(true); setError(null); }
+        try {
+            const updated = await loadLocationsWithAvailability(date, publicApi, new Date(), signal);
+            if (!signal.aborted) setLocations(updated);
+        } catch (e) {
+            if (!signal.aborted && initial) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити локації.');
+        } finally {
+            if (!signal.aborted) setLoading(false);
+        }
+    }, date);
 
     if (loading) return <SkeletonList label="Перевіряємо доступність локацій…" rows={4} />;
     if (error) return <ErrorState message={error} onRetry={load} />;

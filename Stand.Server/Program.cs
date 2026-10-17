@@ -27,6 +27,7 @@ builder.Services.AddScoped<IAvailabilityService, AvailabilityService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IAdminAuthService, AdminAuthService>();
 builder.Services.AddScoped<IPublicUserAuthService, PublicUserAuthService>();
+builder.Services.AddScoped<CurrentPublicUser>();
 builder.Services.AddHostedService<ExpiredHoldCleanupService>();
 
 // ---- MVC / API ----
@@ -122,9 +123,8 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
                 return;
             }
 
-            var db = ctx.HttpContext.RequestServices.GetRequiredService<StandDbContext>();
-            var isActive = await db.AuthorizedUsers.AnyAsync(u => u.Id == id && u.IsActive);
-            if (!isActive)
+            var currentUser = ctx.HttpContext.RequestServices.GetRequiredService<CurrentPublicUser>();
+            if (await currentUser.GetAsync(id, ctx.HttpContext.RequestAborted) is null)
             {
                 ctx.RejectPrincipal();
                 await ctx.HttpContext.SignOutAsync(PublicAuthConstants.AuthenticationScheme);

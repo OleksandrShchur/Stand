@@ -12,12 +12,13 @@ export class ApiError extends Error {
     }
 }
 
-async function request<T>(method: string, url: string, body?: unknown): Promise<T> {
+async function request<T>(method: string, url: string, body?: unknown, headers?: Record<string, string>, signal?: AbortSignal): Promise<T> {
     return trackRequest(async () => {
         const res = await fetch(url, {
             method,
+            signal,
             credentials: 'include',
-            headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+            headers: { ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}), ...headers },
             body: body !== undefined ? JSON.stringify(body) : undefined,
         });
 
@@ -47,8 +48,8 @@ async function request<T>(method: string, url: string, body?: unknown): Promise<
 }
 
 export const api = {
-    get: <T>(url: string) => request<T>('GET', url),
-    post: <T>(url: string, body?: unknown) => request<T>('POST', url, body ?? {}),
+    get: <T>(url: string, signal?: AbortSignal) => request<T>('GET', url, undefined, undefined, signal),
+    post: <T>(url: string, body?: unknown, headers?: Record<string, string>) => request<T>('POST', url, body ?? {}, headers),
     put: <T>(url: string, body?: unknown) => request<T>('PUT', url, body ?? {}),
     del: <T>(url: string) => request<T>('DELETE', url),
 };
