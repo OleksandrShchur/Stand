@@ -48,7 +48,7 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const hasSideNav = useMediaQuery(theme.breakpoints.up('sm'));
     const [mobileOpen, setMobileOpen] = useState(false);
 
     if (loading) {
@@ -63,6 +63,7 @@ export default function AdminLayout() {
         logout().then(() => navigate('/admin/login', { replace: true }));
     };
     const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
+    const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 
     const drawerContent = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -70,11 +71,12 @@ export default function AdminLayout() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
             </Toolbar>
             <List sx={{ flex: 1 }}>
-                {SIDE_NAV_ITEMS.map((item) => (
+                {sideNavItems.map((item) => (
                     <ListItemButton
                         key={item.to}
                         component={NavLink}
                         to={item.to}
+                        end={item.to === '/admin'}
                         onClick={() => setMobileOpen(false)}
                         sx={{
                             mx: 1,
@@ -102,8 +104,9 @@ export default function AdminLayout() {
     );
 
     return (
-        <Box sx={{ '--admin-navigation-clearance': 'calc(92px + env(safe-area-inset-bottom))', display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
-            {isDesktop ? (
+        <Box sx={{ '--admin-navigation-clearance': { xs: 'calc(92px + env(safe-area-inset-bottom))', sm: '12px' },
+            '--admin-sidebar-width': `${DRAWER_WIDTH}px`, display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
+            {hasSideNav ? (
                 <Drawer
                     variant="permanent"
                     sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', border: 'none' } }}
@@ -123,7 +126,7 @@ export default function AdminLayout() {
             )}
 
             <Box sx={{ flex: '1 1 0%', width: 0, minWidth: 0 }}>
-                {!isDesktop && (
+                {!hasSideNav && (
                     <AppBar position="sticky" elevation={0}>
                         <Toolbar>
                             <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
@@ -134,11 +137,11 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: 'calc(var(--admin-navigation-clearance) + 16px)' }}>
+                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(var(--admin-navigation-clearance) + 16px)', sm: 4 } }}>
                     <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
                 </Box>
             </Box>
-            <Box sx={{ position: 'fixed', bottom: 'calc(12px + env(safe-area-inset-bottom))', left: { xs: 0, md: DRAWER_WIDTH }, right: 0,
+            {!hasSideNav && <Box sx={{ position: 'fixed', bottom: 'calc(12px + env(safe-area-inset-bottom))', left: 0, right: 0,
                 zIndex: theme.zIndex.appBar, px: { xs: 1, sm: 2 }, pointerEvents: 'none' }}>
             <Paper elevation={0} sx={{ maxWidth: 600, mx: 'auto', borderRadius: '999px', pointerEvents: 'auto',
                 bgcolor: 'rgba(249, 253, 250, 0.94)', border: '1px solid rgba(255, 255, 255, 0.85)',
@@ -176,7 +179,7 @@ export default function AdminLayout() {
                         value={item.to} label={item.bottomLabel ?? item.label} aria-label={item.label} icon={item.icon} />)}
                 </BottomNavigation>
             </Paper>
-            </Box>
+            </Box>}
         </Box>
     );
 }
