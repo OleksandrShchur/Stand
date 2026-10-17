@@ -93,7 +93,6 @@ export default function AdminLocationsPage() {
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
 
-            <Alert severity="info" sx={{ mb: 2 }}>Тут зберігаються назви, адреси та місткість. Дати й час кожної локації налаштовуються у «Розкладі». Вимкнення локації закриває нові записи на всіх датах; наявні записи залишаються чинними.</Alert>
             <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
                 {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
