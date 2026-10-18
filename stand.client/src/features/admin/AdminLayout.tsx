@@ -63,6 +63,8 @@ export default function AdminLayout() {
         logout().then(() => navigate('/admin/login', { replace: true }));
     };
     const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
+    const headerTitle = location.pathname === '/admin/schedule' ? 'Розклад'
+        : location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель';
     const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 
     const drawerContent = (
@@ -132,7 +134,7 @@ export default function AdminLayout() {
                             <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ justifySelf: 'start' }}>
                                 <MenuIcon />
                             </IconButton>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>{location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель'}</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>{headerTitle}</Typography>
                         </Toolbar>
                     </AppBar>
                 )}
