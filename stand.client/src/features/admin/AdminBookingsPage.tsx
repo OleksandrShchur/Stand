@@ -200,7 +200,7 @@ export default function AdminBookingsPage() {
                         <ListItemText>Скасувати запис</ListItemText>
                     </MenuItem>}
                 </Menu>
-                <TableContainer component={Paper} variant="outlined" sx={{ px: { md: 1 }, pt: { md: 1 } }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: { xs: 1, md: 0 }, px: { md: 1 }, pt: { md: 1 } }}>
                     <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' }, borderCollapse: 'separate', borderSpacing: '0 3px' }}>
                         <TableHead>
                             <TableRow>
@@ -264,7 +264,7 @@ export default function AdminBookingsPage() {
                         labelRowsPerPage="На сторінці:"
                         labelDisplayedRows={({ from, to, count }) => `${from}–${to} з ${count}`}
                         getItemAriaLabel={(type) => ({ first: 'Перша сторінка', last: 'Остання сторінка', next: 'Наступна сторінка', previous: 'Попередня сторінка' })[type]}
-                        sx={{ '& .MuiTablePagination-toolbar': { px: { xs: 0, sm: 2 } }, '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } }, '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } } }}
+                        sx={{ pt: { md: 1 }, '& .MuiTablePagination-toolbar': { px: { xs: 0, sm: 2 } }, '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } }, '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } } }}
                     />
                 </TableContainer>
                 </>
