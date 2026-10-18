@@ -75,7 +75,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
 
     return (
         <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
-            <Snackbar open={overlapNotice !== null} autoHideDuration={12000} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+            <Snackbar open={overlapNotice !== null} autoHideDuration={24000} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 sx={{ top: { xs: 72, sm: 24 } }} onClose={(_, reason) => { if (reason !== 'clickaway') setOverlapNotice(null); }}>
                 <Alert severity="error" variant="filled" onClose={() => setOverlapNotice(null)} sx={{ width: '100%' }}>{overlapNotice}</Alert>
             </Snackbar>
