@@ -3,7 +3,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
     Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent,
     Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
-    IconButton, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme,
+    IconButton, Snackbar, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
@@ -11,7 +11,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
-import CalendarMonthOutlinedIcon from '@mui/icons-material/CalendarMonthOutlined';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import type { DayScheduleDto, LocationAdminDto, SaveScheduleDto, ScheduleLocationDto, ScheduleRangeDto, ScheduleSaveResultDto } from '../../api/types';
@@ -32,15 +31,12 @@ export default function AdminSchedulePage() {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const navigate = useNavigate();
     const [date, setDate] = useState(todayIso);
-    const [month, setMonth] = useState(() => todayIso().slice(0, 7));
-    const [calendarOpen, setCalendarOpen] = useState(false);
-    const [dates, setDates] = useState<Record<string, boolean>>({});
     const [locations, setLocations] = useState<LocationAdminDto[]>([]);
     const [source, setSource] = useState<DayScheduleDto | null>(null);
     const [draft, setDraft] = useState<Draft | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [notice, setNotice] = useState('');
+    const [notice, setNotice] = useState<number | null>(null);
     const [busy, setBusy] = useState(false);
     const [retry, setRetry] = useState(0);
     const [leave, setLeave] = useState<(() => void) | null>(null);
@@ -67,16 +63,6 @@ export default function AdminSchedulePage() {
     }, [date, retry]);
 
     useEffect(() => {
-        let current = true;
-        const [year, monthNumber] = month.split('-').map(Number);
-        const end = new Date(year, monthNumber, 0).getDate();
-        adminApi.listDates(`${month}-01`, `${month}-${end}`).then(items => {
-            if (current) setDates(Object.fromEntries(items.map(day => [day.date, day.isActive])));
-        }).catch(e => { if (current) setError(message(e)); });
-        return () => { current = false; };
-    }, [month, retry]);
-
-    useEffect(() => {
         if (!dirty) return;
         const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
         const link = (event: MouseEvent) => {
@@ -92,7 +78,7 @@ export default function AdminSchedulePage() {
 
     const chooseDate = (next: string) => {
         if (!next || next === date || busy) return;
-        const action = () => { setDate(next); setMonth(next.slice(0, 7)); setNotice(''); setCalendarOpen(false); };
+        const action = () => { setDate(next); setNotice(null); };
         if (dirty) setLeave(() => action); else action();
     };
     const updateLocation = (id: number, slots: ScheduleRangeDto[] | null) => setDraft(previous => previous && ({
@@ -122,23 +108,14 @@ export default function AdminSchedulePage() {
         if (!review || busy) return;
         setBusy(true); setError('');
         try {
-            const result = await adminApi.saveSchedule({ ...review.dto, acknowledgeExistingBookings: true });
-            setNotice(`Розклад збережено. Дат: ${result.updatedDates}.${result.preservedBookings ? ` Наявні записи збережено: ${result.preservedBookings}.` : ''}`);
+            await adminApi.saveSchedule({ ...review.dto, acknowledgeExistingBookings: true });
+            setNotice(Date.now());
             if (review.dto.dates.includes(date)) setRetry(n => n + 1);
-            else setDates(previous => ({ ...previous, ...Object.fromEntries(review.dto.dates.map(day => [day, review.dto.isActive])) }));
             setReview(null); setCopyOpen(false);
         } catch (e) { setError(message(e)); }
         finally { setBusy(false); }
     };
 
-    const [year, monthNumber] = month.split('-').map(Number);
-    const monthDate = new Date(year, monthNumber - 1, 1);
-    const offset = (monthDate.getDay() + 6) % 7;
-    const daysInMonth = new Date(year, monthNumber, 0).getDate();
-    const moveMonth = (delta: number) => {
-        const next = new Date(year, monthNumber - 1 + delta, 1);
-        setMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
-    };
     const moveDay = (delta: number) => {
         const next = new Date(`${date}T12:00:00Z`);
         next.setUTCDate(next.getUTCDate() + delta);
@@ -147,9 +124,19 @@ export default function AdminSchedulePage() {
 
     return (
         <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', pb: { xs: 14, md: 0 }, overflowWrap: 'anywhere' }}>
-            <Typography variant="h4" sx={{ mb: 1 }}>Розклад</Typography>
-            <Typography color="text.secondary" sx={{ mb: 2 }}>Дата → локації → час чергувань</Typography>
-            {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
+            <Typography variant="h4" sx={{ display: { xs: 'none', sm: 'block' }, mb: 2 }}>Розклад</Typography>
+            <Snackbar
+                key={notice}
+                open={notice !== null}
+                autoHideDuration={10000}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ top: { xs: 64, sm: 24 } }}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setNotice(null); }}
+            >
+                <Alert severity="success" variant="filled" onClose={() => setNotice(null)}>
+                    Розклад збережено
+                </Alert>
+            </Snackbar>
             {error && <Alert severity="error" sx={{ mb: 2 }} action={!draft && <Button color="inherit" onClick={() => setRetry(n => n + 1)}>Повторити</Button>}>{error}</Alert>}
             <Box sx={{ display: 'grid', minWidth: 0, gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '300px minmax(0, 1fr)' }, gap: 2, alignItems: 'start', '& > *': { minWidth: 0 } }}>
                 <Card variant="outlined" sx={{ minWidth: 0 }}>
@@ -157,33 +144,11 @@ export default function AdminSchedulePage() {
                         <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} onChange={chooseDate} />
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, mt: 1 }}>
                             <IconButton aria-label="Попередній день" disabled={busy} onClick={() => moveDay(-1)} sx={{ width: 44, height: 44, flexShrink: 0 }}><ChevronLeftIcon /></IconButton>
-                            <Button fullWidth startIcon={<CalendarMonthOutlinedIcon />} aria-expanded={isMobile ? calendarOpen : undefined} aria-controls={isMobile ? 'schedule-calendar' : undefined}
-                                onClick={() => isMobile ? setCalendarOpen(open => !open) : chooseDate(todayIso())} sx={{ minWidth: 0 }}>
-                                {isMobile ? (calendarOpen ? 'Згорнути календар' : 'Обрати в календарі') : 'Сьогодні'}
+                            <Button fullWidth disabled={busy} onClick={() => chooseDate(todayIso())} sx={{ minWidth: 0 }}>
+                                Сьогодні
                             </Button>
                             <IconButton aria-label="Наступний день" disabled={busy} onClick={() => moveDay(1)} sx={{ width: 44, height: 44, flexShrink: 0 }}><ChevronRightIcon /></IconButton>
                         </Stack>
-                        <Box id="schedule-calendar" sx={{ display: { xs: calendarOpen ? 'block' : 'none', md: 'block' }, minWidth: 0, mt: 2 }}>
-                        <Stack direction="row" sx={{ mb: 1, alignItems: 'center', justifyContent: 'space-between' }}>
-                            <IconButton aria-label="Попередній місяць" onClick={() => moveMonth(-1)}><ChevronLeftIcon /></IconButton>
-                            <Typography sx={{ fontWeight: 700, textTransform: 'capitalize' }}>{monthDate.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}</Typography>
-                            <IconButton aria-label="Наступний місяць" onClick={() => moveMonth(1)}><ChevronRightIcon /></IconButton>
-                        </Stack>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 0.25 }}>
-                            {WEEKDAYS.map(day => <Typography key={day.value} align="center" variant="caption" color="text.secondary">{day.label}</Typography>)}
-                            {Array.from({ length: offset }, (_, i) => <Box key={`empty-${i}`} />)}
-                            {Array.from({ length: daysInMonth }, (_, i) => {
-                                const day = `${month}-${String(i + 1).padStart(2, '0')}`;
-                                return <Button key={day} aria-label={`${formatDateFull(day)}${dates[day] ? ', відкрито' : ', закрито'}`} aria-pressed={day === date}
-                                    disabled={busy} onClick={() => chooseDate(day)} variant={day === date ? 'contained' : 'text'}
-                                    sx={{ minWidth: 0, minHeight: 44, p: 0, display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                                    {i + 1}<Box sx={{ width: 5, height: 5, borderRadius: '50%', bgcolor: dates[day] ? (day === date ? 'common.white' : 'primary.main') : 'transparent' }} />
-                                </Button>;
-                            })}
-                        </Box>
-                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1.5 }}>● Позначено відкриті дати</Typography>
-                        <Button fullWidth onClick={() => chooseDate(todayIso())} sx={{ mt: 1 }}>До сьогодні</Button>
-                        </Box>
                     </CardContent>
                 </Card>
 
@@ -202,7 +167,9 @@ export default function AdminSchedulePage() {
                         {affected.length > 0 && <Alert severity="warning">
                             Поза новим розкладом залишаться записи: {affected.length}. Вони залишаться чинними на початкову дату, локацію й час.
                             Щоб скасувати їх, відкрийте «Записи» та підтвердьте кожне скасування.
-                            <Button component={RouterLink} to={`/admin/bookings?date=${date}`} color="inherit" size="small">Переглянути записи дня</Button>
+                            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                                <Button component={RouterLink} to={`/admin/bookings?date=${date}`} variant="outlined" color="inherit" size="small">Переглянути записи дня</Button>
+                            </Box>
                         </Alert>}
                         {!locations.length && <Alert severity="info">Спочатку додайте локацію у довіднику.</Alert>}
                         {locations.map(location => <LocationSchedule key={location.id} location={location}
