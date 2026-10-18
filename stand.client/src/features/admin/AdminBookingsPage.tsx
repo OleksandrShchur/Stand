@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link,
-    IconButton, Menu, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link,
+    IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
     TablePagination, TableRow, TextField, Typography,
 } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
@@ -20,6 +20,7 @@ import { groupBookingCards } from '../../utils/bookingCardGroups';
 import BookingCardGroup from '../../components/BookingCardGroup';
 import AppDialog from '../../components/AppDialog';
 import { formatUaPhone } from '../../utils/phone';
+import { surfaceRadius, surfaceShadow } from '../../surfaceStyles';
 
 export default function AdminBookingsPage() {
     const [searchParams] = useSearchParams();
@@ -165,19 +166,25 @@ export default function AdminBookingsPage() {
                     onClose={() => setActionMenu(null)}
                     anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
                     transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                    slotProps={{ list: { 'aria-labelledby': actionMenu ? `booking-actions-${actionMenu.booking.id}` : undefined } }}
+                    slotProps={{ list: { 'aria-labelledby': actionMenu?.anchorEl.id } }}
                 >
                     <MenuItem onClick={() => {
                         if (actionMenu) setDetail(actionMenu.booking);
                         setActionMenu(null);
-                    }}>Деталі</MenuItem>
+                    }}>
+                        <ListItemIcon><InfoOutlinedIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Деталі</ListItemText>
+                    </MenuItem>
                     {actionMenu?.booking.isBooked && <MenuItem sx={{ color: 'error.main' }} onClick={() => {
                         requestCancel(actionMenu.booking);
                         setActionMenu(null);
-                    }}>Скасувати запис</MenuItem>}
+                    }}>
+                        <ListItemIcon sx={{ color: 'inherit' }}><CancelOutlinedIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Скасувати запис</ListItemText>
+                    </MenuItem>}
                 </Menu>
-                <TableContainer component={Paper} variant="outlined">
-                    <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' } }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ px: { md: 1 }, pt: { md: 1 } }}>
+                    <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' }, borderCollapse: 'separate', borderSpacing: '0 3px' }}>
                         <TableHead>
                             <TableRow>
                                 <TableCell>№</TableCell>
@@ -186,33 +193,48 @@ export default function AdminBookingsPage() {
                                 <TableCell>Локація</TableCell>
                                 <TableCell>Імʼя</TableCell>
                                 <TableCell>Телефон</TableCell>
-                                <TableCell>Запис</TableCell>
                                 <TableCell align="center">Дії</TableCell>
                             </TableRow>
                         </TableHead>
-                        <TableBody>
-                            {items.map((b) => (
+                        {cardGroups.map((group, groupIndex) => <Fragment key={group[0].id}>
+                            {groupIndex > 0 && <TableBody aria-hidden="true">
+                                <TableRow><TableCell colSpan={7} sx={{ p: 0, height: 10, border: 0 }} /></TableRow>
+                            </TableBody>}
+                            <TableBody sx={{
+                                borderRadius: 1,
+                                boxShadow: surfaceShadow,
+                                '& .MuiTableCell-root': { bgcolor: 'background.paper', borderBottom: 0 },
+                                '& .MuiTableRow-root:hover > .MuiTableCell-root': { bgcolor: 'action.hover' },
+                                '& > tr:first-of-type > td:first-of-type': { borderTopLeftRadius: `${surfaceRadius}px` },
+                                '& > tr:first-of-type > td:last-of-type': { borderTopRightRadius: `${surfaceRadius}px` },
+                                '& > tr:last-of-type > td:first-of-type': { borderBottomLeftRadius: `${surfaceRadius}px` },
+                                '& > tr:last-of-type > td:last-of-type': { borderBottomRightRadius: `${surfaceRadius}px` },
+                            }}>
+                            {group.map((b) => (
                                 <TableRow key={b.id} hover>
                                     <TableCell>{b.publicNumber}</TableCell>
                                     <TableCell>{formatDate(b.date)}</TableCell>
                                     <TableCell>{b.startTime}–{b.endTime}</TableCell>
                                     <TableCell>{b.locationName}</TableCell>
                                     <TableCell>{[b.firstName, b.lastName].filter(Boolean).join(' ')}</TableCell>
-                                    <TableCell>{b.phone}</TableCell>
-                                    <TableCell>
-                                        <Chip size="small" label={b.isBooked ? 'Записано' : 'Не записано'} color={b.isBooked ? 'success' : 'default'} />
-                                    </TableCell>
+                                    <TableCell sx={{ whiteSpace: 'nowrap' }}>{b.phone ? formatUaPhone(b.phone) : '—'}</TableCell>
                                     <TableCell align="center">
-                                        <Button onClick={() => setDetail(b)}>Деталі</Button>
-                                        {b.isBooked && (
-                                            <IconButton aria-label={`Скасувати запис ${b.publicNumber}`} onClick={() => requestCancel(b)}>
-                                                <CancelOutlinedIcon fontSize="small" />
-                                            </IconButton>
-                                        )}
+                                        <IconButton
+                                            id={`booking-table-actions-${b.id}`}
+                                            aria-label={`Дії для запису ${b.publicNumber}`}
+                                            aria-haspopup="menu"
+                                            aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
+                                            aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
+                                            onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
+                                            sx={{ width: 44, height: 44 }}
+                                        >
+                                            <MoreVertIcon />
+                                        </IconButton>
                                     </TableCell>
                                 </TableRow>
                             ))}
-                        </TableBody>
+                            </TableBody>
+                        </Fragment>)}
                     </Table>
                     <TablePagination
                         component="div"
