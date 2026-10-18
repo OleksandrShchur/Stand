@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link,
-    IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
+    IconButton, Menu, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
     TablePagination, TableRow, TextField, Typography,
 } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/StateMessage';
@@ -37,6 +38,7 @@ export default function AdminBookingsPage() {
     const [cancelError, setCancelError] = useState('');
     const [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<BookingAdminDto | null>(null);
+    const [actionMenu, setActionMenu] = useState<{ anchorEl: HTMLElement; booking: BookingAdminDto } | null>(null);
     const [refresh, setRefresh] = useState(0);
 
     useEffect(() => {
@@ -130,15 +132,42 @@ export default function AdminBookingsPage() {
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
                     {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                        <Typography component="h2" variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                        <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                            <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                            <IconButton
+                                id={`booking-actions-${b.id}`}
+                                aria-label={`Дії для запису ${b.publicNumber}`}
+                                aria-haspopup="menu"
+                                aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
+                                aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
+                                onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
+                                sx={{ flexShrink: 0, width: 44, height: 44, mt: -1, mr: -1 }}
+                            >
+                                <MoreVertIcon />
+                            </IconButton>
+                        </Stack>
                         <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
                         <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                            <Button fullWidth variant="outlined" onClick={() => setDetail(b)}>Деталі</Button>
-                            {b.isBooked && <Button fullWidth color="error" onClick={() => requestCancel(b)}>Скасувати запис</Button>}
-                        </Stack>
                     </CardContent></Card>)}
                 </Stack>
+                <Menu
+                    id="booking-actions-menu"
+                    anchorEl={actionMenu?.anchorEl}
+                    open={!!actionMenu}
+                    onClose={() => setActionMenu(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    slotProps={{ list: { 'aria-labelledby': actionMenu ? `booking-actions-${actionMenu.booking.id}` : undefined } }}
+                >
+                    <MenuItem onClick={() => {
+                        if (actionMenu) setDetail(actionMenu.booking);
+                        setActionMenu(null);
+                    }}>Деталі</MenuItem>
+                    {actionMenu?.booking.isBooked && <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+                        requestCancel(actionMenu.booking);
+                        setActionMenu(null);
+                    }}>Скасувати запис</MenuItem>}
+                </Menu>
                 <TableContainer component={Paper} variant="outlined">
                     <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' } }}>
                         <TableHead>
