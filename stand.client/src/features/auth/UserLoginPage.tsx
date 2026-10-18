@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
     Box,
@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import PhoneIphoneOutlinedIcon from '@mui/icons-material/PhoneIphoneOutlined';
 import BrandHeader from '../../components/BrandHeader';
+import MainContent from '../../components/MainContent';
 import { pagePadding } from '../../layoutSpacing';
 import { LoadingState } from '../../components/StateMessage';
 import { ApiError } from '../../api/client';
@@ -25,6 +26,7 @@ export default function UserLoginPage() {
     const [digits, setDigits] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const phoneRef = useRef<HTMLInputElement>(null);
 
     const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname ?? '/';
 
@@ -41,6 +43,7 @@ export default function UserLoginPage() {
         const validationError = uaPhoneValidationError(digits);
         if (validationError || submitting) {
             setError(validationError);
+            phoneRef.current?.focus();
             return;
         }
 
@@ -48,23 +51,27 @@ export default function UserLoginPage() {
         setError(null);
         login(toUaPhone(digits))
             .then(() => navigate(from, { replace: true }))
-            .catch((err) => setError(err instanceof ApiError ? err.message : 'Не вдалося увійти.'))
+            .catch((err) => {
+                setError(err instanceof ApiError ? err.message : 'Не вдалося увійти.');
+                phoneRef.current?.focus();
+            })
             .finally(() => setSubmitting(false));
     };
 
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
             <BrandHeader title="Вхід" showHome={false} />
-            <Container className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Container component={MainContent} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
                             <PhoneIphoneOutlinedIcon color="primary" sx={{ fontSize: 42, mb: 1 }} />
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>Вхід за номером телефону</Typography>
+                            <Typography component="h1" variant="h5" sx={{ fontWeight: 700 }}>Вхід за номером телефону</Typography>
                         </Box>
 
                         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
+                                inputRef={phoneRef}
                                 label="Номер телефону"
                                 value={formatUaPhoneDigits(digits)}
                                 onChange={(e) => {
@@ -72,6 +79,7 @@ export default function UserLoginPage() {
                                     setError(null);
                                 }}
                                 slotProps={{
+                                    formHelperText: { 'aria-live': 'polite' },
                                     htmlInput: {
                                         inputMode: 'numeric',
                                         autoComplete: 'tel-national',
@@ -84,7 +92,6 @@ export default function UserLoginPage() {
                                 error={Boolean(error)}
                                 helperText={error ?? ' '}
                                 fullWidth
-                                autoFocus
                             />
 
                             <Button loading={submitting} type="submit" variant="contained" size="large" disabled={submitting} fullWidth>

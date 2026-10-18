@@ -105,7 +105,7 @@ export default function AdminBookingsPage() {
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography variant="h4">Записи</Typography>
+                <Typography component="h1" variant="h4">Записи</Typography>
                 <Button loading={exporting} loadingPosition="start" variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>Експорт CSV</Button>
             </Box>
 
@@ -126,7 +126,7 @@ export default function AdminBookingsPage() {
                 <ToggleButton value="all">Усі записи</ToggleButton>
             </ToggleButtonGroup>
 
-            <Accordion variant="outlined" disableGutters sx={{ mb: 2 }}>
+            <Accordion slots={{ heading: 'h2' }} variant="outlined" disableGutters sx={{ mb: 2 }}>
                 <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone].some(Boolean) || applied.isBooked !== undefined ? ' · застосовано' : ''}</Typography></AccordionSummary>
                 <AccordionDetails>
                 <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} useFlexGap sx={{ flexWrap: 'wrap', alignItems: { xs: 'stretch', sm: 'center' } }}>
@@ -162,7 +162,7 @@ export default function AdminBookingsPage() {
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
                     {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                        <Typography variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                        <Typography component="h2" variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
                         <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
                         <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
                         <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
@@ -172,7 +172,7 @@ export default function AdminBookingsPage() {
                     </CardContent></Card>)}
                 </Stack>
                 <TableContainer component={Paper} variant="outlined">
-                    <Table size="small" sx={{ display: { xs: 'none', md: 'table' } }}>
+                    <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' } }}>
                         <TableHead>
                             <TableRow>
                                 <TableCell>№</TableCell>
@@ -218,6 +218,8 @@ export default function AdminBookingsPage() {
                         onRowsPerPageChange={(e) => { setPageSize(Number(e.target.value)); setPage(0); }}
                         rowsPerPageOptions={[10, 25, 50, 100]}
                         labelRowsPerPage="На сторінці:"
+                        labelDisplayedRows={({ from, to, count }) => `${from}–${to} з ${count}`}
+                        getItemAriaLabel={(type) => ({ first: 'Перша сторінка', last: 'Остання сторінка', next: 'Наступна сторінка', previous: 'Попередня сторінка' })[type]}
                         sx={{ '& .MuiTablePagination-toolbar': { px: { xs: 0, sm: 2 } }, '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } }, '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } } }}
                     />
                 </TableContainer>
@@ -255,7 +257,7 @@ export default function AdminBookingsPage() {
 }
 
 function BookingDetails({ booking }: { booking: BookingAdminDto }) {
-    return <Box><Typography variant="h6">{[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+    return <Box><Typography component="p" variant="h6">{[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>№ {booking.publicNumber}</Typography>
         <Typography>{formatDateFull(booking.date)}</Typography><Typography sx={{ fontWeight: 700 }}>{booking.startTime}–{booking.endTime}</Typography>
         <Typography>{booking.locationName}</Typography>{booking.phone && <Link href={`tel:${booking.phone}`} sx={{ display: 'inline-block', py: 1 }}>{booking.phone}</Link>}

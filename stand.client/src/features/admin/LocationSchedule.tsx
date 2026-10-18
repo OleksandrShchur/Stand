@@ -88,7 +88,7 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                     <Accordion expanded={generatorOpen} onChange={(_, expanded) => setGeneratorOpen(expanded)} variant="outlined" disableGutters>
                         <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Додати час</Typography></AccordionSummary>
                         <AccordionDetails><Stack spacing={2} sx={{ minWidth: 0 }}>
-                            <ToggleButtonGroup exclusive fullWidth value={mode} disabled={busy} onChange={(_, value) => { if (value) { setMode(value); setError(''); } }}>
+                            <ToggleButtonGroup aria-label="Спосіб додавання інтервалів" exclusive fullWidth value={mode} disabled={busy} onChange={(_, value) => { if (value) { setMode(value); setError(''); } }}>
                                 <ToggleButton value="bulk" sx={{ flex: 1, minWidth: 0, whiteSpace: 'normal' }}>Серія інтервалів</ToggleButton>
                                 <ToggleButton value="single" sx={{ flex: 1, minWidth: 0, whiteSpace: 'normal' }}>Один інтервал</ToggleButton>
                             </ToggleButtonGroup>

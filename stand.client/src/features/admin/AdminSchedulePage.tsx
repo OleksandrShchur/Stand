@@ -124,7 +124,7 @@ export default function AdminSchedulePage() {
 
     return (
         <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', pb: { xs: 14, md: 0 }, overflowWrap: 'anywhere' }}>
-            <Typography variant="h4" sx={{ display: { xs: 'none', sm: 'block' }, mb: 2 }}>Розклад</Typography>
+            <Typography component="h1" variant="h4" sx={{ mb: 2 }}>Розклад</Typography>
             <Snackbar
                 key={notice}
                 open={notice !== null}
@@ -156,12 +156,12 @@ export default function AdminSchedulePage() {
                     {loading && <LoadingState label="Завантажуємо розклад…" />}
                     {!loading && draft && source && <>
                         <Card variant="outlined"><CardContent>
-                            <Typography variant="h6" sx={{ mb: 1 }}>{formatDateFull(date)}</Typography>
+                            <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{formatDateFull(date)}</Typography>
                             <FormControlLabel control={<Switch checked={draft.isActive} disabled={busy} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />}
                                 label={draft.isActive ? 'День відкритий для запису' : 'День закритий для запису'} />
                         </CardContent></Card>
                         <Box>
-                            <Typography variant="h6">Локації та час</Typography>
+                            <Typography component="h2" variant="h6">Локації та час</Typography>
                             <Typography variant="body2" color="text.secondary">Увімкніть локацію та натисніть «Налаштувати час».</Typography>
                         </Box>
                         {affected.length > 0 && <Alert severity="warning">
@@ -204,7 +204,7 @@ export default function AdminSchedulePage() {
                 <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                     <Stack spacing={2} sx={{ pt: 1, minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
                         <Typography>Копіюється поточний розклад за {formatDateHuman(date)}: стан дня, локації та всі інтервали, включно з незбереженими змінами.</Typography>
-                        <ToggleButtonGroup exclusive fullWidth value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
+                        <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
                             <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0 }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0 }}>За днями тижня</ToggleButton>
                         </ToggleButtonGroup>
                         {copyMode === 'dates' ? <>
@@ -219,7 +219,7 @@ export default function AdminSchedulePage() {
                                 <UkrainianDatePicker label="До" name="copy-to" value={copyTo} onChange={setCopyTo} />
                             </Stack>
                             <Typography variant="body2" color="text.secondary">Оберіть дні тижня у періоді до одного року.</Typography>
-                            <ToggleButtonGroup value={weekdays} onChange={(_, value) => setWeekdays(value)} fullWidth>{WEEKDAYS.map(day => <ToggleButton key={day.value} value={day.value} sx={{ px: 0, minWidth: 0 }}>{day.label}</ToggleButton>)}</ToggleButtonGroup>
+                            <ToggleButtonGroup aria-label="Дні тижня для копіювання" value={weekdays} onChange={(_, value) => setWeekdays(value)} fullWidth>{WEEKDAYS.map(day => <ToggleButton key={day.value} value={day.value} sx={{ px: 0, minWidth: 24 }}>{day.label}</ToggleButton>)}</ToggleButtonGroup>
                         </>}
                         <Alert severity="warning">Розклад на вибраних датах буде повністю замінено. Наявні записи залишаться чинними. Перед збереженням ви побачите кількість записів, яких торкнуться зміни.</Alert>
                         <Typography sx={{ fontWeight: 700 }}>Обрано дат: {targetDates.length}</Typography>

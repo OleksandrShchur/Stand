@@ -13,6 +13,7 @@ import { ukUA } from '@mui/x-date-pickers/locales';
 import dayjs from 'dayjs';
 import 'dayjs/locale/uk';
 import BrandHeader from '../../components/BrandHeader';
+import MainContent from '../../components/MainContent';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
@@ -88,7 +89,6 @@ export default function MyShiftsPage() {
             <BrandHeader title={`${bookingCopy.myShiftsButton}${!loading && !error ? ` (${shifts.length})` : ''}`} />
             <Snackbar
                 open={successToastOpen}
-                autoHideDuration={16000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessToastOpen(false); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
@@ -97,7 +97,8 @@ export default function MyShiftsPage() {
                     Запис підтверджено. Кількість доданих записів: {bookedCount}.
                 </Alert>
             </Snackbar>
-            <Container className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+                <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{bookingCopy.myShiftsButton}</Typography>
                 <Stack spacing={sectionGap}>
                     {loading && <SkeletonList label="Завантажуємо ваші записи…" rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}

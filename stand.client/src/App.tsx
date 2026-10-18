@@ -12,6 +12,10 @@ const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 
 function App() {
     return (
+        <>
+        <a className="skip-link" href="#main-content" onClick={() => document.getElementById('main-content')?.focus()}>
+            Перейти до основного вмісту
+        </a>
         <Suspense fallback={<CircularProgress aria-label="Завантаження…" sx={{ display: 'block', mx: 'auto', mt: 4 }} />}>
             <Routes>
                 <Route
@@ -58,6 +62,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Suspense>
+        </>
     );
 }
 

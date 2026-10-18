@@ -42,6 +42,9 @@ export default function AdminAuthorizedUsersPage() {
     const [saving, setSaving] = useState(false);
     const [formError, setFormError] = useState<string | null>(null);
     const [actionMenu, setActionMenu] = useState<{ anchor: HTMLElement; user: AuthorizedUserAdminDto } | null>(null);
+    const firstNameRef = useRef<HTMLInputElement>(null);
+    const lastNameRef = useRef<HTMLInputElement>(null);
+    const phoneRef = useRef<HTMLInputElement>(null);
 
     const load = () => {
         setLoading(true);
@@ -69,7 +72,10 @@ export default function AdminAuthorizedUsersPage() {
     const save = () => {
         setSubmitted(true);
         const validationError = uaPhoneValidationError(phoneDigits);
-        if (validationError || firstNameError || lastNameError) return;
+        if (validationError || firstNameError || lastNameError) {
+            (firstNameError ? firstNameRef : lastNameError ? lastNameRef : phoneRef).current?.focus();
+            return;
+        }
 
         setSaving(true);
         setFormError(null);
@@ -115,7 +121,7 @@ export default function AdminAuthorizedUsersPage() {
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Typography variant="h4">Користувачі сайту</Typography>
+                <Typography component="h1" variant="h4">Користувачі сайту</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={() => openForm()}>Додати</Button>
             </Box>
 
@@ -131,7 +137,7 @@ export default function AdminAuthorizedUsersPage() {
                 {visibleItems.map(u => <Card key={u.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                         <Box sx={{ minWidth: 0 }}>
-                            <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</Typography>
+                            <Typography component="h2" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{[u.firstName, u.lastName].filter(Boolean).join(' ')}</Typography>
                             <Link href={`tel:${u.phone}`} sx={{ display: 'inline-flex', alignItems: 'center', minHeight: 36 }}>{formatUaPhone(u.phone)}</Link>
                         </Box>
                         <IconButton aria-label={`Дії користувача ${[u.firstName, u.lastName].filter(Boolean).join(' ')}`} aria-haspopup="menu"
@@ -145,7 +151,7 @@ export default function AdminAuthorizedUsersPage() {
                 </CardContent></Card>)}
             </Stack>
             <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Table size="small">
+                <Table size="small" aria-label="Користувачі сайту">
                     <TableHead>
                         <TableRow>
                             <TableCell>Ім'я</TableCell>
@@ -162,7 +168,7 @@ export default function AdminAuthorizedUsersPage() {
                                 <TableCell sx={{ fontWeight: 600 }}>{formatUaPhone(u.phone)}</TableCell>
                                 <TableCell align="center">
                                     <Tooltip title="Дії">
-                                        <IconButton size="small" aria-label="Дії користувача" aria-haspopup="menu"
+                                        <IconButton size="small" aria-label={`Дії користувача ${u.firstName} ${u.lastName}`} aria-haspopup="menu"
                                             aria-controls={actionMenu?.user.id === u.id ? 'user-actions-menu' : undefined}
                                             aria-expanded={actionMenu?.user.id === u.id ? true : undefined}
                                             onClick={(e) => setActionMenu({ anchor: e.currentTarget, user: u })}>
@@ -200,15 +206,16 @@ export default function AdminAuthorizedUsersPage() {
             <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="xs">
                 <DialogTitle>{editingUser ? 'Редагувати користувача' : 'Новий користувач сайту'}</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                    <TextField label="Ім'я" value={firstName} onChange={(e) => setFirstName(e.target.value)}
-                        slotProps={{ htmlInput: { maxLength: 100, autoComplete: 'given-name' } }}
+                    <TextField inputRef={firstNameRef} label="Ім'я" value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                        slotProps={{ htmlInput: { maxLength: 100, autoComplete: 'given-name' }, formHelperText: { 'aria-live': 'polite' } }}
                         error={submitted && Boolean(firstNameError)} helperText={submitted ? firstNameError : null}
                         disabled={saving} fullWidth autoFocus sx={{ mt: 1 }} />
-                    <TextField label="Прізвище" value={lastName} onChange={(e) => setLastName(e.target.value)}
-                        slotProps={{ htmlInput: { maxLength: 100, autoComplete: 'family-name' } }}
+                    <TextField inputRef={lastNameRef} label="Прізвище" value={lastName} onChange={(e) => setLastName(e.target.value)}
+                        slotProps={{ htmlInput: { maxLength: 100, autoComplete: 'family-name' }, formHelperText: { 'aria-live': 'polite' } }}
                         error={submitted && Boolean(lastNameError)} helperText={submitted ? lastNameError : null}
                         disabled={saving} fullWidth />
                     <TextField
+                        inputRef={phoneRef}
                         label="Номер телефону"
                         value={formatUaPhoneDigits(phoneDigits)}
                         onChange={(e) => {
@@ -216,6 +223,7 @@ export default function AdminAuthorizedUsersPage() {
                             setFormError(null);
                         }}
                         slotProps={{
+                            formHelperText: { 'aria-live': 'polite' },
                             htmlInput: { inputMode: 'numeric', autoComplete: 'tel-national' },
                             input: { startAdornment: <InputAdornment position="start">+380</InputAdornment> },
                         }}

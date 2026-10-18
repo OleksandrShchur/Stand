@@ -20,6 +20,7 @@ import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BrandHeader from '../../components/BrandHeader';
+import MainContent from '../../components/MainContent';
 import AppDialog from '../../components/AppDialog';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
@@ -70,7 +71,8 @@ export default function BookingStatusPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container className="content-enter" maxWidth="sm" sx={pagePadding}>
+            <Container component={MainContent} className="content-enter" maxWidth="sm" sx={pagePadding}>
+                <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{bookingCopy.shiftDetails}</Typography>
                 {!justBooked && (
                     <Stack direction="row" sx={{ mb: 1, minHeight: 44, alignItems: 'center' }}>
                         <Tooltip title={bookingCopy.back}>
@@ -93,7 +95,7 @@ export default function BookingStatusPage() {
                         {justBooked && booking.isBooked && (
                             <Box sx={{ textAlign: 'center', pt: 0, pb: 1.5 }}>
                                 <CheckCircleIcon color="success" sx={{ fontSize: 56, mb: 1 }} />
-                                <Typography variant="h5" sx={{ fontWeight: 700 }}>{bookingCopy.success}</Typography>
+                                <Typography component="h2" variant="h5" sx={{ fontWeight: 700 }}>{bookingCopy.success}</Typography>
                                 <Typography variant="body2" color="text.secondary">
                                     Дякуємо, що долучаєтесь до чергування.
                                 </Typography>

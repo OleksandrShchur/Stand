@@ -85,7 +85,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
     return (
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1, flexWrap: 'wrap' }}>
-                <Typography variant="h5">{bookingCopy.selectDate}</Typography>
+                <Typography component="h1" variant="h5">{bookingCopy.selectDate}</Typography>
                 <Stack direction="row" spacing={0.5}>
                     <StateBadge label={bookingCopy.available} tone="available" />
                     <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
@@ -133,7 +133,6 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
             <Snackbar
                 key={dateHint?.key}
                 open={Boolean(dateHint)}
-                autoHideDuration={16000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setDateHint(null); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}

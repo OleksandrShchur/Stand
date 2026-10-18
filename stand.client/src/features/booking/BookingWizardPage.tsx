@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Box, Container, Fade } from '@mui/material';
+import { Box, Container, Fade, useMediaQuery } from '@mui/material';
+import MainContent from '../../components/MainContent';
 import BrandHeader from '../../components/BrandHeader';
 import WizardProgress from './components/WizardProgress';
 import DateStep from './steps/DateStep';
@@ -15,6 +16,7 @@ import { pagePadding } from '../../layoutSpacing';
 export default function BookingWizardPage() {
     const navigate = useNavigate();
     const location = useLocation();
+    const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
     const startBooking = Boolean((location.state as { startBooking?: boolean } | null)?.startBooking);
     const [showHome, setShowHome] = useState(() => !startBooking && loadWizardState().step === 'date' && !loadWizardState().date);
     const [state, setState] = useState<WizardState>(() => startBooking ? initialWizardState : loadWizardState());
@@ -115,8 +117,8 @@ export default function BookingWizardPage() {
             <BrandHeader onHome={returnHome} title="Запис" />
             <WizardProgress current={state.step} onNavigate={goToStep} />
 
-            <Container maxWidth="sm" sx={pagePadding}>
-                <Fade in key={state.step} timeout={250}>
+            <Container component={MainContent} focusKey={state.step} maxWidth="sm" sx={pagePadding}>
+                <Fade in key={state.step} timeout={reducedMotion ? 0 : 250}>
                     <Box>
                         {state.step === 'date' && (
                             <DateStep

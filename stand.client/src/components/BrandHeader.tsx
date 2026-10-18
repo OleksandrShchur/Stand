@@ -38,7 +38,7 @@ export default function BrandHeader({ onHome, title = 'Головна', showHome
                         aria-label="Технічна підтримка"
                         aria-haspopup="dialog"
                         onClick={() => setSupportOpen(true)}
-                        sx={{ ml: 'auto', p: 0, minWidth: 0, minHeight: 0, lineHeight: 1, gap: { xs: 0, sm: 1 } }}
+                        sx={{ ml: 'auto', p: 0.5, minWidth: 44, minHeight: 44, lineHeight: 1, gap: { xs: 0, sm: 1 } }}
                     >
                         <HelpOutlineOutlinedIcon sx={{ fontSize: 30 }} />
                         <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Підтримка</Box>

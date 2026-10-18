@@ -44,7 +44,7 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
-                    <Typography id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
+                    <Typography component="h1" id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
                     {!showAvailabilityChips && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                 </Stack>
                 <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />

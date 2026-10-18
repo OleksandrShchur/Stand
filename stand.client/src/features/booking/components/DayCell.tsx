@@ -27,8 +27,8 @@ export default function DayCell({
         <Button
             disabled={disabled && !onUnavailable}
             tabIndex={disabled && !onUnavailable ? -1 : 0}
-            aria-disabled={disabled}
-            aria-label={label}
+            aria-disabled={disabled && !onUnavailable}
+            aria-label={disabled && onUnavailable ? `${label}. Дізнатися причину` : label}
             aria-pressed={Boolean(isSelected)}
             aria-current={isToday ? 'date' : undefined}
             onClick={() => {
@@ -37,7 +37,7 @@ export default function DayCell({
             }}
             sx={{
                 position: 'relative',
-                minWidth: 44,
+                minWidth: 24,
                 minHeight: 44,
                 width: '100%',
                 aspectRatio: '1',
@@ -49,7 +49,7 @@ export default function DayCell({
                 color: isSelected ? 'var(--state-selected-text)' : readOnly ? 'text.primary' : isAvailable ? 'var(--state-available-text)' : 'var(--state-unavailable-text)',
                 cursor: disabled ? 'not-allowed' : 'pointer',
                 '&.Mui-disabled': { color: 'var(--state-unavailable-text)' },
-                '&:focus-visible': { outline: '3px solid #7FB69A', outlineOffset: 2 },
+                '&:focus-visible': { outline: '3px solid #173B2A', outlineOffset: 2, boxShadow: '0 0 0 2px #FFFFFF' },
             }}
         >
             <Box sx={{ display: 'grid', justifyItems: 'center', gap: 0.1, lineHeight: 1 }}>

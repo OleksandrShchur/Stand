@@ -12,16 +12,18 @@ const theme = createTheme({
             contrastText: '#FFFFFF',
         },
         secondary: {
-            main: '#8A7A4F',
+            main: '#75663F',
             light: '#B3A47A',
             dark: '#5E5233',
             contrastText: '#FFFFFF',
         },
         success: {
-            main: '#3C8F5C',
+            main: '#2F7D50',
+            contrastText: '#FFFFFF',
         },
         warning: {
-            main: '#C78A2E',
+            main: '#946218',
+            contrastText: '#FFFFFF',
         },
         error: {
             main: '#C14A4A',
@@ -59,6 +61,12 @@ const theme = createTheme({
     },
     spacing: 8,
     components: {
+        MuiIconButton: {
+            styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
+        },
+        MuiOutlinedInput: {
+            styleOverrides: { notchedOutline: { borderColor: '#738278' } },
+        },
         MuiButton: {
             defaultProps: { disableElevation: true },
             styleOverrides: {
@@ -130,9 +138,10 @@ const theme = createTheme({
                     '--state-mine-border': '#207A4F',
                     '--state-mine-text': '#155C3A',
                 },
-                '*:focus-visible': {
-                    outline: '3px solid #7FB69A',
+                '*:focus-visible, .Mui-focusVisible': {
+                    outline: '3px solid #173B2A',
                     outlineOffset: 2,
+                    boxShadow: '0 0 0 2px #FFFFFF',
                 },
                 '@media (prefers-reduced-motion: reduce)': {
                     '*, *::before, *::after': {

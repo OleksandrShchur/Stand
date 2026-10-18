@@ -57,7 +57,7 @@ export default function AdminUsersPage() {
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Typography variant="h4">Адміністратори</Typography>
+                <Typography component="h1" variant="h4">Адміністратори</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Додати</Button>
             </Box>
 
@@ -65,14 +65,14 @@ export default function AdminUsersPage() {
 
             <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                 {items.map(u => <Card key={u.id} variant="outlined"><CardContent>
-                    <Typography variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
+                    <Typography component="h2" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
                     <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} sx={{ my: 1 }} />
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Останній вхід: {u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : 'Ще не входив'}</Typography>
                     {u.id !== currentUser?.id && <Button variant="outlined" disabled={updatingId !== null} onClick={() => toggle(u)}>{u.isActive ? 'Вимкнути доступ' : 'Увімкнути доступ'}</Button>}
                 </CardContent></Card>)}
             </Stack>
             <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Table size="small">
+                <Table size="small" aria-label="Адміністратори">
                     <TableHead>
                         <TableRow>
                             <TableCell>Логін</TableCell>
@@ -93,7 +93,7 @@ export default function AdminUsersPage() {
                                 <TableCell>{u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : '—'}</TableCell>
                                 <TableCell align="center">
                                     {u.id !== currentUser?.id && (
-                                        <IconButton aria-busy={updatingId === u.id} disabled={updatingId !== null} size="small" onClick={() => toggle(u)}>
+                                        <IconButton aria-label={`${u.isActive ? 'Вимкнути' : 'Увімкнути'} доступ: ${u.login}`} aria-busy={updatingId === u.id} disabled={updatingId !== null} size="small" onClick={() => toggle(u)}>
                                             {u.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
                                         </IconButton>
                                     )}
@@ -107,8 +107,8 @@ export default function AdminUsersPage() {
             <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="xs">
                 <DialogTitle>Новий адміністратор</DialogTitle>
                 <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-                    <TextField label="Логін" value={login} onChange={(e) => setLogin(e.target.value)} fullWidth autoFocus />
-                    <TextField label="Пароль" type="password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth
+                    <TextField label="Логін" autoComplete="username" value={login} onChange={(e) => setLogin(e.target.value)} fullWidth autoFocus />
+                    <TextField label="Пароль" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} fullWidth
                         helperText="Щонайменше 8 символів" />
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>

@@ -54,7 +54,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
         <Box sx={{ pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
             <Stack direction="row" sx={{ mb: 2, alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-start' }}>
-                    <Typography id="time-heading" variant="h5">{bookingCopy.selectTime}</Typography>
+                    <Typography component="h1" id="time-heading" variant="h5">{bookingCopy.selectTime}</Typography>
                     {readOnly && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                 </Stack>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
@@ -92,7 +92,6 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
             <Snackbar
                 key={hint?.key}
                 open={Boolean(hint)}
-                autoHideDuration={16000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setHint(null); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}

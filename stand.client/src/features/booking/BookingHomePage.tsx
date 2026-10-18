@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
 import BrandHeader from '../../components/BrandHeader';
+import MainContent from '../../components/MainContent';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import type { MyShiftDto } from '../../api/types';
@@ -31,11 +32,11 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Card variant="outlined">
                         <CardContent>
-                            <Typography variant="h5" sx={{ mb: 2 }}>{bookingCopy.myShifts}</Typography>
+                            <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{bookingCopy.myShifts}</Typography>
                             {loading && <SkeletonList label="Шукаємо найближчі чергування…" rows={2} />}
                             {error && !loading && <ErrorState message={error} onRetry={load} />}
                             {!loading && !error && preview.length === 0 && (
