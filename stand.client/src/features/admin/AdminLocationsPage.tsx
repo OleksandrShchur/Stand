@@ -199,13 +199,6 @@ export default function AdminLocationsPage() {
                         fullWidth
                         slotProps={{ htmlInput: { min: 1 } }}
                     />
-                    <TextField
-                        label="Порядок сортування"
-                        type="number"
-                        value={form.sortOrder}
-                        onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })}
-                        fullWidth
-                    />
                     <FormControlLabel
                         control={<Switch checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />}
                         label="Активна"

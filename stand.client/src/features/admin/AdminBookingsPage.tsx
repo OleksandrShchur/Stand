@@ -8,6 +8,7 @@ import {
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/StateMessage';
@@ -17,6 +18,8 @@ import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 import { groupBookingCards } from '../../utils/bookingCardGroups';
 import BookingCardGroup from '../../components/BookingCardGroup';
+import AppDialog from '../../components/AppDialog';
+import { formatUaPhone } from '../../utils/phone';
 
 export default function AdminBookingsPage() {
     const [searchParams] = useSearchParams();
@@ -228,18 +231,30 @@ export default function AdminBookingsPage() {
                 </>
             )}
 
-            <Dialog open={!!detail} onClose={() => setDetail(null)} fullWidth maxWidth="sm" aria-labelledby="booking-detail-title">
-                <DialogTitle id="booking-detail-title">Деталі запису</DialogTitle>
-                <DialogContent>{detail && <Stack spacing={1.5}>
+            <AppDialog
+                open={!!detail}
+                onClose={() => setDetail(null)}
+                title="Деталі запису"
+                icon={<InfoOutlinedIcon color="primary" />}
+                actions={<Stack direction="row" spacing={1} sx={{ width: '100%', '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
+                    <Button variant="outlined" fullWidth onClick={() => setDetail(null)}>Закрити</Button>
+                    {detail?.isBooked && <Button variant="outlined" fullWidth color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
+                </Stack>}
+            >
+                {detail && <Stack spacing={1.5} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                     <BookingDetails booking={detail} />
-                    <Typography>{detail.isBooked ? 'Записано' : 'Не записано'}</Typography>
-                    {detail.comment && <Typography sx={{ whiteSpace: 'pre-wrap' }}>Коментар: {detail.comment}</Typography>}
-                    <Typography variant="body2" color="text.secondary">Створено: {new Date(detail.createdAtUtc).toLocaleString('uk-UA')}</Typography>
-                </Stack>}</DialogContent>
-                <DialogActions sx={{ p: 2 }}><Button onClick={() => setDetail(null)}>Закрити</Button>
-                    {detail?.isBooked && <Button color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
-                </DialogActions>
-            </Dialog>
+                    {detail.comment && <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Коментар</Typography>
+                        <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail.comment}</Typography>
+                    </Box>}
+                    <Box sx={{ pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Створено</Typography>
+                        <Typography component="time" dateTime={detail.createdAtUtc} variant="body2" color="text.secondary">
+                            {new Date(detail.createdAtUtc).toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Kyiv' })}
+                        </Typography>
+                    </Box>
+                </Stack>}
+            </AppDialog>
             <Dialog open={!!cancelTarget} onClose={() => { if (!cancelling) setCancelTarget(null); }} fullWidth maxWidth="sm" aria-labelledby="booking-cancel-title" aria-describedby="booking-cancel-warning">
                 <DialogTitle id="booking-cancel-title">Скасувати цей запис?</DialogTitle>
                 <DialogContent>
@@ -266,9 +281,29 @@ function normalizeBookingSearch(value: string): string | undefined {
 }
 
 function BookingDetails({ booking }: { booking: BookingAdminDto }) {
-    return <Box><Typography component="p" variant="h6">{[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>№ {booking.publicNumber}</Typography>
-        <Typography>{formatDateFull(booking.date)}</Typography><Typography sx={{ fontWeight: 700 }}>{booking.startTime}–{booking.endTime}</Typography>
-        <Typography>{booking.locationName}</Typography>{booking.phone && <Link href={`tel:${booking.phone}`} sx={{ display: 'inline-block', py: 1 }}>{booking.phone}</Link>}
+    return <Box>
+        <Typography component="p" variant="h6" sx={{ mb: 2, fontSize: '1.25rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
+            {[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}
+        </Typography>
+        <Box component="dl" sx={{
+            m: 0, display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr)', columnGap: 1.5, rowGap: 1.5,
+            '& dt': { color: 'text.secondary', fontSize: '0.875rem', pt: 0.25 },
+            '& dd': { m: 0, minWidth: 0, overflowWrap: 'anywhere' },
+        }}>
+            <Typography component="dt">Дата</Typography>
+            <Typography component="dd" sx={{ fontWeight: 500, lineHeight: 1.5 }}>{formatDateFull(booking.date)}</Typography>
+            <Typography component="dt">Час</Typography>
+            <Typography component="dd" sx={{ fontSize: '1.125rem', fontWeight: 700, color: 'primary.dark', fontVariantNumeric: 'tabular-nums' }}>
+                {booking.startTime}–{booking.endTime}
+            </Typography>
+            <Typography component="dt">Локація</Typography>
+            <Typography component="dd" sx={{ fontWeight: 500 }}>{booking.locationName}</Typography>
+            {booking.phone && <>
+                <Typography component="dt">Телефон</Typography>
+                <Box component="dd">
+                    <Link href={`tel:${booking.phone}`} sx={{ fontWeight: 600, textUnderlineOffset: '3px' }}>{formatUaPhone(booking.phone)}</Link>
+                </Box>
+            </>}
+        </Box>
     </Box>;
 }
