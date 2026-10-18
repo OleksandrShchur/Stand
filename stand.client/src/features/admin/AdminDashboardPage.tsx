@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Grid, LinearProgress, Stack, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Box, Card, CardContent, Grid, LinearProgress, Stack, Typography } from '@mui/material';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
@@ -29,13 +28,7 @@ export default function AdminDashboardPage() {
 
     return (
         <Box>
-            <Typography variant="h4" sx={{ mb: 1 }}>Огляд</Typography>
-            <Typography color="text.secondary" sx={{ mb: 2 }}>Керуйте розкладом і переглядайте записи на чергування.</Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ mb: 3 }}>
-                <Button component={RouterLink} to="/admin/schedule" variant="contained">Налаштувати розклад</Button>
-                <Button component={RouterLink} to="/admin/bookings" variant="outlined">Переглянути записи</Button>
-            </Stack>
-
+            <Typography variant="h4" sx={{ display: { xs: 'none', sm: 'block' }, mb: 2 }}>Огляд</Typography>
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <StatCard label="Записів на сьогодні" value={data.todayBookedCount} />
             </Grid>

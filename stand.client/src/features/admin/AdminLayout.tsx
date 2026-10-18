@@ -128,11 +128,11 @@ export default function AdminLayout() {
             <Box sx={{ flex: '1 1 0%', width: 0, minWidth: 0 }}>
                 {!hasSideNav && (
                     <AppBar position="sticky" elevation={0}>
-                        <Toolbar>
-                            <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
+                        <Toolbar sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
+                            <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ justifySelf: 'start' }}>
                                 <MenuIcon />
                             </IconButton>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Адмін-панель</Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>{location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель'}</Typography>
                         </Toolbar>
                     </AppBar>
                 )}
