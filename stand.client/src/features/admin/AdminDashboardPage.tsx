@@ -28,15 +28,15 @@ export default function AdminDashboardPage() {
 
     return (
         <Box>
-            <Typography variant="h4" sx={{ display: { xs: 'none', sm: 'block' }, mb: 2 }}>Огляд</Typography>
+            <Typography component="h1" variant="h4" sx={{ mb: 2 }}>Огляд</Typography>
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <StatCard label="Записів на сьогодні" value={data.todayBookedCount} />
             </Grid>
 
-            <Typography variant="h6" sx={{ mb: 1.5 }}>Заповненість сьогодні за локаціями</Typography>
+            <Typography component="h2" variant="h6" sx={{ mb: 1.5 }}>Заповненість сьогодні за локаціями</Typography>
             <FillRateList items={data.todayByLocation} />
 
-            <Typography variant="h6" sx={{ mt: 3, mb: 1.5 }}>Загальна заповненість запису за локаціями</Typography>
+            <Typography component="h2" variant="h6" sx={{ mt: 3, mb: 1.5 }}>Загальна заповненість запису за локаціями</Typography>
             <FillRateList items={data.upcomingByLocation} />
         </Box>
     );
@@ -48,7 +48,7 @@ function StatCard({ label, value }: { label: string; value: number }) {
             <Card variant="outlined">
                 <CardContent>
                     <Typography variant="body2" color="text.secondary">{label}</Typography>
-                    <Typography variant="h3" sx={{ fontWeight: 700, color: 'primary.main' }}>{value}</Typography>
+                    <Typography component="p" variant="h3" sx={{ fontWeight: 700, color: 'primary.main' }}>{value}</Typography>
                 </CardContent>
             </Card>
         </Grid>
@@ -68,6 +68,7 @@ function FillRateList({ items }: { items: LocationFillRateDto[] }) {
                             </Typography>
                         </Stack>
                         <LinearProgress
+                            aria-label={`Заповненість: ${loc.locationName}`}
                             variant="determinate"
                             value={Math.min(100, loc.fillRatePercent)}
                             sx={{ height: 8, borderRadius: 4 }}

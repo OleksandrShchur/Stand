@@ -87,7 +87,7 @@ export default function AdminLocationsPage() {
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Typography variant="h4">Локації</Typography>
+                <Typography component="h1" variant="h4">Локації</Typography>
                 <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Додати</Button>
             </Box>
 
@@ -97,7 +97,7 @@ export default function AdminLocationsPage() {
                 {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                         <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-                            <Typography variant="h6">{loc.name}</Typography>
+                            <Typography component="h2" variant="h6">{loc.name}</Typography>
                             {loc.address && <Typography variant="body2" color="text.secondary">{loc.address}</Typography>}
                         </Box>
                         {actionsButton(loc)}
@@ -110,7 +110,7 @@ export default function AdminLocationsPage() {
             </Stack>
 
             <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
-                <Table size="small">
+                <Table size="small" aria-label="Локації">
                     <TableHead>
                         <TableRow>
                             <TableCell>Назва</TableCell>
@@ -129,7 +129,7 @@ export default function AdminLocationsPage() {
                                 <TableCell align="center">{loc.capacity}</TableCell>
                                 <TableCell align="center">{loc.sortOrder}</TableCell>
                                 <TableCell align="center">
-                                    <Switch aria-busy={updatingId === loc.id} disabled={updatingId !== null} checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
+                                    <Switch slotProps={{ input: { 'aria-label': `Активна локація: ${loc.name}` } }} aria-busy={updatingId === loc.id} disabled={updatingId !== null} checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
                                 </TableCell>
                                 <TableCell align="center">
                                     {actionsButton(loc)}

@@ -6,6 +6,7 @@ import { useAdminAuth } from './AdminAuthContext';
 import { ApiError } from '../../api/client';
 import { ErrorState } from '../../components/StateMessage';
 import BrandHeader from '../../components/BrandHeader';
+import MainContent from '../../components/MainContent';
 import { pagePadding } from '../../layoutSpacing';
 
 export default function AdminLoginPage() {
@@ -30,12 +31,12 @@ export default function AdminLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
             <BrandHeader title="Вхід" showHome={false} />
-            <Container className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Container component={MainContent} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
                             <LockOutlinedIcon color="primary" sx={{ fontSize: 40, mb: 1 }} />
-                            <Typography variant="h5" sx={{ fontWeight: 700 }}>Вхід для адміністратора</Typography>
+                            <Typography component="h1" variant="h5" sx={{ fontWeight: 700 }}>Вхід для адміністратора</Typography>
                         </Box>
 
                         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -44,8 +45,8 @@ export default function AdminLoginPage() {
                                 value={loginValue}
                                 onChange={(e) => setLoginValue(e.target.value)}
                                 autoComplete="username"
+                                required
                                 fullWidth
-                                autoFocus
                             />
                             <TextField
                                 label="Пароль"
@@ -53,6 +54,7 @@ export default function AdminLoginPage() {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 autoComplete="current-password"
+                                required
                                 fullWidth
                             />
 

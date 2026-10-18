@@ -68,7 +68,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
 
     return (
         <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
-            <Typography variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
+            <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
             <Card variant="outlined" sx={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
                 <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
                     <Stack spacing={2}>

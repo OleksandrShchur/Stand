@@ -1,4 +1,5 @@
 import ParticipantList from './ParticipantList';
+import type { KeyboardEvent, MouseEvent } from 'react';
 import { Box, Checkbox, Stack, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
 import BlockIcon from '@mui/icons-material/Block';
@@ -39,19 +40,18 @@ export default function SlotCard({
 
     return (
         <Box
-            component="label"
+            component={unavailable ? 'div' : 'label'}
             role={unavailable ? 'button' : undefined}
             tabIndex={unavailable ? 0 : undefined}
-            aria-disabled={unavailable || undefined}
             aria-label={unavailable ? `${slot.startTime}-${slot.endTime}: недоступно. Дізнатися причину` : undefined}
-            onClickCapture={(event) => {
+            onClickCapture={(event: MouseEvent<HTMLElement>) => {
                 if (unavailable) {
                     event.preventDefault();
                     event.stopPropagation();
                     onDisabledClick?.();
                 }
             }}
-            onKeyDown={(event) => {
+            onKeyDown={(event: KeyboardEvent<HTMLElement>) => {
                 if (unavailable && (event.key === 'Enter' || event.key === ' ')) {
                     event.preventDefault();
                     onDisabledClick?.();
@@ -64,7 +64,7 @@ export default function SlotCard({
                 textAlign: 'left',
                 borderRadius: 1,
                 cursor: unavailable ? 'not-allowed' : 'pointer',
-                '&:focus-visible, &:has(input:focus-visible)': { outline: '3px solid #7FB69A', outlineOffset: 2 },
+                '&:focus-visible, &:has(input:focus-visible)': { outline: '3px solid #173B2A', outlineOffset: 2, boxShadow: '0 0 0 2px #FFFFFF' },
             }}
         >
             <Box sx={{
@@ -90,7 +90,7 @@ export default function SlotCard({
                                 disabled={unavailable}
                                 onChange={() => onSelect(slot)}
                                 slotProps={{ input: { 'aria-label': `${slot.startTime}-${slot.endTime}` } }}
-                                sx={{ p: 0, flexShrink: 0, pointerEvents: unavailable ? 'none' : undefined, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
+                                sx={{ p: 0, minWidth: 24, minHeight: 24, flexShrink: 0, pointerEvents: unavailable ? 'none' : undefined, ...(selected && { color: 'inherit', '&.Mui-checked': { color: 'inherit' } }) }}
                             />
                         </Stack>
                         {showParticipantNames && <ParticipantList participants={slot.participants} selected={selected} />}

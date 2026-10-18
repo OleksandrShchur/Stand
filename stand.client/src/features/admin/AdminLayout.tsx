@@ -28,6 +28,7 @@ import LogoutIcon from '@mui/icons-material/Logout';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState } from '../../components/StateMessage';
 import { pagePadding } from '../../layoutSpacing';
+import MainContent from '../../components/MainContent';
 
 const DRAWER_WIDTH = 248;
 
@@ -68,11 +69,11 @@ export default function AdminLayout() {
     const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 
     const drawerContent = (
-        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box component="nav" aria-label="Меню адміністратора" id="admin-menu" sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             <Toolbar sx={{ gap: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
+                <Typography component="div" id="admin-menu-title" variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
             </Toolbar>
-            <List sx={{ flex: 1 }}>
+            <List component="div" sx={{ flex: 1 }}>
                 {sideNavItems.map((item) => (
                     <ListItemButton
                         key={item.to}
@@ -96,8 +97,8 @@ export default function AdminLayout() {
                     </ListItemButton>
                 ))}
             </List>
-            <List>
-                <ListItemButton onClick={handleLogout} sx={{ mx: 1, mb: 1, borderRadius: 2 }}>
+            <List component="div">
+                <ListItemButton component="button" onClick={handleLogout} sx={{ mx: 1, mb: 1, borderRadius: 2, width: 'calc(100% - 16px)', textAlign: 'left' }}>
                     <ListItemIcon sx={{ minWidth: 40 }}><LogoutIcon /></ListItemIcon>
                     <ListItemText primary={`Вийти (${user.login})`} />
                 </ListItemButton>
@@ -121,6 +122,7 @@ export default function AdminLayout() {
                     open={mobileOpen}
                     onClose={() => setMobileOpen(false)}
                     ModalProps={{ keepMounted: true }}
+                    slotProps={{ paper: { 'aria-labelledby': 'admin-menu-title' } }}
                     sx={{ '& .MuiDrawer-paper': { width: DRAWER_WIDTH } }}
                 >
                     {drawerContent}
@@ -131,17 +133,17 @@ export default function AdminLayout() {
                 {!hasSideNav && (
                     <AppBar position="sticky" elevation={0}>
                         <Toolbar sx={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
-                            <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ justifySelf: 'start' }}>
+                            <IconButton aria-label="Відкрити меню адміністратора" aria-expanded={mobileOpen} aria-controls="admin-menu" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ justifySelf: 'start' }}>
                                 <MenuIcon />
                             </IconButton>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>{headerTitle}</Typography>
+                            <Typography component="div" variant="subtitle1" sx={{ fontWeight: 700, textAlign: 'center' }}>{headerTitle}</Typography>
                         </Toolbar>
                     </AppBar>
                 )}
 
-                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(var(--admin-navigation-clearance) + 16px)', sm: 4 } }}>
+                <MainContent sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(var(--admin-navigation-clearance) + 16px)', sm: 4 } }}>
                     <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
-                </Box>
+                </MainContent>
             </Box>
             {!hasSideNav && <Box sx={{ position: 'fixed', bottom: 'calc(12px + env(safe-area-inset-bottom))', left: 0, right: 0,
                 zIndex: theme.zIndex.appBar, px: { xs: 1, sm: 2 }, pointerEvents: 'none' }}>
