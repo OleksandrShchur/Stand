@@ -11,6 +11,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
+import dayjs from 'dayjs';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import type { DayScheduleDto, LocationAdminDto, SaveScheduleDto, ScheduleLocationDto, ScheduleRangeDto, ScheduleSaveResultDto } from '../../api/types';
@@ -40,6 +41,10 @@ export default function AdminSchedulePage() {
     const [notice, setNotice] = useState<{ id: number; kind: 'saved' | 'unchanged' } | null>(null);
     const [busy, setBusy] = useState(false);
     const [retry, setRetry] = useState(0);
+    const [calendarMonth, setCalendarMonth] = useState(() => todayIso().slice(0, 7));
+    const [activeDates, setActiveDates] = useState<string[]>([]);
+    const [calendarError, setCalendarError] = useState('');
+    const [calendarRevision, setCalendarRevision] = useState(0);
     const [leave, setLeave] = useState<(() => void) | null>(null);
     const [copyOpen, setCopyOpen] = useState(false);
     const [copyMode, setCopyMode] = useState<'dates' | 'weekdays'>('dates');
@@ -50,6 +55,16 @@ export default function AdminSchedulePage() {
     const [weekdays, setWeekdays] = useState([1, 2, 3, 4, 5]);
     const [review, setReview] = useState<{ dto: SaveScheduleDto; result: ScheduleSaveResultDto } | null>(null);
     const dirty = !!draft && !!source && snapshot(draft) !== snapshot(source);
+
+    useEffect(() => {
+        let current = true;
+        const month = dayjs(`${calendarMonth}-01`);
+        setActiveDates([]); setCalendarError('');
+        adminApi.listDates(month.format('YYYY-MM-DD'), month.endOf('month').format('YYYY-MM-DD'))
+            .then(days => { if (current) setActiveDates(days.filter(day => day.isActive).map(day => day.date)); })
+            .catch(() => { if (current) setCalendarError('Не вдалося позначити активні дні. Спробуйте ще раз.'); });
+        return () => { current = false; };
+    }, [calendarMonth, calendarRevision]);
 
     useEffect(() => {
         let current = true;
@@ -118,6 +133,7 @@ export default function AdminSchedulePage() {
         setBusy(true); setError('');
         try {
             await adminApi.saveSchedule({ ...review.dto, acknowledgeExistingBookings: true });
+            setCalendarRevision(n => n + 1);
             setNotice({ id: Date.now(), kind: 'saved' });
             if (review.dto.dates.includes(date)) setRetry(n => n + 1);
             setReview(null); setCopyOpen(false);
@@ -156,7 +172,10 @@ export default function AdminSchedulePage() {
             <Box sx={{ display: 'grid', minWidth: 0, gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '300px minmax(0, 1fr)' }, gap: 2, alignItems: 'start', '& > *': { minWidth: 0 } }}>
                 <Card variant="outlined" sx={{ minWidth: 0 }}>
                     <CardContent>
-                        <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} onChange={chooseDate} />
+                        <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} onChange={chooseDate}
+                            activeDates={activeDates} onCalendarOpen={() => setCalendarMonth(date.slice(0, 7))}
+                            onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} />
+                        {calendarError && <Alert severity="warning" sx={{ mt: 1 }} action={<Button onClick={() => setCalendarRevision(n => n + 1)}>Повторити</Button>}>{calendarError}</Alert>}
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, mt: 1 }}>
                             <IconButton aria-label="Попередній день" disabled={busy} onClick={() => moveDay(-1)} sx={{ width: 44, height: 44, flexShrink: 0 }}><ChevronLeftIcon /></IconButton>
                             <Button fullWidth disabled={busy} onClick={() => chooseDate(todayIso())} sx={{ minWidth: 0 }}>

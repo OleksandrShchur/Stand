@@ -40,6 +40,10 @@ export async function startFixture(port = 5198, { bookings } = {}) {
             if (path === '/api/admin/users') return send([1, 2].map(id => ({ id, login: `Адмін ${id}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/authorized-users') return send(Array.from({ length: 12 }, (_, i) => ({ id: i + 1, firstName: `Ім’я ${i + 1}`, lastName: 'Тестове', phone: `+3806700000${String(i).padStart(2, '0')}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/schedule') return send({ date: url.searchParams.get('date'), isActive: true, isCustom: true, locations: [{ locationId: 1, slots: slots.slice(0, 2).map(({ startTime, endTime, capacity }) => ({ startTime, endTime, capacity })) }], bookings: [], horizonDays: 14, minLeadTimeMinutes: 60 });
+            if (path === '/api/admin/dates') {
+                const month = url.searchParams.get('from').slice(0, 7);
+                return send([10, 11, 12].map(day => ({ id: day, date: `${month}-${day}`, isActive: day !== 11 })));
+            }
             if (path === '/api/admin/dashboard') {
                 const rates = locations.map(location => ({ locationId: location.id, locationName: location.name, capacity: 3, booked: 1, fillRatePercent: 33 }));
                 return send({ todayBookedCount: 2, upcomingBookedCount: 2, todayByLocation: rates, upcomingByLocation: rates });
