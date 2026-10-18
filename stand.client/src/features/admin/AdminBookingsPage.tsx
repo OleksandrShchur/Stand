@@ -140,8 +140,12 @@ export default function AdminBookingsPage() {
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
                     {cardGroups.map(group => <BookingCardGroup key={group[0].id}>
                         {group.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                            <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                                <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+                                    <Typography component="h2" variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                                    <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDate(b.date)}</Typography>
+                                    <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
+                                </Box>
                                 <IconButton
                                     id={`booking-actions-${b.id}`}
                                     aria-label={`Дії для запису ${b.publicNumber}`}
@@ -149,13 +153,11 @@ export default function AdminBookingsPage() {
                                     aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
                                     aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
                                     onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
-                                    sx={{ flexShrink: 0, width: 44, height: 44, mt: -1, mr: -1 }}
+                                    sx={{ flexShrink: 0, width: 44, height: 44, mr: -1 }}
                                 >
                                     <MoreVertIcon />
                                 </IconButton>
                             </Stack>
-                            <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDate(b.date)}</Typography>
-                            <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
                         </CardContent></Card>)}
                     </BookingCardGroup>)}
                 </Stack>

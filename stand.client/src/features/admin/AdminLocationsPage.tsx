@@ -98,17 +98,17 @@ export default function AdminLocationsPage() {
 
             <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
                 {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
-                    <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
+                    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
                         <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
                                 <Typography component="h2" variant="h6" sx={{ minWidth: 0 }}>{loc.name}</Typography>
                                 <Chip size="small" label={loc.isActive ? 'Активна' : 'Неактивна'} color={loc.isActive ? 'success' : 'default'} sx={{ flexShrink: 0 }} />
                             </Stack>
                             {loc.address && <Typography variant="body2" color="text.secondary">{loc.address}</Typography>}
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>Місць за замовчуванням: {loc.capacity}</Typography>
                         </Box>
                         {actionsButton(loc)}
                     </Stack>
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>Місць за замовчуванням: {loc.capacity}</Typography>
                 </CardContent></Card>)}
             </Stack>
 
