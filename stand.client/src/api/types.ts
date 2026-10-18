@@ -133,7 +133,7 @@ export interface AvailableDateAdminDto {
     isActive: boolean;
 }
 
-export interface ScheduleRangeDto { startTime: string; endTime: string }
+export interface ScheduleRangeDto { startTime: string; endTime: string; capacity: number }
 export interface ScheduleLocationDto { locationId: number; slots: ScheduleRangeDto[] }
 export interface DayScheduleDto {
     date: string;

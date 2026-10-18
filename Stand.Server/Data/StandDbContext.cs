@@ -91,7 +91,7 @@ public partial class StandDbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Location__3214EC073E291BC5");
 
-            entity.Property(e => e.Capacity).HasDefaultValue(3, "DF_Locations_Capacity");
+            entity.Property(e => e.Capacity).HasDefaultValue(2, "DF_Locations_Capacity");
             entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())", "DF_Locations_CreatedAtUtc");
             entity.Property(e => e.IsActive).HasDefaultValue(true, "DF_Locations_IsActive");
         });

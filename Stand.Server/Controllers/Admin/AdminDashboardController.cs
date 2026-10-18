@@ -43,7 +43,11 @@ public sealed class AdminDashboardController(StandDbContext db, IKyivClock clock
             where day.UseCustomSchedule
                 ? db.ScheduleSlots.Any(s => s.Date == day.Date && s.LocationId == location.Id && s.TimeSlotId == slot.Id)
                 : slot.IsActive && !slot.IsScheduleOnly && !db.DateTimeSlotExceptions.Any(e => e.Date == day.Date && e.TimeSlotId == slot.Id && e.IsBlocked)
-            select location.Id).GroupBy(id => id).Select(g => new { Id = g.Key, Slots = g.Count() }).ToDictionaryAsync(g => g.Id, g => g.Slots, ct);
+            select new { location.Id, Capacity = day.UseCustomSchedule
+                ? db.ScheduleSlots.Where(s => s.Date == day.Date && s.LocationId == location.Id && s.TimeSlotId == slot.Id)
+                    .Select(s => s.Capacity).First()
+                : location.Capacity }).ToListAsync(ct);
+        var capacities = scheduled.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.Sum(s => s.Capacity));
 
         var counts = await db.Bookings
             .Where(b => b.Date >= fromDate && b.Date <= toDate &&
@@ -57,7 +61,7 @@ public sealed class AdminDashboardController(StandDbContext db, IKyivClock clock
         {
             var booked = counts.GetValueOrDefault(loc.Id);
 
-            var capacity = loc.Capacity * scheduled.GetValueOrDefault(loc.Id);
+            var capacity = capacities.GetValueOrDefault(loc.Id);
             var fillRate = capacity <= 0 ? (booked > 0 ? 100 : 0) : (int)Math.Round(100.0 * booked / capacity);
 
             result.Add(new LocationFillRateDto(loc.Id, loc.Name, loc.Capacity, booked, Math.Min(100, fillRate)));

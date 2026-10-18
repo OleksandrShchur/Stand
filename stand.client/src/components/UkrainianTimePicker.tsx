@@ -33,12 +33,16 @@ interface Props {
     label: string;
     name: string;
     value: string;
+    disabled?: boolean;
+    size?: 'small' | 'medium';
+    clearable?: boolean;
+    validationMessage?: string;
     after?: string;
     before?: string;
     onChange: (time: string) => void;
 }
 
-export default function UkrainianTimePicker({ label, name, value, after, before, onChange }: Props) {
+export default function UkrainianTimePicker({ label, name, value, disabled, size = 'small', clearable = true, validationMessage, after, before, onChange }: Props) {
     const [draft, setDraft] = useState<Dayjs | null>(() => asTime(value));
     const [previousValue, setPreviousValue] = useState(value);
     const [open, setOpen] = useState(false);
@@ -54,6 +58,7 @@ export default function UkrainianTimePicker({ label, name, value, after, before,
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="uk" localeText={{ ...ukUA.components.MuiLocalizationProvider.defaultProps.localeText, timePickerToolbarTitle: label }}>
             <TimePicker
                 label={label} name={name} value={draft} format="HH:mm" ampm={false}
+                disabled={disabled}
                 views={['hours', 'minutes']} minutesStep={1}
                 minTime={after ? asTime(after)!.add(1, 'minute') : undefined}
                 maxTime={before ? asTime(before)!.subtract(1, 'minute') : undefined}
@@ -73,7 +78,7 @@ export default function UkrainianTimePicker({ label, name, value, after, before,
                     fieldClearLabel: `Очистити ${label.toLowerCase()}`,
                 }}
                 slotProps={{
-                    field: { clearable: true, onClear: () => onChange('') },
+                    field: { clearable, onClear: () => onChange('') },
                     clearButton: {
                         'aria-label': `Очистити ${label.toLowerCase()}`, tabIndex: 0,
                         sx: { minWidth: { xs: 24, sm: 44 }, width: { xs: 24, sm: 44 }, p: { xs: 0, sm: 1 } },
@@ -83,9 +88,10 @@ export default function UkrainianTimePicker({ label, name, value, after, before,
                         sx: { minWidth: { xs: 32, sm: 44 }, width: { xs: 32, sm: 44 }, p: { xs: 0, sm: 1 }, mr: { xs: 0, sm: -1.5 } },
                     },
                     textField: {
-                        fullWidth: true, size: 'small',
-                        helperText: error ? error === 'minTime' || error === 'maxTime'
-                            ? 'Час «Від» має бути раніше часу «До».' : 'Вкажіть час у форматі ГГ:ХХ.' : undefined,
+                        fullWidth: true, size,
+                        error: !!validationMessage || error !== null,
+                        helperText: validationMessage || (error ? error === 'minTime' || error === 'maxTime'
+                            ? 'Час «Від» має бути раніше часу «До».' : 'Вкажіть час у форматі ГГ:ХХ.' : undefined),
                         sx: {
                             minWidth: 0,
                             '& .MuiPickersOutlinedInput-root': { px: { xs: 1, sm: 1.75 } },

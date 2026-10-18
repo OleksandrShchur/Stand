@@ -28,9 +28,9 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         {
             var rows = await db.ScheduleSlots.AsNoTracking().Where(s => s.Date == day)
                 .OrderBy(s => s.TimeSlot.StartTime)
-                .Select(s => new { s.LocationId, s.TimeSlot.StartTime, s.TimeSlot.EndTime }).ToListAsync(ct);
+                .Select(s => new { s.LocationId, s.TimeSlot.StartTime, s.TimeSlot.EndTime, s.Capacity }).ToListAsync(ct);
             locations = rows.GroupBy(s => s.LocationId).Select(g => new ScheduleLocationDto(g.Key,
-                g.Select(s => Range(s.StartTime, s.EndTime)).ToList())).ToList();
+                g.Select(s => Range(s.StartTime, s.EndTime, s.Capacity)).ToList())).ToList();
         }
         else
         {
@@ -39,8 +39,8 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
                 .OrderBy(s => s.StartTime).ToListAsync(ct);
             // A new day starts empty; migrated dates retain exactly their previous settings.
             locations = entry is null ? [] : (await db.Locations.AsNoTracking().Where(l => l.IsActive)
-                .Select(l => l.Id).ToListAsync(ct)).Select(id => new ScheduleLocationDto(id,
-                    slots.Select(s => Range(s.StartTime, s.EndTime)).ToList())).ToList();
+                .Select(l => new { l.Id, l.Capacity }).ToListAsync(ct)).Select(l => new ScheduleLocationDto(l.Id,
+                    slots.Select(s => Range(s.StartTime, s.EndTime, l.Capacity)).ToList())).ToList();
         }
         var bookings = await db.Bookings.AsNoTracking().Where(b => b.Date == day && b.IsBooked)
             .Select(b => new { b.Id, b.LocationId, b.Location.Name, b.TimeSlot.StartTime, b.TimeSlot.EndTime }).ToListAsync(ct);
@@ -82,9 +82,25 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         var locations = await db.Locations.Where(l => locationIds.Contains(l.Id)).ToListAsync(ct);
         if (locations.Count != locationIds.Count || (dto.IsActive && locations.Any(l => !l.IsActive)))
             throw new ValidationAppException("Оберіть наявні активні локації. Неактивну локацію спочатку увімкніть у довіднику.");
+        var capacities = dto.Locations.SelectMany(l => l.Slots.Select(s => new
+        {
+            Key = (l.LocationId, Range: ParseRange(s)),
+            Capacity = s.Capacity ?? locations.Single(place => place.Id == l.LocationId).Capacity,
+        })).ToDictionary(s => s.Key, s => s.Capacity);
+        if (capacities.Values.Any(capacity => capacity <= 0))
+            throw new ValidationAppException("Кількість місць в інтервалі має бути цілим числом, більшим за 0.");
         var bookings = await db.Bookings.Where(b => dates.Contains(b.Date) &&
             b.IsBooked)
-            .Select(b => new { b.LocationId, b.TimeSlot.StartTime, b.TimeSlot.EndTime }).ToListAsync(ct);
+            .Select(b => new { b.Date, b.LocationId, b.TimeSlot.StartTime, b.TimeSlot.EndTime }).ToListAsync(ct);
+        // The exclusive date locks cover both this check and the schedule replacement.
+        // A preview is advisory; saving always checks current booking counts again.
+        foreach (var group in bookings.GroupBy(b => new { b.Date, b.LocationId, b.StartTime, b.EndTime }))
+        {
+            if (capacities.TryGetValue((group.Key.LocationId, (group.Key.StartTime, group.Key.EndTime)), out var capacity) &&
+                capacity < group.Count())
+                throw new ConflictAppException(ErrorCodes.Conflict,
+                    $"{group.Key.Date:yyyy-MM-dd}, {locations.Single(l => l.Id == group.Key.LocationId).Name}, {group.Key.StartTime:HH:mm}–{group.Key.EndTime:HH:mm}: вже є {group.Count()} записів. Спочатку користувач або адміністратор має скасувати зайві записи, щоб зменшити кількість місць до {capacity}.");
+        }
         var affected = bookings.Count(b => !dto.IsActive || !ranges.TryGetValue(b.LocationId, out var slots) ||
             !slots.Contains((b.StartTime, b.EndTime)));
         if (preview) return Ok(new ScheduleSaveResultDto(dates.Count, affected));
@@ -121,7 +137,8 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         foreach (var date in dates)
             foreach (var (locationId, slots) in ranges)
                 foreach (var range in slots)
-                    db.ScheduleSlots.Add(new ScheduleSlot { Date = date, LocationId = locationId, TimeSlotId = slotMap[range].Id });
+                    db.ScheduleSlots.Add(new ScheduleSlot { Date = date, LocationId = locationId, TimeSlotId = slotMap[range].Id,
+                        Capacity = capacities[(locationId, range)] });
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
         return Ok(new ScheduleSaveResultDto(dates.Count, affected));
@@ -137,5 +154,5 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
             throw new ValidationAppException("Вкажіть час у форматі ГГ:ХХ. Початок має бути раніше завершення в межах одного дня.");
         return (start, end);
     }
-    private static ScheduleRangeDto Range(TimeOnly start, TimeOnly end) => new(start.ToString("HH:mm"), end.ToString("HH:mm"));
+    private static ScheduleRangeDto Range(TimeOnly start, TimeOnly end, int capacity) => new(start.ToString("HH:mm"), end.ToString("HH:mm"), capacity);
 }

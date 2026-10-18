@@ -19,6 +19,7 @@ import { formatDate, todayIso } from '../../utils/date';
 import { matchingDates, validateRanges } from './scheduleModel';
 import LocationSchedule from './LocationSchedule';
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
+import ScheduleReviewContent from './ScheduleReviewContent';
 
 const WEEKDAYS = [{ value: 1, label: 'Пн' }, { value: 2, label: 'Вт' }, { value: 3, label: 'Ср' },
     { value: 4, label: 'Чт' }, { value: 5, label: 'Пт' }, { value: 6, label: 'Сб' }, { value: 0, label: 'Нд' }];
@@ -36,7 +37,7 @@ export default function AdminSchedulePage() {
     const [draft, setDraft] = useState<Draft | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [notice, setNotice] = useState<number | null>(null);
+    const [notice, setNotice] = useState<{ id: number; kind: 'saved' | 'unchanged' } | null>(null);
     const [busy, setBusy] = useState(false);
     const [retry, setRetry] = useState(0);
     const [leave, setLeave] = useState<(() => void) | null>(null);
@@ -87,7 +88,7 @@ export default function AdminSchedulePage() {
                 [...previous.locations, { locationId: id, slots }],
     }));
     const validation = draft?.locations.map(l => {
-        const invalid = validateRanges(l.slots);
+        const invalid = validateRanges(l.slots, source?.bookings.filter(b => b.locationId === l.locationId));
         return invalid ? `${locations.find(place => place.id === l.locationId)?.name}: ${invalid}` : '';
     }).find(Boolean) || '';
     const inactive = draft?.locations.some(l => !locations.find(place => place.id === l.locationId)?.isActive);
@@ -104,12 +105,20 @@ export default function AdminSchedulePage() {
         catch (e) { setError(message(e)); }
         finally { setBusy(false); }
     };
+    const saveDay = () => {
+        if (!draft || busy) return;
+        if (!dirty) {
+            setNotice({ id: Date.now(), kind: 'unchanged' });
+            return;
+        }
+        void prepare([date]);
+    };
     const save = async () => {
         if (!review || busy) return;
         setBusy(true); setError('');
         try {
             await adminApi.saveSchedule({ ...review.dto, acknowledgeExistingBookings: true });
-            setNotice(Date.now());
+            setNotice({ id: Date.now(), kind: 'saved' });
             if (review.dto.dates.includes(date)) setRetry(n => n + 1);
             setReview(null); setCopyOpen(false);
         } catch (e) { setError(message(e)); }
@@ -123,7 +132,7 @@ export default function AdminSchedulePage() {
     };
 
     return (
-        <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', pb: { xs: 14, md: 0 }, overflowWrap: 'anywhere' }}>
+        <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', overflowWrap: 'anywhere' }}>
             <Typography component="h1" variant="h4" sx={{
                 mb: 2,
                 [theme.breakpoints.down('sm')]: {
@@ -132,15 +141,15 @@ export default function AdminSchedulePage() {
                 },
             }}>Розклад</Typography>
             <Snackbar
-                key={notice}
+                key={notice?.id}
                 open={notice !== null}
-                autoHideDuration={10000}
+                autoHideDuration={notice?.kind === 'unchanged' ? 5000 : 10000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 sx={{ top: { xs: 64, sm: 24 } }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setNotice(null); }}
             >
-                <Alert severity="success" variant="filled" onClose={() => setNotice(null)}>
-                    Розклад збережено
+                <Alert severity={notice?.kind === 'unchanged' ? 'info' : 'success'} variant="filled" onClose={() => setNotice(null)}>
+                    {notice?.kind === 'unchanged' ? 'Немає змін для збереження' : 'Розклад збережено'}
                 </Alert>
             </Snackbar>
             {error && <Alert severity="error" sx={{ mb: 2 }} action={!draft && <Button color="inherit" onClick={() => setRetry(n => n + 1)}>Повторити</Button>}>{error}</Alert>}
@@ -161,10 +170,21 @@ export default function AdminSchedulePage() {
                 <Stack spacing={2} sx={{ minWidth: 0 }}>
                     {loading && <LoadingState label="Завантажуємо розклад…" />}
                     {!loading && draft && source && <>
-                        <Card variant="outlined"><CardContent>
+                        <Card variant="outlined" data-testid="schedule-day-summary"><CardContent>
                             <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{formatDate(date)}</Typography>
                             <FormControlLabel control={<Switch checked={draft.isActive} disabled={busy} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />}
                                 label={draft.isActive ? 'День відкритий для запису' : 'День закритий для запису'} />
+                            <Box data-testid="schedule-actions" sx={{ mt: 2 }}>
+                                <Typography variant="body2" color={dirty ? 'warning.dark' : 'text.secondary'} role="status" sx={{ mb: 1.5 }}>
+                                    {dirty ? 'Є незбережені зміни' : 'Локацій: ' + draft.locations.length + ' · Інтервалів: ' + draft.locations.reduce((n, l) => n + l.slots.length, 0)}
+                                </Typography>
+                                {validation && <Alert severity="error" sx={{ mb: 1.5 }}>{validation}</Alert>}
+                                {draft.isActive && inactive && <Alert severity="warning" sx={{ mb: 1.5 }}>У розкладі є неактивна локація. Вимкніть її тут або увімкніть у довіднику.</Alert>}
+                                <Stack direction="row" spacing={1} sx={{ '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 }, '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }}>
+                                    <Button variant="contained" startIcon={<SaveOutlinedIcon />} loading={busy} disabled={dirty && (!!validation || (draft.isActive && inactive))} onClick={saveDay}>Зберегти</Button>
+                                    <Button variant="outlined" startIcon={<ContentCopyIcon />} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
+                                </Stack>
+                            </Box>
                         </CardContent></Card>
                         <Box>
                             <Typography component="h2" variant="h6">Локації та час</Typography>
@@ -178,7 +198,7 @@ export default function AdminSchedulePage() {
                             </Box>
                         </Alert>}
                         {!locations.length && <Alert severity="info">Спочатку додайте локацію у довіднику.</Alert>}
-                        {locations.map(location => <LocationSchedule key={location.id} location={location}
+                        {locations.map(location => <LocationSchedule key={location.id} date={date} location={location}
                             slots={draft.locations.find(l => l.locationId === location.id)?.slots}
                             bookings={source.bookings.filter(b => b.locationId === location.id)} busy={busy}
                             otherLocations={draft.locations.filter(l => l.locationId !== location.id && l.slots.length > 0).map(l => ({ ...l, name: locations.find(p => p.id === l.locationId)?.name || '' }))}
@@ -191,16 +211,7 @@ export default function AdminSchedulePage() {
                             </AccordionDetails>
                         </Accordion>
                         <Button component={RouterLink} to="/admin/locations" startIcon={<AddIcon />}>Керувати локаціями</Button>
-                        {validation && <Alert severity="error">{validation}</Alert>}
-                        {draft.isActive && inactive && <Alert severity="warning">У розкладі є неактивна локація. Вимкніть її тут або увімкніть у довіднику.</Alert>}
                         {draft.isActive && !draft.locations.length && <Alert severity="warning">День відкритий, але час ще не додано. Користувачі поки не зможуть записатися.</Alert>}
-                        <Box data-testid="schedule-actions" sx={{ position: { xs: 'fixed', md: 'sticky' }, bottom: 'var(--admin-navigation-clearance)', left: { xs: 0, sm: 'var(--admin-sidebar-width)', md: 'auto' }, right: { xs: 0, md: 'auto' }, minWidth: 0, zIndex: theme.zIndex.appBar - 1, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', p: { xs: 1.5, md: 2 }, boxShadow: 2 }}>
-                            <Typography variant="caption" color={dirty ? 'warning.dark' : 'text.secondary'} sx={{ display: 'block', mb: 0.75 }}>{dirty ? 'Є незбережені зміни' : 'Локацій: ' + draft.locations.length + ' · Інтервалів: ' + draft.locations.reduce((n, l) => n + l.slots.length, 0)}</Typography>
-                            <Stack direction="row" spacing={1}>
-                                <Button variant="contained" fullWidth startIcon={<SaveOutlinedIcon />} sx={{ '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }} loading={busy} disabled={!!validation || (draft.isActive && inactive)} onClick={() => prepare([date])}>Зберегти</Button>
-                                <Button variant="outlined" fullWidth startIcon={<ContentCopyIcon />} sx={{ '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
-                            </Stack>
-                        </Box>
                     </>}
                 </Stack>
             </Box>
@@ -209,7 +220,7 @@ export default function AdminSchedulePage() {
                 <DialogTitle id="copy-title">Копіювати розклад дня</DialogTitle>
                 <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                     <Stack spacing={2} sx={{ pt: 1, minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
-                        <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали, включно з незбереженими змінами.</Typography>
+                        <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали з кількістю місць, включно з незбереженими змінами.</Typography>
                         <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
                             <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0 }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0 }}>За днями тижня</ToggleButton>
                         </ToggleButtonGroup>
@@ -236,27 +247,20 @@ export default function AdminSchedulePage() {
             </Dialog>
 
             <Dialog open={!!review} onClose={() => { if (!busy) setReview(null); }} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby="review-title">
-                <DialogTitle id="review-title">Підтвердити розклад</DialogTitle>
-                <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}><Stack spacing={2} sx={{ pt: 1 }}>
-                    {review && <>
-                        <Typography>Дат: <strong>{review.result.updatedDates}</strong> · {review.dto.isActive ? 'Відкрито для запису' : 'Закрито для запису'}</Typography>
-                        <Box sx={{ maxHeight: 120, overflowY: 'auto' }}><Typography variant="body2">{review.dto.dates.map(formatDate).join('; ')}</Typography></Box>
-                        {review.dto.locations.map(l => <Box key={l.locationId}><Typography sx={{ fontWeight: 700 }}>{locations.find(place => place.id === l.locationId)?.name}</Typography>
-                            <Typography variant="body2">{l.slots.map(slot => `${slot.startTime}–${slot.endTime}`).join(', ')}</Typography></Box>)}
-                        <Alert severity={review.result.preservedBookings ? 'warning' : 'info'}>
-                            {review.result.preservedBookings ? `Поза розкладом залишаться записи: ${review.result.preservedBookings}. ` : ''}
-                            Усі наявні записи залишаться чинними на початковий час. Збереження розкладу не скасовує їх. Нові записи дозволятимуться лише за цим розкладом.
-                        </Alert>
-                        {review.result.updatedDates > 1 && <Alert severity="warning">Цей розклад замінить налаштування кожної обраної дати.</Alert>}
-                    </>}
+                <DialogTitle id="review-title" sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                    Підтвердити розклад
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Перевірте дати, час і кількість місць.</Typography>
+                </DialogTitle>
+                <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere', bgcolor: 'background.default', p: 2 }}><Stack spacing={2} sx={{ pt: 2 }}>
+                    {review && <ScheduleReviewContent schedule={review.dto} result={review.result} locations={locations} />}
                     {error && <Alert severity="error">{error}</Alert>}
                 </Stack></DialogContent>
-                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button disabled={busy} onClick={() => setReview(null)}>Назад до редагування</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
+                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', borderTop: '1px solid', borderColor: 'divider', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, alignItems: 'stretch', '& > .MuiButton-root': { width: '100%', minWidth: 0, height: 44, py: 0, px: 1, whiteSpace: 'nowrap', ml: '0 !important' } }}><Button variant="outlined" disabled={busy} onClick={() => setReview(null)}>Назад</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
             </Dialog>
             <Dialog open={!!leave} onClose={() => setLeave(null)} fullWidth maxWidth="xs" aria-labelledby="leave-title">
                 <DialogTitle id="leave-title">Залишити незбережені зміни?</DialogTitle>
                 <DialogContent>Зміни розкладу ще не збережено. Після переходу їх буде втрачено.</DialogContent>
-                <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button onClick={() => setLeave(null)}>Продовжити редагування</Button><Button color="error" onClick={() => { leave?.(); setLeave(null); }}>Відкинути зміни</Button></DialogActions>
+                <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button variant="outlined" onClick={() => setLeave(null)}>Продовжити редагування</Button><Button variant="outlined" color="error" onClick={() => { leave?.(); setLeave(null); }}>Відкинути зміни</Button></DialogActions>
             </Dialog>
         </Box>
     );

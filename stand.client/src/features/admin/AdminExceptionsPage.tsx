@@ -10,6 +10,7 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/StateMess
 import type { DateTimeSlotExceptionAdminDto, TimeSlotAdminDto } from '../../api/types';
 import { formatDate, todayIso } from '../../utils/date';
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
+import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
 
 export default function AdminExceptionsPage() {
     const [loading, setLoading] = useState(true);
@@ -23,6 +24,8 @@ export default function AdminExceptionsPage() {
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
     const [deletingId, setDeletingId] = useState<number | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<DateTimeSlotExceptionAdminDto | null>(null);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
 
     const load = () => {
@@ -46,11 +49,11 @@ export default function AdminExceptionsPage() {
             .finally(() => setSaving(false));
     };
 
-    const removeException = (id: number) => {
-        if (deletingId !== null) return;
-        setDeletingId(id);
-        adminApi.deleteException(id).then(load)
-            .catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося видалити.'))
+    const removeException = () => {
+        if (!deleteTarget || deletingId !== null) return;
+        setDeletingId(deleteTarget.id); setDeleteError(null);
+        adminApi.deleteException(deleteTarget.id).then(() => { setDeleteTarget(null); load(); })
+            .catch((e) => setDeleteError(e instanceof ApiError ? e.message : 'Не вдалося видалити.'))
             .finally(() => setDeletingId(null));
     };
 
@@ -60,7 +63,7 @@ export default function AdminExceptionsPage() {
         <Box>
             <Typography variant="h4" sx={{ mb: 2 }}>Винятки за датою</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Дозволяють вимкнути конкретний час чергування для окремої дати (наприклад, через свято), без зміни глобального списку часу.
+                Дозволяють вимкнути конкретний час стенду для окремої дати (наприклад, через свято), без зміни глобального списку часу.
             </Typography>
 
             <Card variant="outlined" sx={{ mb: 3 }}>
@@ -116,7 +119,7 @@ export default function AdminExceptionsPage() {
                                     <TableCell>{item.isBlocked ? 'Заблоковано' : 'Дозволено'}</TableCell>
                                     <TableCell>{item.note}</TableCell>
                                     <TableCell align="center">
-                                        <IconButton aria-label="Видалити виняток" disabled={deletingId !== null} size="small" onClick={() => removeException(item.id)}>
+                                        <IconButton aria-label="Видалити виняток" disabled={deletingId !== null} size="small" onClick={() => { setDeleteTarget(item); setDeleteError(null); }}>
                                             {deletingId === item.id ? <CircularProgress size={18} color="inherit" aria-label="Видаляємо виняток" /> : <DeleteOutlineIcon fontSize="small" />}
                                         </IconButton>
                                     </TableCell>
@@ -126,6 +129,14 @@ export default function AdminExceptionsPage() {
                     </Table>
                 </TableContainer>
             )}
+            <ConfirmDeleteDialog open={deleteTarget !== null} title="Видалити виняток?" busy={deletingId !== null} error={deleteError}
+                description="Виняток буде видалено. Для цього часу знову діятимуть звичайні правила розкладу."
+                onCancel={() => setDeleteTarget(null)} onConfirm={removeException}>
+                {deleteTarget && <>
+                    <Typography sx={{ fontWeight: 700 }}>{formatDate(deleteTarget.date)} · {deleteTarget.startTime}–{deleteTarget.endTime}</Typography>
+                    {deleteTarget.note && <Typography>{deleteTarget.note}</Typography>}
+                </>}
+            </ConfirmDeleteDialog>
         </Box>
     );
 }

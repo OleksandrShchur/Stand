@@ -175,6 +175,7 @@ try {
         await activate(button('За днями тижня'));
         await audit('schedule-copy-weekdays');
         await escape();
+        await click("document.querySelector('[data-testid=schedule-day-summary] input[type=checkbox]')");
         await activate(button('Зберегти'));
         await wait("[...document.querySelectorAll('[role=dialog]')].some(d=>d.checkVisibility() && d.innerText.includes('Підтвердити розклад'))");
         await audit('schedule-review');

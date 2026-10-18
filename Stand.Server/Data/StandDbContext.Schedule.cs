@@ -13,6 +13,7 @@ public partial class StandDbContext
         {
             entity.HasKey(e => new { e.Date, e.LocationId, e.TimeSlotId });
             entity.HasIndex(e => e.TimeSlotId, "IX_ScheduleSlots_TimeSlotId");
+            entity.Property(e => e.Capacity).HasDefaultValue(2, "DF_ScheduleSlots_Capacity");
             entity.HasOne(e => e.AvailableDate).WithMany().HasForeignKey(e => e.Date)
                 .HasPrincipalKey(e => e.Date).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK_ScheduleSlots_AvailableDates");
             entity.HasOne(e => e.Location).WithMany().HasForeignKey(e => e.LocationId).OnDelete(DeleteBehavior.ClientSetNull).HasConstraintName("FK_ScheduleSlots_Locations");

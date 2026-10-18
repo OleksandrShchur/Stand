@@ -128,6 +128,7 @@ public sealed class BookingService(
         var phone = PhoneNormalizer.TryNormalize(user.Phone)
             ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
 
+        await ScheduleLock.AcquireLocationAsync(db, locationId, false, ct);
         await ScheduleLock.AcquireAsync(db, date, false, ct);
         await availability.EnsureDateBookableAsync(date, ct);
 
@@ -153,12 +154,12 @@ public sealed class BookingService(
             .Where(e => e.Date == date && timeSlotIds.Contains(e.TimeSlotId) && e.IsBlocked)
             .Select(e => e.TimeSlotId).ToListAsync(ct);
         var isCustomSchedule = await db.AvailableDates.AnyAsync(d => d.Date == date && d.UseCustomSchedule, ct);
-        var scheduledIds = isCustomSchedule ? await db.ScheduleSlots
+        var scheduledCapacities = isCustomSchedule ? await db.ScheduleSlots
             .Where(s => s.Date == date && s.LocationId == locationId && timeSlotIds.Contains(s.TimeSlotId))
-            .Select(s => s.TimeSlotId).ToListAsync(ct) : [];
+            .ToDictionaryAsync(s => s.TimeSlotId, s => s.Capacity, ct) : new Dictionary<int, int>();
         foreach (var timeSlot in timeSlots)
         {
-            if (isCustomSchedule ? !scheduledIds.Contains(timeSlot.Id) : (!timeSlot.IsActive || timeSlot.IsScheduleOnly))
+            if (isCustomSchedule ? !scheduledCapacities.ContainsKey(timeSlot.Id) : (!timeSlot.IsActive || timeSlot.IsScheduleOnly))
             {
                 throw new ValidationAppException("Цей час зараз недоступний.", ErrorCodes.TimeSlotBlocked);
             }
@@ -188,7 +189,8 @@ public sealed class BookingService(
                 throw new ConflictAppException(ErrorCodes.DuplicatePhoneSlot,
                     "З цим номером телефону вже є запис на цю дату, локацію та час.");
 
-            if (activeCount >= location.Capacity)
+            var capacity = isCustomSchedule ? scheduledCapacities[timeSlot.Id] : location.Capacity;
+            if (activeCount >= capacity)
             {
                 await tx.RollbackAsync(ct);
                 throw new ConflictAppException(ErrorCodes.SlotFull, "На цей час вже немає вільних місць (Зайнято).");

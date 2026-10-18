@@ -52,6 +52,8 @@ var userIds = users.Select(u => u.Id).ToArray();
 try
 {
     await BookingStateMigrationChecks.Run(connection);
+    await ScheduleCapacityMigrationChecks.Run(connection);
+    await ScheduleCapacityChecks.Run(connection);
     await BookingSearchChecks.Run(connection);
     await BookingTimeRangeChecks.Run(connection);
     await using (var db = new StandDbContext(DbOptions(counter)))

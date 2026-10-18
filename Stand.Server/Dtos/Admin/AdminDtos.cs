@@ -26,7 +26,7 @@ public sealed record BulkEnableDatesDto(
     int Year, int Month, List<int> Weekdays /* 0=Sun..6=Sat */, bool IsActive);
 
 // ---- Date -> location -> immutable time ranges ----
-public sealed record ScheduleRangeDto(string StartTime, string EndTime);
+public sealed record ScheduleRangeDto(string StartTime, string EndTime, int? Capacity = null);
 public sealed record ScheduleLocationInputDto(int LocationId, List<ScheduleRangeDto> Slots);
 public sealed record SaveScheduleDto(List<string> Dates, bool IsActive, List<ScheduleLocationInputDto> Locations,
     bool AcknowledgeExistingBookings = false);
