@@ -26,7 +26,7 @@ import { LoadingState, ErrorState } from '../../components/StateMessage';
 import { publicApi } from '../../api/publicApi';
 import { ApiError } from '../../api/client';
 import type { BookingSummaryDto } from '../../api/types';
-import { formatDateFull } from '../../utils/date';
+import { formatDate } from '../../utils/date';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
@@ -116,7 +116,7 @@ export default function BookingStatusPage() {
                                     />
                                 </Stack>
                                 <Stack spacing={1.25}>
-                                    <Row label="Дата" value={formatDateFull(booking.date)} />
+                                    <Row label="Дата" value={formatDate(booking.date)} />
                                     <Row label="Час" value={`${booking.startTime}–${booking.endTime}`} />
                                     <Row label="Локація" value={booking.locationName} />
                                     {booking.locationAddress && <Row label="Адреса" value={booking.locationAddress} />}

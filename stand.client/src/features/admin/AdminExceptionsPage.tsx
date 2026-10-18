@@ -8,7 +8,8 @@ import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/StateMessage';
 import type { DateTimeSlotExceptionAdminDto, TimeSlotAdminDto } from '../../api/types';
-import { todayIso } from '../../utils/date';
+import { formatDate, todayIso } from '../../utils/date';
+import UkrainianDatePicker from '../../components/UkrainianDatePicker';
 
 export default function AdminExceptionsPage() {
     const [loading, setLoading] = useState(true);
@@ -66,10 +67,9 @@ export default function AdminExceptionsPage() {
                 <CardContent>
                     <Typography variant="h6" sx={{ mb: 2 }}>Додати виняток</Typography>
                     <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} sx={{ alignItems: { sm: 'flex-start' } }}>
-                        <TextField
-                            label="Дата" type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                            slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }}
-                        />
+                        <Box sx={{ minWidth: 160 }}>
+                            <UkrainianDatePicker label="Дата" name="exception-date" value={date} onChange={setDate} />
+                        </Box>
                         <TextField
                             label="Час" select value={timeSlotId} onChange={(e) => setTimeSlotId(Number(e.target.value))}
                             sx={{ minWidth: 160 }}
@@ -111,7 +111,7 @@ export default function AdminExceptionsPage() {
                         <TableBody>
                             {items.map((item) => (
                                 <TableRow key={item.id} hover>
-                                    <TableCell>{item.date}</TableCell>
+                                    <TableCell>{formatDate(item.date)}</TableCell>
                                     <TableCell>{item.startTime}–{item.endTime}</TableCell>
                                     <TableCell>{item.isBlocked ? 'Заблоковано' : 'Дозволено'}</TableCell>
                                     <TableCell>{item.note}</TableCell>

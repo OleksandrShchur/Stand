@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -80,16 +81,16 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
             .OrderBy(b => b.Date).ThenBy(b => b.TimeSlot.SortOrder)
             .ToListAsync(ct);
 
-        var items = entities.Select(ToDto).ToList();
-
         var sb = new StringBuilder();
         sb.AppendLine("PublicNumber,Date,Location,TimeStart,TimeEnd,FirstName,LastName,Phone,Comment,IsBooked,CreatedAtUtc");
-        foreach (var b in items)
+        foreach (var b in entities)
         {
             sb.AppendLine(string.Join(',', new[]
             {
-                Csv(b.PublicNumber), Csv(b.Date), Csv(b.LocationName), Csv(b.StartTime), Csv(b.EndTime),
-                Csv(b.FirstName), Csv(b.LastName), Csv(b.Phone), Csv(b.Comment), Csv(b.IsBooked ? "true" : "false"), Csv(b.CreatedAtUtc),
+                Csv(b.PublicNumber), Csv(b.Date.ToString("dd.MM.yyyy", CultureInfo.InvariantCulture)), Csv(b.Location.Name),
+                Csv(b.TimeSlot.StartTime.ToString("HH:mm")), Csv(b.TimeSlot.EndTime.ToString("HH:mm")),
+                Csv(b.FirstName), Csv(b.LastName), Csv(b.Phone), Csv(b.Comment), Csv(b.IsBooked ? "true" : "false"),
+                Csv(b.CreatedAtUtc.ToString("dd.MM.yyyy HH:mm:ss", CultureInfo.InvariantCulture)),
             }));
         }
 

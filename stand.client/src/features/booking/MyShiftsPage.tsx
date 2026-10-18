@@ -23,6 +23,7 @@ import { pagePadding, sectionGap } from '../../layoutSpacing';
 import { surfaceShadow } from '../../surfaceStyles';
 import BookingCardGroup from '../../components/BookingCardGroup';
 import { groupMyShiftCards } from '../../utils/bookingCardGroups';
+import { DATE_PICKER_FORMAT } from '../../utils/date';
 
 export default function MyShiftsPage() {
     const navigate = useNavigate();
@@ -42,7 +43,7 @@ export default function MyShiftsPage() {
     const [dateSelectionPending, setDateSelectionPending] = useState(false);
     const dateCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [locationFilter, setLocationFilter] = useState('');
-    const dateToolbarProps = { hidden: false, selectionPending: dateSelectionPending };
+    const dateToolbarProps = { hidden: false, selectionPending: dateSelectionPending, toolbarFormat: DATE_PICKER_FORMAT };
 
     useEffect(() => () => {
         if (dateCloseTimer.current !== null) clearTimeout(dateCloseTimer.current);
@@ -122,7 +123,7 @@ export default function MyShiftsPage() {
                             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="uk" localeText={ukUA.components.MuiLocalizationProvider.defaultProps.localeText}>
                                 <DatePicker
                                     label={bookingCopy.dateFilter}
-                                    format="DD.MM.YYYY"
+                                    format={DATE_PICKER_FORMAT}
                                     closeOnSelect={false}
                                     readOnly={dateSelectionPending}
                                     open={datePickerOpen}
@@ -175,7 +176,7 @@ export default function MyShiftsPage() {
                                         day: ({ day }) => {
                                             const hasShift = shiftDates.has(day.format('YYYY-MM-DD'));
                                             return hasShift ? {
-                                                'aria-label': `${day.format('D MMMM YYYY')}, є ваші записи`,
+                                                'aria-label': `${day.format(DATE_PICKER_FORMAT)}, є ваші записи`,
                                                 sx: {
                                                     '&:not(.Mui-selected):not(.Mui-disabled)': {
                                                         bgcolor: 'var(--state-available-bg)',

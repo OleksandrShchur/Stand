@@ -8,6 +8,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { ukUA } from '@mui/x-date-pickers/locales';
 import { usePickerActionsContext, usePickerTranslations } from '@mui/x-date-pickers/hooks';
 import type { PickersActionBarProps } from '@mui/x-date-pickers/PickersActionBar';
+import { DATE_PICKER_FORMAT } from '../utils/date';
 
 const ConfirmationContext = createContext<{ commit: () => void; invalid: boolean } | null>(null);
 
@@ -58,7 +59,7 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
             label={label}
             name={name}
             value={confirmSelection ? draft : value ? dayjs(value) : null}
-            format="DD.MM.YYYY"
+            format={DATE_PICKER_FORMAT}
             disabled={disabled}
             open={confirmSelection ? open : undefined}
             onOpen={confirmSelection ? () => setOpen(true) : undefined}
@@ -81,6 +82,7 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
                 fieldClearLabel: 'Очистити дату',
             }}
             slotProps={{
+                toolbar: { toolbarFormat: DATE_PICKER_FORMAT },
                 field: { clearable, onClear: confirmSelection ? () => onChange('') : undefined },
                 clearButton: { 'aria-label': 'Очистити дату', tabIndex: 0 },
                 textField: { fullWidth: true, size, sx: { minWidth: 0, '& .MuiPickersInputBase-sectionsContainer': { minWidth: 0, fontSize: 16 } } },

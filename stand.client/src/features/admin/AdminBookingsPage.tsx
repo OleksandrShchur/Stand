@@ -15,7 +15,7 @@ import { LoadingState, ErrorState, EmptyState } from '../../components/StateMess
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
 import UkrainianTimePicker from '../../components/UkrainianTimePicker';
 import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
-import { formatDateFull } from '../../utils/date';
+import { formatDate, formatDateTime } from '../../utils/date';
 import { groupBookingCards } from '../../utils/bookingCardGroups';
 import BookingCardGroup from '../../components/BookingCardGroup';
 import AppDialog from '../../components/AppDialog';
@@ -153,7 +153,7 @@ export default function AdminBookingsPage() {
                                     <MoreVertIcon />
                                 </IconButton>
                             </Stack>
-                            <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
+                            <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDate(b.date)}</Typography>
                             <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
                         </CardContent></Card>)}
                     </BookingCardGroup>)}
@@ -194,7 +194,7 @@ export default function AdminBookingsPage() {
                             {items.map((b) => (
                                 <TableRow key={b.id} hover>
                                     <TableCell>{b.publicNumber}</TableCell>
-                                    <TableCell>{b.date}</TableCell>
+                                    <TableCell>{formatDate(b.date)}</TableCell>
                                     <TableCell>{b.startTime}–{b.endTime}</TableCell>
                                     <TableCell>{b.locationName}</TableCell>
                                     <TableCell>{[b.firstName, b.lastName].filter(Boolean).join(' ')}</TableCell>
@@ -250,7 +250,7 @@ export default function AdminBookingsPage() {
                     <Box sx={{ pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Створено</Typography>
                         <Typography component="time" dateTime={detail.createdAtUtc} variant="body2" color="text.secondary">
-                            {new Date(detail.createdAtUtc).toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Kyiv' })}
+                            {formatDateTime(detail.createdAtUtc)}
                         </Typography>
                     </Box>
                 </Stack>}
@@ -291,7 +291,7 @@ function BookingDetails({ booking }: { booking: BookingAdminDto }) {
             '& dd': { m: 0, minWidth: 0, overflowWrap: 'anywhere' },
         }}>
             <Typography component="dt">Дата</Typography>
-            <Typography component="dd" sx={{ fontWeight: 500, lineHeight: 1.5 }}>{formatDateFull(booking.date)}</Typography>
+            <Typography component="dd" sx={{ fontWeight: 500, lineHeight: 1.5 }}>{formatDate(booking.date)}</Typography>
             <Typography component="dt">Час</Typography>
             <Typography component="dd" sx={{ fontSize: '1.125rem', fontWeight: 700, color: 'primary.dark', fontVariantNumeric: 'tabular-nums' }}>
                 {booking.startTime}–{booking.endTime}

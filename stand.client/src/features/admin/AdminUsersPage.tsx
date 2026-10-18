@@ -11,6 +11,7 @@ import { ApiError } from '../../api/client';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import type { AdminUserDto } from '../../api/types';
+import { formatDateTime } from '../../utils/date';
 
 export default function AdminUsersPage() {
     const { user: currentUser } = useAdminAuth();
@@ -67,7 +68,7 @@ export default function AdminUsersPage() {
                 {items.map(u => <Card key={u.id} variant="outlined"><CardContent>
                     <Typography component="h2" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
                     <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} sx={{ my: 1 }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Останній вхід: {u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : 'Ще не входив'}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Останній вхід: {u.lastLoginAtUtc ? formatDateTime(u.lastLoginAtUtc) : 'Ще не входив'}</Typography>
                     {u.id !== currentUser?.id && <Button variant="outlined" disabled={updatingId !== null} onClick={() => toggle(u)}>{u.isActive ? 'Вимкнути доступ' : 'Увімкнути доступ'}</Button>}
                 </CardContent></Card>)}
             </Stack>
@@ -90,7 +91,7 @@ export default function AdminUsersPage() {
                                 <TableCell>
                                     <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} />
                                 </TableCell>
-                                <TableCell>{u.lastLoginAtUtc ? new Date(u.lastLoginAtUtc).toLocaleString('uk-UA') : '—'}</TableCell>
+                                <TableCell>{u.lastLoginAtUtc ? formatDateTime(u.lastLoginAtUtc) : '—'}</TableCell>
                                 <TableCell align="center">
                                     {u.id !== currentUser?.id && (
                                         <IconButton aria-label={`${u.isActive ? 'Вимкнути' : 'Увімкнути'} доступ: ${u.login}`} aria-busy={updatingId === u.id} disabled={updatingId !== null} size="small" onClick={() => toggle(u)}>
