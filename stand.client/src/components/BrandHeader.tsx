@@ -7,7 +7,7 @@ import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import { formatUaPhone } from '../utils/phone';
 
-export default function BrandHeader({ onHome, title = 'Головна' }: { onHome?: () => void; title?: string }) {
+export default function BrandHeader({ onHome, title = 'Головна', showHome = true }: { onHome?: () => void; title?: string; showHome?: boolean }) {
     const [supportOpen, setSupportOpen] = useState(false);
 
     return (
@@ -15,7 +15,7 @@ export default function BrandHeader({ onHome, title = 'Головна' }: { onHo
             <AppBar position="sticky" elevation={0}>
                 <Toolbar sx={{ py: 1, display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        <IconButton
+                        {showHome && <IconButton
                             component={RouterLink}
                             to="/"
                             color="inherit"
@@ -28,7 +28,7 @@ export default function BrandHeader({ onHome, title = 'Головна' }: { onHo
                             }}
                         >
                             <HomeOutlinedIcon sx={{ fontSize: 30 }} />
-                        </IconButton>
+                        </IconButton>}
                     </Box>
                     <Typography variant="h6" component="div" sx={{ fontWeight: 700, textAlign: 'center' }}>
                         {title}
