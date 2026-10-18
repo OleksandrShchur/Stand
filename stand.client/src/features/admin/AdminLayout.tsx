@@ -29,6 +29,7 @@ import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState } from '../../components/StateMessage';
 import { pagePadding } from '../../layoutSpacing';
 import MainContent from '../../components/MainContent';
+import { surfaceShadow } from '../../surfaceStyles';
 
 const DRAWER_WIDTH = 248;
 
@@ -65,6 +66,9 @@ export default function AdminLayout() {
     };
     const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
     const headerTitle = location.pathname === '/admin/schedule' ? 'Розклад'
+        : location.pathname === '/admin/bookings' ? 'Записи'
+        : location.pathname === '/admin/locations' ? 'Локації'
+        : location.pathname === '/admin/authorized-users' ? 'Користувачі сайту'
         : location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель';
     const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 
@@ -84,7 +88,7 @@ export default function AdminLayout() {
                         sx={{
                             mx: 1,
                             my: 0.25,
-                            borderRadius: 2,
+                            borderRadius: 1,
                             '&.active': {
                                 bgcolor: 'primary.main',
                                 color: 'common.white',
@@ -98,7 +102,7 @@ export default function AdminLayout() {
                 ))}
             </List>
             <List component="div">
-                <ListItemButton component="button" onClick={handleLogout} sx={{ mx: 1, mb: 1, borderRadius: 2, width: 'calc(100% - 16px)', textAlign: 'left' }}>
+                <ListItemButton component="button" onClick={handleLogout} sx={{ mx: 1, mb: 1, borderRadius: 1, width: 'calc(100% - 16px)', textAlign: 'left' }}>
                     <ListItemIcon sx={{ minWidth: 40 }}><LogoutIcon /></ListItemIcon>
                     <ListItemText primary={`Вийти (${user.login})`} />
                 </ListItemButton>
@@ -147,10 +151,10 @@ export default function AdminLayout() {
             </Box>
             {!hasSideNav && <Box sx={{ position: 'fixed', bottom: 'calc(12px + env(safe-area-inset-bottom))', left: 0, right: 0,
                 zIndex: theme.zIndex.appBar, px: { xs: 1, sm: 2 }, pointerEvents: 'none' }}>
-            <Paper elevation={0} sx={{ maxWidth: 600, mx: 'auto', borderRadius: '999px', pointerEvents: 'auto',
+            <Paper elevation={0} sx={{ maxWidth: 600, mx: 'auto', borderRadius: 1, pointerEvents: 'auto',
                 bgcolor: 'rgba(249, 253, 250, 0.94)', border: '1px solid rgba(255, 255, 255, 0.85)',
                 backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.45), rgba(232,244,237,0.18))',
-                boxShadow: '0 8px 32px rgba(25, 59, 43, 0.14), 0 2px 8px rgba(25, 59, 43, 0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+                boxShadow: '0 -4px 24px rgba(31, 42, 36, 0.28), 0 8px 32px rgba(31, 42, 36, 0.2)',
                 '@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))': {
                     bgcolor: 'rgba(249, 253, 250, 0.74)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)',
                 } }}>
@@ -158,14 +162,14 @@ export default function AdminLayout() {
                     value={selectedNavIndex >= 0 ? location.pathname : false}
                     sx={{ position: 'relative', isolation: 'isolate', height: 68, p: 0.75, bgcolor: 'transparent', borderRadius: 'inherit',
                         '&::before': { content: '""', position: 'absolute', zIndex: -1, top: 6, bottom: 6, left: 6,
-                            width: `calc((100% - 12px) / ${PRIMARY_NAV_ITEMS.length})`, borderRadius: '999px',
+                            width: `calc((100% - 12px) / ${PRIMARY_NAV_ITEMS.length})`, borderRadius: 1,
                             background: 'linear-gradient(145deg, rgba(255,255,255,0.95), rgba(202,229,214,0.65))',
-                            border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(32, 79, 55, 0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
+                            border: '1px solid rgba(255,255,255,0.9)', boxShadow: surfaceShadow,
                             opacity: selectedNavIndex < 0 ? 0 : 1, transform: `translateX(${Math.max(0, selectedNavIndex) * 100}%)`,
                             transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease',
                         },
                         '& .MuiBottomNavigationAction-root': { flex: '1 1 0%', minWidth: 0, maxWidth: 'none', px: 0.25, py: 0.5, gap: 0.25,
-                            borderRadius: '999px', color: 'text.secondary', transform: 'scale(1)',
+                            borderRadius: 1, color: 'text.secondary', transform: 'scale(1)',
                             transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease',
                             '&.Mui-selected': { color: 'primary.dark', transform: 'translateY(-1px) scale(1.04)' },
                             '&:active': { transform: 'scale(0.96)' },

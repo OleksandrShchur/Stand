@@ -121,7 +121,7 @@ export default function AdminDatesPage() {
                                     onChange={() => toggleDay(c.date!)}
                                     size="small"
                                     sx={{
-                                        borderRadius: 2,
+                                        borderRadius: 1,
                                         aspectRatio: '1',
                                         fontWeight: 700,
                                         '&.Mui-selected': { bgcolor: 'primary.main', color: 'common.white', '&:hover': { bgcolor: 'primary.dark' } },

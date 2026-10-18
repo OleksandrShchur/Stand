@@ -17,7 +17,10 @@ export interface BookingFilters {
     date?: string;
     locationId?: number;
     timeSlotId?: number;
+    timeFrom?: string;
+    timeTo?: string;
     phone?: string;
+    search?: string;
     isBooked?: boolean;
     page?: number;
     pageSize?: number;
@@ -74,8 +77,8 @@ export const adminApi = {
     deleteException: (id: number) => api.del<void>(`/api/admin/exceptions/${id}`),
 
     // Bookings
-    listBookings: (filters: BookingFilters) =>
-        api.get<BookingListResultDto>(`/api/admin/bookings${toQuery(filters)}`),
+    listBookings: (filters: BookingFilters, signal?: AbortSignal) =>
+        api.get<BookingListResultDto>(`/api/admin/bookings${toQuery(filters)}`, signal),
     cancelBooking: (id: number) => api.post<void>(`/api/admin/bookings/${id}/cancel`),
     exportCsvUrl: (filters: BookingFilters) => `/api/admin/bookings/export.csv${toQuery(filters)}`,
 

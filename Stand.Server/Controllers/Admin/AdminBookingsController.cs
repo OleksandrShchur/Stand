@@ -22,9 +22,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         [FromQuery] bool? isBooked,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50,
+        [FromQuery] string? search = null,
+        [FromQuery] TimeOnly? timeFrom = null,
+        [FromQuery] TimeOnly? timeTo = null,
         CancellationToken ct = default)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo);
 
         var total = await query.CountAsync(ct);
         page = Math.Max(1, page);
@@ -66,9 +69,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         [FromQuery] int? timeSlotId,
         [FromQuery] string? phone,
         [FromQuery] bool? isBooked,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        [FromQuery] string? search = null,
+        [FromQuery] TimeOnly? timeFrom = null,
+        [FromQuery] TimeOnly? timeTo = null)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo);
 
         var entities = await query
             .OrderBy(b => b.Date).ThenBy(b => b.TimeSlot.SortOrder)
@@ -92,8 +98,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
     }
 
     private IQueryable<Data.Entities.Booking> BuildFilteredQuery(
-        string? date, int? locationId, int? timeSlotId, string? phone, bool? isBooked)
+        string? date, int? locationId, int? timeSlotId, string? phone, bool? isBooked, string? search,
+        TimeOnly? timeFrom, TimeOnly? timeTo)
     {
+        if (timeFrom.HasValue && timeTo.HasValue && timeFrom.Value >= timeTo.Value)
+            throw new ValidationAppException("Час «Від» має бути раніше часу «До».");
+
         var query = db.Bookings.Include(b => b.Location).Include(b => b.TimeSlot).AsQueryable();
 
         if (DateOnly.TryParse(date, out var parsedDate))
@@ -111,10 +121,41 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
             query = query.Where(b => b.TimeSlotId == timeSlotId);
         }
 
+        // Require actual overlap: touching the range boundary alone is not enough.
+        if (timeFrom.HasValue)
+            query = query.Where(b => b.TimeSlot.EndTime > timeFrom.Value);
+        if (timeTo.HasValue)
+            query = query.Where(b => b.TimeSlot.StartTime < timeTo.Value);
+
         if (!string.IsNullOrWhiteSpace(phone))
         {
             var normalized = Services.PhoneNormalizer.TryNormalize(phone) ?? phone.Trim();
             query = query.Where(b => b.Phone != null && b.Phone.Contains(normalized));
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            if (search.Any(char.IsLetter))
+            {
+                // Every word must match the participant's first name or surname,
+                // so full names work in either order, including partial names.
+                foreach (var word in search.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var term = word.ToLowerInvariant();
+                    query = query.Where(b =>
+                        (b.FirstName != null && b.FirstName.ToLower().Contains(term)) ||
+                        (b.LastName != null && b.LastName.ToLower().Contains(term)));
+                }
+            }
+            else
+            {
+                var digits = new string(search.Where(char.IsAsciiDigit).ToArray());
+                if (digits.Length > 0)
+                {
+                    var normalized = Services.PhoneNormalizer.TryNormalize(digits) ?? digits;
+                    query = query.Where(b => b.Phone != null && b.Phone.Contains(normalized));
+                }
+            }
         }
 
         if (isBooked.HasValue)

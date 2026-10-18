@@ -33,6 +33,13 @@ Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -WindowSty
 node tests/accessibility.mjs
 ```
 
+With the same browser running, `node tests/admin-booking-filters.mjs` verifies
+automatic location filtering, analog From/To clocks and date filtering only
+after OK on mobile and desktop, unchanged results on cancellation, phone and
+name search with a two-character threshold, optional time bounds, clearing,
+pagination reset, and cancellation of outdated requests against isolated
+responses.
+
 The runner serves the production build at `127.0.0.1:5198` with isolated fixture
 responses. It never contacts the real backend or database; mutations are
 rejected, apart from a read-only schedule preview. It checks all axe rules

@@ -9,6 +9,7 @@ import { formatDateFull, todayIso } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { isContinuousSelection, sortSlots } from '../slotSelection';
 import { pagePadding } from '../../../layoutSpacing';
+import { surfaceShadow } from '../../../surfaceStyles';
 import { bookingRequestKey, clearBookingRequest } from '../bookingRequest';
 
 export default function ShiftDetailsStep({ date, locationId, locationName, locationAddress, timeSlotId, timeSlotIds, onConfirmed, onUnavailable, onBack }: {
@@ -69,7 +70,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     return (
         <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
             <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
-            <Card variant="outlined" sx={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
+            <Card variant="outlined">
                 <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
                     <Stack spacing={2}>
                         <Box>
@@ -113,7 +114,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                 </Stack>
             )}
             {canConfirm && (
-                <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+                <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                     <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                         <Stack direction="row" spacing={1}>
                             <Button variant="outlined" size="large" disabled={submitting} onClick={onBack} sx={{ minHeight: 56, flexShrink: 0 }}>

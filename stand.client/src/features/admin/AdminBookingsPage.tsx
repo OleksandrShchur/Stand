@@ -2,86 +2,81 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link,
-    IconButton, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
-    TablePagination, TableRow, TextField, ToggleButton, ToggleButtonGroup, Typography,
+    IconButton, Menu, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
+    TablePagination, TableRow, TextField, Typography,
 } from '@mui/material';
-import DownloadIcon from '@mui/icons-material/Download';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { adminApi, type BookingFilters } from '../../api/adminApi';
-import { downloadFile, ApiError } from '../../api/client';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import { adminApi } from '../../api/adminApi';
+import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/StateMessage';
-import type { BookingAdminDto, LocationAdminDto, TimeSlotAdminDto } from '../../api/types';
-import { formatDateFull, todayIso } from '../../utils/date';
-
-const BOOKING_OPTIONS = [
-    { value: '', label: 'Усі записи' },
-    { value: 'true', label: 'Записано' },
-    { value: 'false', label: 'Не записано' },
-];
+import UkrainianDatePicker from '../../components/UkrainianDatePicker';
+import UkrainianTimePicker from '../../components/UkrainianTimePicker';
+import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
+import { formatDateFull } from '../../utils/date';
+import { groupBookingCards } from '../../utils/bookingCardGroups';
+import BookingCardGroup from '../../components/BookingCardGroup';
+import AppDialog from '../../components/AppDialog';
+import { formatUaPhone } from '../../utils/phone';
 
 export default function AdminBookingsPage() {
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [items, setItems] = useState<BookingAdminDto[]>([]);
+    const cardGroups = groupBookingCards(items);
     const [total, setTotal] = useState(0);
     const [locations, setLocations] = useState<LocationAdminDto[]>([]);
-    const [timeSlots, setTimeSlots] = useState<TimeSlotAdminDto[]>([]);
 
     const [date, setDate] = useState(() => searchParams.get('date') || '');
     const [locationId, setLocationId] = useState<number | ''>('');
-    const [timeSlotId, setTimeSlotId] = useState<number | ''>('');
-    const [phone, setPhone] = useState('');
-    const [bookingState, setBookingState] = useState('true');
+    const [timeFrom, setTimeFrom] = useState('');
+    const [timeTo, setTimeTo] = useState('');
+    const [search, setSearch] = useState('');
+    const searchFilter = normalizeBookingSearch(search);
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
     const [cancelTarget, setCancelTarget] = useState<BookingAdminDto | null>(null);
     const [cancelling, setCancelling] = useState(false);
-    const [exporting, setExporting] = useState(false);
     const [cancelError, setCancelError] = useState('');
     const [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<BookingAdminDto | null>(null);
-    const [applied, setApplied] = useState<BookingFilters>(() => ({ date: searchParams.get('date') || undefined, isBooked: true }));
+    const [actionMenu, setActionMenu] = useState<{ anchorEl: HTMLElement; booking: BookingAdminDto } | null>(null);
     const [refresh, setRefresh] = useState(0);
 
-    const buildFilters = (): BookingFilters => ({
-        date: date || undefined,
-        locationId: locationId || undefined,
-        timeSlotId: timeSlotId || undefined,
-        phone: phone || undefined,
-        isBooked: bookingState === '' ? undefined : bookingState === 'true',
-        page: page + 1,
-        pageSize,
-    });
-
-    const load = () => {
+    useEffect(() => {
+        const controller = new AbortController();
         setLoading(true);
         setError(null);
-        let current = true;
-        adminApi.listBookings({ ...applied, page: page + 1, pageSize })
+        adminApi.listBookings({
+            date: date || undefined,
+            locationId: locationId || undefined,
+            timeFrom: timeFrom || undefined,
+            timeTo: timeTo || undefined,
+            search: searchFilter,
+            isBooked: true,
+            page: page + 1,
+            pageSize,
+        }, controller.signal)
             .then((res) => {
-                if (!current) return;
+                if (controller.signal.aborted) return;
                 setItems(res.items); setTotal(res.totalCount);
                 if (!res.items.length && res.totalCount > 0 && page > 0) setPage(Math.max(0, Math.ceil(res.totalCount / pageSize) - 1));
             })
-            .catch((e) => { if (current) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити записи.'); })
-            .finally(() => { if (current) setLoading(false); });
-        return () => { current = false; };
-    };
+            .catch((e) => { if (!controller.signal.aborted) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити записи.'); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
+    }, [date, locationId, timeFrom, timeTo, searchFilter, page, pageSize, refresh]);
 
     useEffect(() => {
-        Promise.all([adminApi.listLocations(), adminApi.listTimeSlots(true)])
-            .then(([locs, slots]) => { setLocations(locs); setTimeSlots(slots); })
+        adminApi.listLocations()
+            .then(setLocations)
             .catch(() => setError('Не вдалося завантажити фільтри. Оновіть сторінку, щоб спробувати ще раз.'));
     }, []);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(load, [page, pageSize, applied, refresh]);
-
-    const applyFilters = () => { setPage(0); setApplied(buildFilters()); };
     const requestCancel = (booking: BookingAdminDto) => { setCancelError(''); setCancelTarget(booking); };
 
     const doCancel = () => {
@@ -94,64 +89,45 @@ export default function AdminBookingsPage() {
             .finally(() => setCancelling(false));
     };
 
-    const exportCsv = () => {
-        if (exporting) return;
-        setExporting(true);
-        downloadFile(adminApi.exportCsvUrl(applied), 'bookings.csv')
-            .catch(() => setError('Не вдалося завантажити CSV.'))
-            .finally(() => setExporting(false));
-    };
-
     return (
         <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography component="h1" variant="h4">Записи</Typography>
-                <Button loading={exporting} loadingPosition="start" variant="outlined" startIcon={<DownloadIcon />} onClick={exportCsv}>Експорт CSV</Button>
-            </Box>
+            <Typography component="h1" variant="h4" sx={(theme) => ({
+                mb: 2,
+                [theme.breakpoints.down('sm')]: {
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                },
+            })}>Записи</Typography>
 
-            <ToggleButtonGroup exclusive fullWidth color="primary" aria-label="Період записів"
-                value={applied.date === todayIso() ? 'today' : applied.date ? null : 'all'}
-                onChange={(_, value: 'today' | 'all' | null) => {
-                    if (value === null) return;
-                    if (value === 'today') {
-                        setDate(todayIso());
-                        setApplied({ ...buildFilters(), date: todayIso() });
-                    } else {
-                        setDate(''); setLocationId(''); setTimeSlotId(''); setPhone(''); setBookingState(''); setApplied({});
-                    }
-                    setPage(0);
-                }}
-                sx={{ mb: 2, maxWidth: { sm: 360 }, '& .MuiToggleButton-root': { minHeight: 44 } }}>
-                <ToggleButton value="today">Сьогодні</ToggleButton>
-                <ToggleButton value="all">Усі записи</ToggleButton>
-            </ToggleButtonGroup>
-
-            <Accordion slots={{ heading: 'h2' }} variant="outlined" disableGutters sx={{ mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone].some(Boolean) || applied.isBooked !== undefined ? ' · застосовано' : ''}</Typography></AccordionSummary>
+            <Accordion slotProps={{ heading: { component: 'h2' } }} variant="outlined" disableGutters sx={{ mb: 2 }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[date, locationId, timeFrom, timeTo, searchFilter].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
                 <AccordionDetails>
                 <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} useFlexGap sx={{ flexWrap: 'wrap', alignItems: { xs: 'stretch', sm: 'center' } }}>
-                    <TextField label="Дата" type="date" value={date} onChange={(e) => setDate(e.target.value)}
-                        slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 160 }} size="small" />
-                    <TextField label="Локація" select value={locationId} onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
+                    <Box sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}>
+                        <UkrainianDatePicker label="Дата" name="booking-date" value={date} onChange={(value) => { setDate(value); setPage(0); }} size="small" clearable confirmSelection />
+                    </Box>
+                    <TextField label="Локація" select value={locationId} onChange={(e) => { setLocationId(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
                         sx={{ minWidth: 180 }} size="small">
                         <MenuItem value="">Усі локації</MenuItem>
                         {locations.map((l) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
                     </TextField>
-                    <TextField label="Час" select value={timeSlotId} onChange={(e) => setTimeSlotId(e.target.value ? Number(e.target.value) : '')}
-                        sx={{ minWidth: 150 }} size="small">
-                        <MenuItem value="">Увесь час</MenuItem>
-                        {timeSlots.map((s) => <MenuItem key={s.id} value={s.id}>{s.startTime}–{s.endTime}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ minWidth: 160 }} size="small" />
-                    <TextField label="Запис" select value={bookingState} onChange={(e) => setBookingState(e.target.value)} sx={{ minWidth: 160 }} size="small">
-                        {BOOKING_OPTIONS.map((o) => <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem>)}
-                    </TextField>
-                    <Button loading={loading} loadingPosition="start" variant="contained" startIcon={<RefreshIcon />} onClick={applyFilters}>Застосувати</Button>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, minWidth: 0, width: { xs: '100%', sm: 368 }, alignItems: 'start' }}>
+                        <UkrainianTimePicker label="Час від" name="booking-time-from" value={timeFrom} before={timeTo}
+                            onChange={(value) => { setTimeFrom(value); setPage(0); }} />
+                        <UkrainianTimePicker label="Час до" name="booking-time-to" value={timeTo} after={timeFrom}
+                            onChange={(value) => { setTimeTo(value); setPage(0); }} />
+                    </Box>
+                    <TextField label="Телефон, ім’я або прізвище" name="booking-search" type="search" value={search} onChange={(e) => {
+                        const next = e.target.value;
+                        if (normalizeBookingSearch(next) !== searchFilter) setPage(0);
+                        setSearch(next);
+                    }} helperText={search && !searchFilter ? 'Введіть щонайменше 2 літери або цифри для пошуку.' : undefined}
+                        sx={{ minWidth: { xs: 0, sm: 240 } }} size="small" />
                 </Stack>
                 </AccordionDetails>
             </Accordion>
 
-            {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
+            {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={() => setRefresh(n => n + 1)} /></Box>}
             {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
             {loading && <LoadingState />}
 
@@ -161,16 +137,45 @@ export default function AdminBookingsPage() {
                 <>
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
-                    {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                        <Typography component="h2" variant="h6">{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
-                        <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
-                        <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
-                        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-                            <Button fullWidth variant="outlined" onClick={() => setDetail(b)}>Деталі</Button>
-                            {b.isBooked && <Button fullWidth color="error" onClick={() => requestCancel(b)}>Скасувати запис</Button>}
-                        </Stack>
-                    </CardContent></Card>)}
+                    {cardGroups.map(group => <BookingCardGroup key={group[0].id}>
+                        {group.map(b => <Card variant="outlined" key={b.id}><CardContent>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                                <IconButton
+                                    id={`booking-actions-${b.id}`}
+                                    aria-label={`Дії для запису ${b.publicNumber}`}
+                                    aria-haspopup="menu"
+                                    aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
+                                    aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
+                                    onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
+                                    sx={{ flexShrink: 0, width: 44, height: 44, mt: -1, mr: -1 }}
+                                >
+                                    <MoreVertIcon />
+                                </IconButton>
+                            </Stack>
+                            <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
+                            <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
+                        </CardContent></Card>)}
+                    </BookingCardGroup>)}
                 </Stack>
+                <Menu
+                    id="booking-actions-menu"
+                    anchorEl={actionMenu?.anchorEl}
+                    open={!!actionMenu}
+                    onClose={() => setActionMenu(null)}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    slotProps={{ list: { 'aria-labelledby': actionMenu ? `booking-actions-${actionMenu.booking.id}` : undefined } }}
+                >
+                    <MenuItem onClick={() => {
+                        if (actionMenu) setDetail(actionMenu.booking);
+                        setActionMenu(null);
+                    }}>Деталі</MenuItem>
+                    {actionMenu?.booking.isBooked && <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+                        requestCancel(actionMenu.booking);
+                        setActionMenu(null);
+                    }}>Скасувати запис</MenuItem>}
+                </Menu>
                 <TableContainer component={Paper} variant="outlined">
                     <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' } }}>
                         <TableHead>
@@ -226,18 +231,30 @@ export default function AdminBookingsPage() {
                 </>
             )}
 
-            <Dialog open={!!detail} onClose={() => setDetail(null)} fullWidth maxWidth="sm" aria-labelledby="booking-detail-title">
-                <DialogTitle id="booking-detail-title">Деталі запису</DialogTitle>
-                <DialogContent>{detail && <Stack spacing={1.5}>
+            <AppDialog
+                open={!!detail}
+                onClose={() => setDetail(null)}
+                title="Деталі запису"
+                icon={<InfoOutlinedIcon color="primary" />}
+                actions={<Stack direction="row" spacing={1} sx={{ width: '100%', '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
+                    <Button variant="outlined" fullWidth onClick={() => setDetail(null)}>Закрити</Button>
+                    {detail?.isBooked && <Button variant="outlined" fullWidth color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
+                </Stack>}
+            >
+                {detail && <Stack spacing={1.5} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                     <BookingDetails booking={detail} />
-                    <Typography>{detail.isBooked ? 'Записано' : 'Не записано'}</Typography>
-                    {detail.comment && <Typography sx={{ whiteSpace: 'pre-wrap' }}>Коментар: {detail.comment}</Typography>}
-                    <Typography variant="body2" color="text.secondary">Створено: {new Date(detail.createdAtUtc).toLocaleString('uk-UA')}</Typography>
-                </Stack>}</DialogContent>
-                <DialogActions sx={{ p: 2 }}><Button onClick={() => setDetail(null)}>Закрити</Button>
-                    {detail?.isBooked && <Button color="error" onClick={() => requestCancel(detail)}>Скасувати запис</Button>}
-                </DialogActions>
-            </Dialog>
+                    {detail.comment && <Box>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Коментар</Typography>
+                        <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{detail.comment}</Typography>
+                    </Box>}
+                    <Box sx={{ pt: 1.5, borderTop: '1px solid', borderColor: 'divider' }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Створено</Typography>
+                        <Typography component="time" dateTime={detail.createdAtUtc} variant="body2" color="text.secondary">
+                            {new Date(detail.createdAtUtc).toLocaleString('uk-UA', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Europe/Kyiv' })}
+                        </Typography>
+                    </Box>
+                </Stack>}
+            </AppDialog>
             <Dialog open={!!cancelTarget} onClose={() => { if (!cancelling) setCancelTarget(null); }} fullWidth maxWidth="sm" aria-labelledby="booking-cancel-title" aria-describedby="booking-cancel-warning">
                 <DialogTitle id="booking-cancel-title">Скасувати цей запис?</DialogTitle>
                 <DialogContent>
@@ -256,10 +273,37 @@ export default function AdminBookingsPage() {
     );
 }
 
+function normalizeBookingSearch(value: string): string | undefined {
+    const normalized = /\p{L}/u.test(value)
+        ? value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('uk-UA')
+        : value.replace(/\D/g, '');
+    return normalized.length >= 2 ? normalized : undefined;
+}
+
 function BookingDetails({ booking }: { booking: BookingAdminDto }) {
-    return <Box><Typography component="p" variant="h6">{[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>№ {booking.publicNumber}</Typography>
-        <Typography>{formatDateFull(booking.date)}</Typography><Typography sx={{ fontWeight: 700 }}>{booking.startTime}–{booking.endTime}</Typography>
-        <Typography>{booking.locationName}</Typography>{booking.phone && <Link href={`tel:${booking.phone}`} sx={{ display: 'inline-block', py: 1 }}>{booking.phone}</Link>}
+    return <Box>
+        <Typography component="p" variant="h6" sx={{ mb: 2, fontSize: '1.25rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
+            {[booking.firstName, booking.lastName].filter(Boolean).join(' ') || 'Без імені'}
+        </Typography>
+        <Box component="dl" sx={{
+            m: 0, display: 'grid', gridTemplateColumns: '64px minmax(0, 1fr)', columnGap: 1.5, rowGap: 1.5,
+            '& dt': { color: 'text.secondary', fontSize: '0.875rem', pt: 0.25 },
+            '& dd': { m: 0, minWidth: 0, overflowWrap: 'anywhere' },
+        }}>
+            <Typography component="dt">Дата</Typography>
+            <Typography component="dd" sx={{ fontWeight: 500, lineHeight: 1.5 }}>{formatDateFull(booking.date)}</Typography>
+            <Typography component="dt">Час</Typography>
+            <Typography component="dd" sx={{ fontSize: '1.125rem', fontWeight: 700, color: 'primary.dark', fontVariantNumeric: 'tabular-nums' }}>
+                {booking.startTime}–{booking.endTime}
+            </Typography>
+            <Typography component="dt">Локація</Typography>
+            <Typography component="dd" sx={{ fontWeight: 500 }}>{booking.locationName}</Typography>
+            {booking.phone && <>
+                <Typography component="dt">Телефон</Typography>
+                <Box component="dd">
+                    <Link href={`tel:${booking.phone}`} sx={{ fontWeight: 600, textUnderlineOffset: '3px' }}>{formatUaPhone(booking.phone)}</Link>
+                </Box>
+            </>}
+        </Box>
     </Box>;
 }

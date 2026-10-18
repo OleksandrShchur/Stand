@@ -1,4 +1,6 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, type Shadows } from '@mui/material/styles';
+import type {} from '@mui/x-date-pickers/themeAugmentation';
+import { surfaceRadius, surfaceShadow } from './surfaceStyles';
 
 // Calm, civic/volunteer-appropriate green palette. Deliberately avoids saturated
 // purple/violet "generic AI" tones; favours muted, trustworthy greens with warm neutrals.
@@ -57,24 +59,42 @@ const theme = createTheme({
         button: { fontWeight: 600, textTransform: 'none' },
     },
     shape: {
-        borderRadius: 8,
+        borderRadius: surfaceRadius,
     },
     spacing: 8,
+    shadows: Array.from({ length: 25 }, (_, index) => index === 0 ? 'none' : surfaceShadow) as Shadows,
     components: {
         MuiIconButton: {
             styleOverrides: { root: { minWidth: 44, minHeight: 44 } },
         },
         MuiOutlinedInput: {
-            styleOverrides: { notchedOutline: { borderColor: '#738278' } },
+            styleOverrides: {
+                root: { borderRadius: surfaceRadius, boxShadow: surfaceShadow },
+                notchedOutline: { borderColor: '#738278' },
+            },
+        },
+        MuiPickersOutlinedInput: {
+            styleOverrides: {
+                root: { borderRadius: surfaceRadius, boxShadow: surfaceShadow },
+            },
         },
         MuiButton: {
-            defaultProps: { disableElevation: true },
             styleOverrides: {
                 root: {
-                    borderRadius: 8,
+                    borderRadius: surfaceRadius,
                     paddingTop: 10,
                     paddingBottom: 10,
                     minHeight: 44,
+                },
+                contained: {
+                    boxShadow: surfaceShadow,
+                    '&:hover, &:active': { boxShadow: surfaceShadow },
+                    '&.Mui-disabled': { boxShadow: 'none' },
+                },
+                outlined: {
+                    boxShadow: surfaceShadow,
+                    '&:hover, &:active': { boxShadow: surfaceShadow },
+                    '&.Mui-disabled': { boxShadow: 'none' },
                 },
                 sizeLarge: {
                     paddingTop: 14,
@@ -86,7 +106,8 @@ const theme = createTheme({
         MuiCard: {
             styleOverrides: {
                 root: {
-                    borderRadius: 8,
+                    borderRadius: surfaceRadius,
+                    boxShadow: surfaceShadow,
                     animation: 'content-enter 200ms ease-out',
                     transition: 'border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease',
                 },
@@ -102,15 +123,28 @@ const theme = createTheme({
         },
         MuiPaper: {
             styleOverrides: {
+                root: { boxShadow: surfaceShadow },
                 rounded: {
-                    borderRadius: 8,
+                    borderRadius: surfaceRadius,
                 },
             },
+        },
+        MuiAccordion: {
+            styleOverrides: {
+                root: {
+                    borderRadius: surfaceRadius,
+                    boxShadow: surfaceShadow,
+                    '&::before': { display: 'none' },
+                },
+            },
+        },
+        MuiAccordionSummary: {
+            styleOverrides: { root: { borderRadius: 'inherit' } },
         },
         MuiChip: {
             styleOverrides: {
                 root: {
-                    borderRadius: 8,
+                    borderRadius: surfaceRadius,
                     fontWeight: 600,
                 },
             },

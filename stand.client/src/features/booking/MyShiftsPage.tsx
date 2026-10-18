@@ -20,6 +20,9 @@ import type { MyShiftDto } from '../../api/types';
 import { bookingCopy } from './bookingCopy';
 import { clearWizardState } from './wizardState';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
+import { surfaceShadow } from '../../surfaceStyles';
+import BookingCardGroup from '../../components/BookingCardGroup';
+import { groupMyShiftCards } from '../../utils/bookingCardGroups';
 
 export default function MyShiftsPage() {
     const navigate = useNavigate();
@@ -66,6 +69,7 @@ export default function MyShiftsPage() {
     const filtered = shifts.filter((shift) =>
         (!dateFilter || shift.date === dateFilter) &&
         (!locationFilter || shift.locationName === locationFilter));
+    const cardGroups = groupMyShiftCards(filtered);
     const locations = [...new Set(shifts.map((shift) => shift.locationName))].sort((a, b) => a.localeCompare(b, 'uk'));
     const shiftDates = new Set(shifts.map((shift) => shift.date));
 
@@ -99,7 +103,10 @@ export default function MyShiftsPage() {
                 </Alert>
             </Snackbar>
             <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
-                <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{bookingCopy.myShiftsButton}</Typography>
+                <Typography component="h1" variant="h5" sx={{
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                }}>{bookingCopy.myShiftsButton}</Typography>
                 <Stack spacing={sectionGap}>
                     {loading && <SkeletonList label="Завантажуємо ваші записи…" rows={2} />}
                     {error && !loading && <ErrorState message={error} onRetry={load} />}
@@ -193,29 +200,33 @@ export default function MyShiftsPage() {
                             <Button variant="outlined" sx={{ mt: 1.5 }} onClick={() => { setDateFilter(''); setLocationFilter(''); }}>{bookingCopy.resetFilters}</Button>
                         </Box>
                     )}
-                    {!loading && !error && filtered.map((shift) => (
-                        <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)' }}>
-                            <CardContent sx={{ '&:last-child': { pb: 1 } }}>
-                                <Box sx={{ flex: 1, minWidth: 0 }}>
-                                    <ShiftDetailsTable shift={shift} />
-                                    <Divider sx={{ mt: 1.5 }} />
-                                    <ParticipantList participants={shift.participants} dashed />
-                                </Box>
-                                <Divider sx={{ my: 1 }} />
-                                <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
-                                    <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
-                                        setCancelError(null);
-                                        setShiftToCancel(shift);
-                                    }} sx={{ minHeight: 44 }}>
-                                        {bookingCopy.cancelBooking}
-                                    </Button>
-                                </Stack>
-                            </CardContent>
-                        </Card>
+                    {!loading && !error && cardGroups.map((group) => (
+                        <BookingCardGroup key={group[0].id}>
+                            {group.map((shift) => (
+                                <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                                    <CardContent sx={{ '&:last-child': { pb: 1 } }}>
+                                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                                            <ShiftDetailsTable shift={shift} />
+                                            <Divider sx={{ mt: 1.5 }} />
+                                            <ParticipantList participants={shift.participants} dashed />
+                                        </Box>
+                                        <Divider sx={{ my: 1 }} />
+                                        <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>
+                                            <Button aria-label={`${bookingCopy.cancelBooking}: ${shift.startTime}-${shift.endTime}, ${shift.locationName}`} variant="outlined" color="error" onClick={() => {
+                                                setCancelError(null);
+                                                setShiftToCancel(shift);
+                                            }} sx={{ minHeight: 44 }}>
+                                                {bookingCopy.cancelBooking}
+                                            </Button>
+                                        </Stack>
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </BookingCardGroup>
                     ))}
                 </Stack>
             </Container>
-            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                     <Stack direction="row" spacing={1}>
                         <Button variant="outlined" size="large" onClick={() => {

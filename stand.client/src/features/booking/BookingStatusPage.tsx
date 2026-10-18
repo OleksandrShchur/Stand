@@ -103,7 +103,7 @@ export default function BookingStatusPage() {
                         )}
 
                         {!booking.isBooked && (
-                            <Alert severity="warning" sx={{ borderRadius: 2 }}>Цей запис скасовано.</Alert>
+                            <Alert severity="warning" sx={{ borderRadius: 1 }}>Цей запис скасовано.</Alert>
                         )}
 
                         <Card variant="outlined">

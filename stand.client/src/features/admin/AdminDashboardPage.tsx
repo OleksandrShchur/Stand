@@ -28,7 +28,13 @@ export default function AdminDashboardPage() {
 
     return (
         <Box>
-            <Typography component="h1" variant="h4" sx={{ mb: 2 }}>Огляд</Typography>
+            <Typography component="h1" variant="h4" sx={(theme) => ({
+                mb: 2,
+                [theme.breakpoints.down('sm')]: {
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                },
+            })}>Огляд</Typography>
             <Grid container spacing={2} sx={{ mb: 3 }}>
                 <StatCard label="Записів на сьогодні" value={data.todayBookedCount} />
             </Grid>
