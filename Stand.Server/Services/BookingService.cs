@@ -128,6 +128,16 @@ public sealed class BookingService(
         var phone = PhoneNormalizer.TryNormalize(user.Phone)
             ?? throw new ValidationAppException("Зверніться до адміністратора, щоб виправити номер телефону у вашому профілі.", ErrorCodes.InvalidPhone);
 
+        // Serialize this person's bookings across locations, including requests from different tabs.
+        // The transaction owns the lock until the overlap check and all inserts commit together.
+        var personDayResource = $"stand:person-day:{date:yyyy-MM-dd}:{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(phone)))}";
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            DECLARE @result int;
+            EXEC @result = sys.sp_getapplock @Resource = {personDayResource}, @LockMode = 'Exclusive',
+                @LockOwner = 'Transaction', @LockTimeout = 15000;
+            IF @result < 0 THROW 51000, 'Booking is busy. Please retry.', 1;
+            """, ct);
+
         await ScheduleLock.AcquireLocationAsync(db, locationId, false, ct);
         await ScheduleLock.AcquireAsync(db, date, false, ct);
         await availability.EnsureDateBookableAsync(date, ct);
@@ -177,6 +187,19 @@ public sealed class BookingService(
             }
 
         }
+
+        var requestedStart = timeSlots[0].StartTime;
+        var requestedEnd = timeSlots[^1].EndTime;
+        var overlapping = await db.Bookings.AsNoTracking()
+            .Where(b => b.Date == date && b.Phone == phone && b.IsBooked && b.LocationId != locationId &&
+                b.TimeSlot.StartTime < requestedEnd && b.TimeSlot.EndTime > requestedStart)
+            .OrderBy(b => b.TimeSlot.StartTime).ThenBy(b => b.Id)
+            .Select(b => new { b.Location.Name, b.TimeSlot.StartTime, b.TimeSlot.EndTime })
+            .FirstOrDefaultAsync(ct);
+        if (overlapping is not null)
+            throw new ConflictAppException(ErrorCodes.BookingTimeConflict,
+                $"Ви вже записані {date:dd.MM.yyyy} о {overlapping.StartTime:HH:mm}–{overlapping.EndTime:HH:mm} у локації «{overlapping.Name}». " +
+                "Неможливо бути у двох локаціях одночасно. Оберіть інший час або спочатку скасуйте попередній запис.");
 
         // Lock every selected slot in a consistent order, then save all bookings together.
         var now = clock.UtcNow;

@@ -481,3 +481,14 @@ remain usable: their stable tokens resolve to the current binary state.
 The SQL integration suite checks conversion and idempotency of the actual
 migration in a separate, rollback-only test schema, plus capacity, history,
 rebooking, binary filters and CSV, and retries after cancellation.
+
+Booking confirmation rejects active bookings for the same normalized phone and
+date when their times overlap at different locations (`BOOKING_TIME_CONFLICT`,
+HTTP 409). Both single and batch requests enforce the rule before inserting any
+rows. A transaction-owned person/date lock prevents concurrent requests from
+bypassing it. Adjacent intervals, other dates and cancelled bookings do not
+conflict. The confirmation screen shows a toast identifying the existing date,
+time and location, with guidance to choose another time or cancel the old booking.
+Integration checks cover partial overlaps, cancellation, atomic batches and
+concurrent requests; `node tests/booking-overlap.mjs` checks the toast against an
+isolated API fixture on mobile and desktop after building the client.
