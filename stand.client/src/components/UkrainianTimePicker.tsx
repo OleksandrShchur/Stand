@@ -36,12 +36,13 @@ interface Props {
     disabled?: boolean;
     size?: 'small' | 'medium';
     clearable?: boolean;
+    validationMessage?: string;
     after?: string;
     before?: string;
     onChange: (time: string) => void;
 }
 
-export default function UkrainianTimePicker({ label, name, value, disabled, size = 'small', clearable = true, after, before, onChange }: Props) {
+export default function UkrainianTimePicker({ label, name, value, disabled, size = 'small', clearable = true, validationMessage, after, before, onChange }: Props) {
     const [draft, setDraft] = useState<Dayjs | null>(() => asTime(value));
     const [previousValue, setPreviousValue] = useState(value);
     const [open, setOpen] = useState(false);
@@ -88,8 +89,9 @@ export default function UkrainianTimePicker({ label, name, value, disabled, size
                     },
                     textField: {
                         fullWidth: true, size,
-                        helperText: error ? error === 'minTime' || error === 'maxTime'
-                            ? 'Час «Від» має бути раніше часу «До».' : 'Вкажіть час у форматі ГГ:ХХ.' : undefined,
+                        error: !!validationMessage || error !== null,
+                        helperText: validationMessage || (error ? error === 'minTime' || error === 'maxTime'
+                            ? 'Час «Від» має бути раніше часу «До».' : 'Вкажіть час у форматі ГГ:ХХ.' : undefined),
                         sx: {
                             minWidth: 0,
                             '& .MuiPickersOutlinedInput-root': { px: { xs: 1, sm: 1.75 } },

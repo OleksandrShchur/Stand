@@ -111,13 +111,14 @@ try {
         if (width === 320) await evaluate("document.documentElement.style.fontSize='20px'");
         await checkWidth(`${width}px generator`);
         await tap(button('Додати серію'));
-        await wait("document.querySelectorAll('button[aria-label^=\"Видалити інтервал\"]').length === 8");
-        await tap("document.querySelector('button[aria-label^=\"Змінити інтервал\"]')");
+        await wait("document.querySelectorAll('button[aria-label^=\"Дії інтервалу\"]').length === 8");
+        await tap("document.querySelector('button[aria-label^=\"Дії інтервалу\"]')");
+        await tap("[...document.querySelectorAll('[role=menuitem]')].find(item=>item.textContent.trim()==='Редагувати')");
         await checkWidth(`${width}px edited slot`);
         await screenshot(`${width}-time-editor`);
         if (width === 320) await evaluate("document.documentElement.style.fontSize=''");
         await tap(button('Очистити час'));
-        await wait("document.querySelectorAll('button[aria-label^=\"Видалити інтервал\"]').length === 0");
+        await wait("document.querySelectorAll('button[aria-label^=\"Дії інтервалу\"]').length === 0");
         await wait("document.querySelector('.MuiDialog-root .MuiAccordionSummary-root')?.getAttribute('aria-expanded') === 'true'");
     }
     await tap(button('Один інтервал'));
@@ -129,7 +130,7 @@ try {
     await tap(button('OK'));
     await wait("!document.querySelector('.MuiTimeClock-root')");
     await tap(button('Додати інтервал'));
-    await wait("document.querySelectorAll('button[aria-label^=\"Видалити інтервал\"]').length === 1");
+    await wait("document.querySelectorAll('button[aria-label^=\"Дії інтервалу\"]').length === 1");
     await tap(button('Готово'));
     await wait("document.querySelectorAll('.MuiDialog-root [role=dialog]').length === 0");
     await checkWidth('Schedule after editing');

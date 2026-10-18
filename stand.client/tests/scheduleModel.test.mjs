@@ -5,7 +5,7 @@ import ts from 'typescript';
 
 const source = readFileSync(new URL('../src/features/admin/scheduleModel.ts', import.meta.url), 'utf8');
 const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { generateRanges, validateRanges, matchingDates } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+const { generateRanges, getRangeErrors, validateRanges, matchingDates } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 const range = (startTime, endTime, capacity = 2) => ({ startTime, endTime, capacity });
 
 test('09:00 to 17:00 creates exactly eight hourly slots', () => {
@@ -37,6 +37,22 @@ test('capacity cannot fall below bookings for that exact interval', () => {
     assert.ok(validateRanges([range('09:00', '10:00', 1)], bookings));
     assert.equal(validateRanges([range('09:00', '10:00', 2), range('10:00', '11:00', 1)], bookings), null);
     assert.equal(validateRanges([range('09:00', '10:00', 1)], bookings.slice(1)), null);
+});
+test('reports errors for the original intervals without marking valid neighbors', () => {
+    const errors = getRangeErrors([range('14:00', '15:00'), range('09:00', '10:00', 0), range('11:00', '10:00')]);
+    assert.deepEqual(errors[0], {});
+    assert.match(errors[1].capacity, /ціле число від 1/);
+    assert.equal(errors[1].time, undefined);
+    assert.match(errors[2].time, /Завершення має бути пізніше/);
+    assert.equal(errors[2].capacity, undefined);
+});
+test('flags every overlapping interval, including nested ranges, and clears repaired errors', () => {
+    const slots = [range('09:00', '14:00'), range('10:00', '11:00'), range('12:00', '13:00'), range('14:00', '15:00')];
+    const errors = getRangeErrors(slots);
+    assert.ok(errors.slice(0, 3).every(error => error.time));
+    assert.match(errors[1].time, /09:00–14:00/);
+    assert.deepEqual(errors[3], {});
+    assert.deepEqual(getRangeErrors([range('09:00', '10:00'), ...slots.slice(1)]), [{}, {}, {}, {}]);
 });
 test('rejects overlapping and duplicate slots', () => {
     assert.ok(validateRanges([range('09:00', '12:00'), range('11:00', '13:00')]));
