@@ -112,12 +112,13 @@ try {
         await checkWidth(`${width}px generator`);
         await tap(button('Додати серію'));
         await wait("document.querySelectorAll('button[aria-label^=\"Дії інтервалу\"]').length === 8");
-        await tap("document.querySelector('button[aria-label^=\"Дії інтервалу\"]')");
-        await tap("[...document.querySelectorAll('[role=menuitem]')].find(item=>item.textContent.trim()==='Редагувати')");
+        await tap("document.querySelector('[data-testid=schedule-interval] .MuiAccordionSummary-root')");
         await checkWidth(`${width}px edited slot`);
         await screenshot(`${width}-time-editor`);
         if (width === 320) await evaluate("document.documentElement.style.fontSize=''");
         await tap(button('Очистити час'));
+        await wait(`${dialog}?.innerText.includes('Видалити всі інтервали?')`);
+        await tap(button('Так, видалити всі'));
         await wait("document.querySelectorAll('button[aria-label^=\"Дії інтервалу\"]').length === 0");
         await wait("document.querySelector('.MuiDialog-root .MuiAccordionSummary-root')?.getAttribute('aria-expanded') === 'true'");
     }

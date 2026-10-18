@@ -347,6 +347,15 @@ Select a date using the calendar in the **Дата розкладу** input. Use
 **Налаштувати час** on a location to open its full-screen editor. Add or edit
 times there, tap **Готово**, then save the day. Time inputs use the full width
 of the editor; the day page shows a compact summary of each location.
+Each interval expands as an accordion to edit its time and capacity. Collapse it
+to return to the summary; changes remain in the day draft. The interval's
+three-dot menu contains Delete. Validation stays beside the affected interval,
+including when collapsed; Done opens and focuses the first remaining error.
+Deleting an interval, clearing or replacing existing times, or removing a location's times from
+the day requires a confirmation modal. It identifies the date and location,
+explains that bookings remain valid, and changes the draft only after confirmation.
+Deletion actions throughout the application require confirmation before mutation;
+this convention is recorded in `AGENTS.md` for future UI changes.
 
 - **Серія інтервалів:** enter 09:00–17:00 and 60 minutes to generate eight
   hourly slots. Any whole-minute duration is supported; the period must divide

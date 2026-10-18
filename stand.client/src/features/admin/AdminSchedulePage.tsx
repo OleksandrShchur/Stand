@@ -197,7 +197,7 @@ export default function AdminSchedulePage() {
                             </Box>
                         </Alert>}
                         {!locations.length && <Alert severity="info">Спочатку додайте локацію у довіднику.</Alert>}
-                        {locations.map(location => <LocationSchedule key={location.id} location={location}
+                        {locations.map(location => <LocationSchedule key={location.id} date={date} location={location}
                             slots={draft.locations.find(l => l.locationId === location.id)?.slots}
                             bookings={source.bookings.filter(b => b.locationId === location.id)} busy={busy}
                             otherLocations={draft.locations.filter(l => l.locationId !== location.id && l.slots.length > 0).map(l => ({ ...l, name: locations.find(p => p.id === l.locationId)?.name || '' }))}
