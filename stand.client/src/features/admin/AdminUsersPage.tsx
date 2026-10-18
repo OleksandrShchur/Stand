@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react';
 import {
-    Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack,
+    Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack,
+    ListItemIcon, ListItemText, Menu, MenuItem,
     Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import BlockIcon from '@mui/icons-material/Block';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import LockResetIcon from '@mui/icons-material/LockReset';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
 import type { AdminUserDto } from '../../api/types';
 import { formatDateTime } from '../../utils/date';
+import ConfirmDeleteDialog from '../../components/ConfirmDeleteDialog';
 
 export default function AdminUsersPage() {
     const { user: currentUser } = useAdminAuth();
@@ -22,8 +25,19 @@ export default function AdminUsersPage() {
     const [login, setLogin] = useState('');
     const [password, setPassword] = useState('');
     const [saving, setSaving] = useState(false);
-    const [updatingId, setUpdatingId] = useState<number | null>(null);
     const [formError, setFormError] = useState<string | null>(null);
+    const [menu, setMenu] = useState<{ anchor: HTMLElement; user: AdminUserDto } | null>(null);
+    const [passwordTarget, setPasswordTarget] = useState<AdminUserDto | null>(null);
+    const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [passwordTouched, setPasswordTouched] = useState(false);
+    const [confirmTouched, setConfirmTouched] = useState(false);
+    const [passwordError, setPasswordError] = useState('');
+    const [changingPassword, setChangingPassword] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState<AdminUserDto | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
+    const [notice, setNotice] = useState('');
 
     const load = () => {
         setLoading(true);
@@ -46,12 +60,36 @@ export default function AdminUsersPage() {
             .finally(() => setSaving(false));
     };
 
-    const toggle = (u: AdminUserDto) => {
-        if (updatingId !== null) return;
-        setUpdatingId(u.id);
-        const action = u.isActive ? adminApi.disableUser(u.id) : adminApi.enableUser(u.id);
-        action.then(load).catch((e) => setError(e instanceof ApiError ? e.message : 'Не вдалося оновити статус.')).finally(() => setUpdatingId(null));
+    const changePassword = async () => {
+        if (!passwordTarget || changingPassword) return;
+        setPasswordTouched(true); setConfirmTouched(true);
+        if (newPassword.length < 8 || !confirmPassword || newPassword !== confirmPassword) return;
+        setChangingPassword(true); setPasswordError('');
+        try {
+            await adminApi.changeUserPassword(passwordTarget.id, newPassword, confirmPassword);
+            setNotice(`Пароль адміністратора ${passwordTarget.login} змінено.`);
+            setPasswordTarget(null); setNewPassword(''); setConfirmPassword('');
+        } catch (e) { setPasswordError(e instanceof ApiError ? e.message : 'Не вдалося змінити пароль. Спробуйте ще раз.'); }
+        finally { setChangingPassword(false); }
     };
+
+    const remove = async () => {
+        if (!deleteTarget || deleting) return;
+        setDeleting(true); setDeleteError('');
+        try {
+            await adminApi.deleteUser(deleteTarget.id);
+            setItems(previous => previous.filter(user => user.id !== deleteTarget.id));
+            setNotice(`Адміністратора ${deleteTarget.login} видалено.`); setDeleteTarget(null);
+        } catch (e) { setDeleteError(e instanceof ApiError ? e.message : 'Не вдалося видалити адміністратора. Спробуйте ще раз.'); }
+        finally { setDeleting(false); }
+    };
+
+    const actions = (u: AdminUserDto, view: string) => <IconButton id={`admin-actions-${view}-${u.id}`}
+        aria-label={`Дії адміністратора ${u.login}`} aria-haspopup="menu" aria-controls={menu?.user.id === u.id ? 'admin-user-menu' : undefined}
+        aria-expanded={menu?.user.id === u.id ? true : undefined} disabled={deleting || changingPassword}
+        onClick={event => setMenu({ anchor: event.currentTarget, user: u })} sx={{ flexShrink: 0, width: 44, height: 44 }}>
+        <MoreVertIcon />
+    </IconButton>;
 
     if (loading) return <LoadingState />;
 
@@ -63,13 +101,17 @@ export default function AdminUsersPage() {
             </Box>
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
+            {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
 
             <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                 {items.map(u => <Card key={u.id} variant="outlined"><CardContent>
-                    <Typography component="h2" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
-                    <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} sx={{ my: 1 }} />
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Останній вхід: {u.lastLoginAtUtc ? formatDateTime(u.lastLoginAtUtc) : 'Ще не входив'}</Typography>
-                    {u.id !== currentUser?.id && <Button variant="outlined" disabled={updatingId !== null} onClick={() => toggle(u)}>{u.isActive ? 'Вимкнути доступ' : 'Увімкнути доступ'}</Button>}
+                    <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                        <Box sx={{ minWidth: 0 }}>
+                            <Typography component="h2" variant="h6" sx={{ overflowWrap: 'anywhere' }}>{u.login}{u.id === currentUser?.id ? ' · Ви' : ''}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Останній вхід: {u.lastLoginAtUtc ? formatDateTime(u.lastLoginAtUtc) : 'Ще не входив'}</Typography>
+                        </Box>
+                        {actions(u, 'mobile')}
+                    </Stack>
                 </CardContent></Card>)}
             </Stack>
             <TableContainer component={Paper} variant="outlined" sx={{ display: { xs: 'none', md: 'block' } }}>
@@ -77,7 +119,6 @@ export default function AdminUsersPage() {
                     <TableHead>
                         <TableRow>
                             <TableCell>Логін</TableCell>
-                            <TableCell>Статус</TableCell>
                             <TableCell>Останній вхід</TableCell>
                             <TableCell align="center">Дії</TableCell>
                         </TableRow>
@@ -88,22 +129,58 @@ export default function AdminUsersPage() {
                                 <TableCell sx={{ fontWeight: 600 }}>
                                     {u.login} {u.id === currentUser?.id && <Chip size="small" label="Ви" sx={{ ml: 1 }} />}
                                 </TableCell>
-                                <TableCell>
-                                    <Chip size="small" label={u.isActive ? 'Активний' : 'Вимкнений'} color={u.isActive ? 'success' : 'default'} />
-                                </TableCell>
                                 <TableCell>{u.lastLoginAtUtc ? formatDateTime(u.lastLoginAtUtc) : '—'}</TableCell>
                                 <TableCell align="center">
-                                    {u.id !== currentUser?.id && (
-                                        <IconButton aria-label={`${u.isActive ? 'Вимкнути' : 'Увімкнути'} доступ: ${u.login}`} aria-busy={updatingId === u.id} disabled={updatingId !== null} size="small" onClick={() => toggle(u)}>
-                                            {u.isActive ? <BlockIcon fontSize="small" /> : <CheckCircleOutlineIcon fontSize="small" />}
-                                        </IconButton>
-                                    )}
+                                    {actions(u, 'desktop')}
                                 </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <Menu id="admin-user-menu" anchorEl={menu?.anchor} open={!!menu} onClose={() => setMenu(null)}
+                slotProps={{ list: { 'aria-labelledby': menu?.anchor.id } }}>
+                <MenuItem onClick={() => {
+                    if (!menu) return;
+                    setPasswordTarget(menu.user); setNewPassword(''); setConfirmPassword('');
+                    setPasswordTouched(false); setConfirmTouched(false); setPasswordError(''); setMenu(null);
+                }}>
+                    <ListItemIcon><LockResetIcon fontSize="small" /></ListItemIcon><ListItemText>Змінити пароль</ListItemText>
+                </MenuItem>
+                {menu && menu.user.id !== currentUser?.id && <MenuItem sx={{ color: 'error.main' }} onClick={() => {
+                    setDeleteTarget(menu.user); setDeleteError(''); setMenu(null);
+                }}>
+                    <ListItemIcon sx={{ color: 'inherit' }}><DeleteOutlineIcon fontSize="small" /></ListItemIcon><ListItemText>Видалити</ListItemText>
+                </MenuItem>}
+            </Menu>
+
+            <Dialog open={!!passwordTarget} onClose={() => { if (!changingPassword) { setPasswordTarget(null); setNewPassword(''); setConfirmPassword(''); } }} fullWidth maxWidth="xs" aria-labelledby="admin-password-title">
+                <DialogTitle id="admin-password-title">Змінити пароль</DialogTitle>
+                <Box component="form" onSubmit={event => { event.preventDefault(); void changePassword(); }}>
+                    <DialogContent>
+                        <Stack spacing={2}>
+                            <Typography sx={{ overflowWrap: 'anywhere' }}>Адміністратор: <strong>{passwordTarget?.login}</strong></Typography>
+                            <TextField name="admin-new-password" label="Новий пароль" type="password" autoComplete="new-password" fullWidth autoFocus
+                                disabled={changingPassword} value={newPassword} onChange={event => setNewPassword(event.target.value)} onBlur={() => setPasswordTouched(true)}
+                                error={passwordTouched && newPassword.length < 8} helperText="Щонайменше 8 символів" />
+                            <TextField name="admin-confirm-password" label="Підтвердіть пароль" type="password" autoComplete="new-password" fullWidth
+                                disabled={changingPassword} value={confirmPassword} onChange={event => setConfirmPassword(event.target.value)} onBlur={() => setConfirmTouched(true)}
+                                error={confirmTouched && (!confirmPassword || newPassword !== confirmPassword)}
+                                helperText={confirmTouched && (!confirmPassword || newPassword !== confirmPassword) ? 'Паролі мають збігатися.' : undefined} />
+                            {passwordError && <Alert severity="error">{passwordError}</Alert>}
+                        </Stack>
+                    </DialogContent>
+                    <DialogActions sx={{ p: 2, gap: 1 }}>
+                        <Button variant="outlined" disabled={changingPassword} onClick={() => { setPasswordTarget(null); setNewPassword(''); setConfirmPassword(''); }}>Скасувати</Button>
+                        <Button variant="contained" type="submit" loading={changingPassword} disabled={changingPassword}>Зберегти</Button>
+                    </DialogActions>
+                </Box>
+            </Dialog>
+
+            <ConfirmDeleteDialog open={!!deleteTarget} title="Видалити адміністратора?"
+                description={`Адміністратора ${deleteTarget?.login ?? ''} буде видалено. Він втратить доступ до панелі адміністратора. Цю дію неможливо скасувати.`}
+                busy={deleting} error={deleteError} onCancel={() => setDeleteTarget(null)} onConfirm={() => { void remove(); }} />
 
             <Dialog open={dialogOpen} onClose={() => { if (!saving) setDialogOpen(false); }} fullWidth maxWidth="xs">
                 <DialogTitle>Новий адміністратор</DialogTitle>
@@ -114,7 +191,7 @@ export default function AdminUsersPage() {
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>
                 <DialogActions>
-                    <Button disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
+                    <Button variant="outlined" disabled={saving} onClick={() => setDialogOpen(false)}>Скасувати</Button>
                     <Button loading={saving} variant="contained" disabled={saving || !login || !password} onClick={create}>
                         {saving ? 'Створюємо…' : 'Створити'}
                     </Button>

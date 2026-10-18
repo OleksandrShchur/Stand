@@ -5,6 +5,7 @@ public sealed record LoginRequestDto(string Login, string Password);
 public sealed record AdminMeDto(int Id, string Login);
 public sealed record AdminUserDto(int Id, string Login, bool IsActive, string CreatedAtUtc, string? LastLoginAtUtc);
 public sealed record CreateAdminUserDto(string Login, string Password);
+public sealed record ChangeAdminPasswordDto(string Password, string ConfirmPassword);
 public sealed record SetAdminActiveDto(bool IsActive);
 public sealed record AuthorizedUserAdminDto(int Id, string Phone, string FirstName, string LastName, bool IsActive, string CreatedAtUtc, string? LastLoginAtUtc);
 public sealed record CreateAuthorizedUserDto(string Phone, string FirstName, string LastName);
