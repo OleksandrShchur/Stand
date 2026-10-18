@@ -3,9 +3,9 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import ts from 'typescript';
 
-const source = readFileSync(new URL('../src/features/admin/bookingCardGroups.ts', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../src/utils/bookingCardGroups.ts', import.meta.url), 'utf8');
 const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { groupBookingCards } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+const { groupBookingCards, groupMyShiftCards } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 
 const booking = (id, startTime, endTime, overrides = {}) => ({
     id, startTime, endTime, date: '2026-10-28', locationId: 1,
@@ -59,4 +59,39 @@ test('keeps separate consecutive runs on either side of a time gap', () => {
 test('empty lists and single bookings remain unchanged', () => {
     assert.deepEqual(groupBookingCards([]), []);
     assert.deepEqual(groupBookingCards([first]), [[first]]);
+});
+
+const myShift = (id, startTime, endTime, overrides = {}) => ({
+    id, startTime, endTime, date: '2026-10-19', locationName: 'Центр міста',
+    locationAddress: 'Театральний майдан', cancelToken: `cancel-${id}`,
+    participants: [{ firstName: 'Віталій', lastName: 'Іванов' }],
+    ...overrides,
+});
+const myFirst = myShift(1, '09:00', '11:00');
+const mySecond = myShift(2, '11:00', '13:00');
+const myThird = myShift(3, '13:00', '15:00');
+
+test('my shifts group consecutive bookings and retain each booking and cancellation token', () => {
+    const shifts = Object.freeze([Object.freeze(myFirst), Object.freeze(mySecond), Object.freeze(myThird)]);
+    const groups = groupMyShiftCards(shifts);
+    assert.deepEqual(groups.map(group => group.map(shift => shift.id)), [[1, 2, 3]]);
+    groups.flat().forEach((shift, index) => assert.equal(shift, shifts[index]));
+    assert.deepEqual(groupMyShiftCards([...shifts].reverse()).map(group => group.map(shift => shift.id)), [[3, 2, 1]]);
+});
+
+test('my shifts on different dates or at different locations remain separate', () => {
+    for (const overrides of [{ date: '2026-10-20' }, { locationName: 'Подоляни' }, { locationAddress: 'Інша адреса' }]) {
+        assert.deepEqual(groupMyShiftCards([myFirst, { ...mySecond, ...overrides }]).map(group => group.length), [1, 1]);
+    }
+});
+
+test('cancelling a middle booking leaves a time gap and splits the visual group', () => {
+    assert.deepEqual(groupMyShiftCards([myFirst, myThird]).map(group => group.map(shift => shift.id)), [[1], [3]]);
+    assert.deepEqual(groupMyShiftCards([myFirst, mySecond]).map(group => group.map(shift => shift.id)), [[1, 2]]);
+});
+
+test('my shifts with no address can group, and empty or single results stay intact', () => {
+    assert.deepEqual(groupMyShiftCards([{ ...myFirst, locationAddress: null }, { ...mySecond, locationAddress: undefined }]).map(group => group.length), [2]);
+    assert.deepEqual(groupMyShiftCards([]), []);
+    assert.deepEqual(groupMyShiftCards([myFirst]), [[myFirst]]);
 });

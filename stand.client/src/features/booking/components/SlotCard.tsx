@@ -7,6 +7,7 @@ import type { SlotAvailabilityDto } from '../../../api/types';
 import { bookingCopy, showParticipantNames } from '../bookingCopy';
 import StateBadge from './StateBadge';
 import type { SlotTimeStatus } from '../slotTimeStatus';
+import { surfaceShadow } from '../../../surfaceStyles';
 
 export default function SlotCard({
     slot,
@@ -69,7 +70,7 @@ export default function SlotCard({
         >
             <Box sx={{
                 transition: 'background-color 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease',
-                '@media (hover: hover)': { '&:hover': { boxShadow: unavailable ? 'none' : '0 2px 8px rgba(30, 74, 55, 0.14)' } },
+                boxShadow: surfaceShadow,
                 border: '1px solid',
                 borderColor: selected ? 'var(--state-selected-bg)' : full ? 'var(--state-full-border)' : 'divider',
                 borderLeft: `6px solid ${unavailable ? '#9CA3AF' : selected ? 'var(--state-selected-bg)' : accent}`,

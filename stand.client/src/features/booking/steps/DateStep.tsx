@@ -14,6 +14,7 @@ import DayCell from '../components/DayCell';
 import StateBadge from '../components/StateBadge';
 import { bookingCopy } from '../bookingCopy';
 import { loadCalendarWithAvailability } from '../locationAvailability';
+import { surfaceShadow } from '../../../surfaceStyles';
 
 const WEEKDAYS = ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд'];
 
@@ -91,7 +92,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
                     <StateBadge label={bookingCopy.readOnly} tone="unavailable" />
                 </Stack>
             </Stack>
-            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)', p: 1 }}>
+            <Box sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, boxShadow: surfaceShadow, p: 1 }}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: '44px minmax(0, 1fr) 44px', alignItems: 'center', mb: 2 }}>
                     <Tooltip title="Попередній місяць">
                         <IconButton aria-label="Попередній місяць" onClick={() => changeMonth(-1)} sx={{ minWidth: 44, minHeight: 44 }}>
@@ -141,7 +142,7 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
                     {dateHint?.message}
                 </Alert>
             </Snackbar>
-            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                     <Stack direction="row" spacing={1}>
                         <Button variant="outlined" size="large" onClick={onBack} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>

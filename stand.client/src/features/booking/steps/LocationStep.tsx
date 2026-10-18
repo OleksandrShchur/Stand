@@ -8,6 +8,7 @@ import type { LocationDto } from '../../../api/types';
 import { formatDateFull } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
+import { surfaceShadow } from '../../../surfaceStyles';
 import StateBadge from '../components/StateBadge';
 import { loadLocationsWithAvailability } from '../locationAvailability';
 import { getKyivDateTime } from '../slotTimeStatus';
@@ -86,7 +87,7 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
                     })}
                 </RadioGroup>
             )}
-            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.06)', pb: 'env(safe-area-inset-bottom, 0px)' }}>
+            <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                     <Stack direction="row" spacing={1}>
                         <Button variant="outlined" size="large" onClick={onBack} sx={{ minHeight: 56, flex: '1 1 0', minWidth: 0 }}>

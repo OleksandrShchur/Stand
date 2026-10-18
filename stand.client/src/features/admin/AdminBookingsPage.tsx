@@ -15,7 +15,8 @@ import UkrainianDatePicker from '../../components/UkrainianDatePicker';
 import UkrainianTimePicker from '../../components/UkrainianTimePicker';
 import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
-import { groupBookingCards } from './bookingCardGroups';
+import { groupBookingCards } from '../../utils/bookingCardGroups';
+import BookingCardGroup from '../../components/BookingCardGroup';
 
 export default function AdminBookingsPage() {
     const [searchParams] = useSearchParams();
@@ -133,22 +134,8 @@ export default function AdminBookingsPage() {
                 <>
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
-                    {cardGroups.map(group => <Stack key={group[0].id} sx={{
-                        gap: '3px',
-                        borderRadius: '16px',
-                        boxShadow: '0 0 10px rgba(31, 42, 36, 0.18)',
-                    }}>
-                        {group.map(b => <Card variant="outlined" key={b.id} sx={{
-                            borderRadius: 0,
-                            '&:first-of-type': {
-                                borderTopLeftRadius: '16px',
-                                borderTopRightRadius: '16px',
-                            },
-                            '&:last-of-type': {
-                                borderBottomLeftRadius: '16px',
-                                borderBottomRightRadius: '16px',
-                            },
-                        }}><CardContent>
+                    {cardGroups.map(group => <BookingCardGroup key={group[0].id}>
+                        {group.map(b => <Card variant="outlined" key={b.id}><CardContent>
                             <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
                                 <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
                                 <IconButton
@@ -166,7 +153,7 @@ export default function AdminBookingsPage() {
                             <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
                             <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
                         </CardContent></Card>)}
-                    </Stack>)}
+                    </BookingCardGroup>)}
                 </Stack>
                 <Menu
                     id="booking-actions-menu"
