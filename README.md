@@ -340,8 +340,9 @@ Implemented improvements, deployment prerequisites and regression checks are in
 ## 13. Mobile admin schedule
 
 Open `/admin/schedule` (Розклад). Select a date, open or close the day, enable its
-locations, and set times separately for each location. Save and Copy stay above
-the phone navigation bar. Existing users keep the same booking screens.
+locations, and set times separately for each location. Save and Copy are inside
+the selected day's summary card, with unsaved changes and validation shown beside
+the actions. Existing users keep the same booking screens.
 Select a date using the calendar in the **Дата розкладу** input. Use
 **Налаштувати час** on a location to open its full-screen editor. Add or edit
 times there, tap **Готово**, then save the day. Time inputs use the full width

@@ -123,7 +123,7 @@ export default function AdminSchedulePage() {
     };
 
     return (
-        <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', pb: { xs: 14, md: 0 }, overflowWrap: 'anywhere' }}>
+        <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', overflowWrap: 'anywhere' }}>
             <Typography component="h1" variant="h4" sx={{
                 mb: 2,
                 [theme.breakpoints.down('sm')]: {
@@ -161,10 +161,21 @@ export default function AdminSchedulePage() {
                 <Stack spacing={2} sx={{ minWidth: 0 }}>
                     {loading && <LoadingState label="Завантажуємо розклад…" />}
                     {!loading && draft && source && <>
-                        <Card variant="outlined"><CardContent>
+                        <Card variant="outlined" data-testid="schedule-day-summary"><CardContent>
                             <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{formatDate(date)}</Typography>
                             <FormControlLabel control={<Switch checked={draft.isActive} disabled={busy} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />}
                                 label={draft.isActive ? 'День відкритий для запису' : 'День закритий для запису'} />
+                            <Box data-testid="schedule-actions" sx={{ mt: 2 }}>
+                                <Typography variant="body2" color={dirty ? 'warning.dark' : 'text.secondary'} role="status" sx={{ mb: 1.5 }}>
+                                    {dirty ? 'Є незбережені зміни' : 'Локацій: ' + draft.locations.length + ' · Інтервалів: ' + draft.locations.reduce((n, l) => n + l.slots.length, 0)}
+                                </Typography>
+                                {validation && <Alert severity="error" sx={{ mb: 1.5 }}>{validation}</Alert>}
+                                {draft.isActive && inactive && <Alert severity="warning" sx={{ mb: 1.5 }}>У розкладі є неактивна локація. Вимкніть її тут або увімкніть у довіднику.</Alert>}
+                                <Stack direction="row" spacing={1} sx={{ '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 }, '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }}>
+                                    <Button variant="contained" startIcon={<SaveOutlinedIcon />} loading={busy} disabled={!!validation || (draft.isActive && inactive)} onClick={() => prepare([date])}>Зберегти</Button>
+                                    <Button variant="text" startIcon={<ContentCopyIcon />} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
+                                </Stack>
+                            </Box>
                         </CardContent></Card>
                         <Box>
                             <Typography component="h2" variant="h6">Локації та час</Typography>
@@ -191,16 +202,7 @@ export default function AdminSchedulePage() {
                             </AccordionDetails>
                         </Accordion>
                         <Button component={RouterLink} to="/admin/locations" startIcon={<AddIcon />}>Керувати локаціями</Button>
-                        {validation && <Alert severity="error">{validation}</Alert>}
-                        {draft.isActive && inactive && <Alert severity="warning">У розкладі є неактивна локація. Вимкніть її тут або увімкніть у довіднику.</Alert>}
                         {draft.isActive && !draft.locations.length && <Alert severity="warning">День відкритий, але час ще не додано. Користувачі поки не зможуть записатися.</Alert>}
-                        <Box data-testid="schedule-actions" sx={{ position: { xs: 'fixed', md: 'sticky' }, bottom: 'var(--admin-navigation-clearance)', left: { xs: 0, sm: 'var(--admin-sidebar-width)', md: 'auto' }, right: { xs: 0, md: 'auto' }, minWidth: 0, zIndex: theme.zIndex.appBar - 1, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider', p: { xs: 1.5, md: 2 }, boxShadow: 2 }}>
-                            <Typography variant="caption" color={dirty ? 'warning.dark' : 'text.secondary'} sx={{ display: 'block', mb: 0.75 }}>{dirty ? 'Є незбережені зміни' : 'Локацій: ' + draft.locations.length + ' · Інтервалів: ' + draft.locations.reduce((n, l) => n + l.slots.length, 0)}</Typography>
-                            <Stack direction="row" spacing={1}>
-                                <Button variant="contained" fullWidth startIcon={<SaveOutlinedIcon />} sx={{ '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }} loading={busy} disabled={!!validation || (draft.isActive && inactive)} onClick={() => prepare([date])}>Зберегти</Button>
-                                <Button variant="outlined" fullWidth startIcon={<ContentCopyIcon />} sx={{ '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
-                            </Stack>
-                        </Box>
                     </>}
                 </Stack>
             </Box>
