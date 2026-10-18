@@ -12,8 +12,11 @@ const socket = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise((resolve, reject) => { socket.onopen = resolve; socket.onerror = reject; });
 let nextId = 0;
 const pending = new Map();
+const scheduleWrites = [];
 socket.onmessage = event => {
     const value = JSON.parse(event.data);
+    if (value.method === 'Network.requestWillBeSent' && value.params.request.url.includes('/api/admin/schedule') && value.params.request.method !== 'GET')
+        scheduleWrites.push(value.params.request);
     if (value.method === 'Page.javascriptDialogOpening') {
         send('Page.handleJavaScriptDialog', { accept: true });
         return;
@@ -56,12 +59,21 @@ const editButton = `document.querySelector(${JSON.stringify('button[aria-label="
 const lastNumber = '[...document.querySelectorAll("[data-testid=location-time-editor] input[type=number]")].filter(e=>e.checkVisibility()).at(-1)';
 mkdirSync('artifacts/admin-slot-capacity', { recursive: true });
 try {
-    await send('Page.enable'); await send('Runtime.enable');
+    await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
     await send('Network.setCookie', { name: 'fixture-admin', value: 'true', url: base });
     for (const width of [320, 393, 414]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: true, screenWidth: width, screenHeight: 852 });
         await send('Page.navigate', { url: base + '/admin/schedule' });
         await wait(`${button('Налаштувати час')} !== undefined`);
+        const writesBeforeSave = scheduleWrites.length;
+        await click(button('Зберегти'));
+        await wait('document.querySelector(".MuiSnackbar-root")?.innerText.includes("Немає змін для збереження")');
+        assert.equal(await evaluate('document.querySelector("#review-title")'), null, 'Unchanged Save shows a toast without opening review');
+        assert.equal(scheduleWrites.length, writesBeforeSave, 'Unchanged Save does not call preview or save APIs');
+        await click('document.querySelector(".MuiSnackbar-root button")');
+        await click(button('Копіювати'));
+        await wait('!!document.querySelector("#copy-title")');
+        await click(button('Назад'));
         await click(button('Налаштувати час'));
         await wait(`${editor} !== null`);
         await click(editButton);
@@ -104,7 +116,7 @@ try {
         await wait(`document.querySelectorAll(${JSON.stringify('button[aria-label^="Видалити інтервал"]')}).length === 8`);
         assert.equal(await evaluate(`(${editor}.innerText.match(/Місць: 4/g) || []).length`), 8, 'Generator applies the selected capacity to every interval');
         assert.equal(await evaluate('document.querySelector("input[name=schedule-1-to]").value'), '17:00', 'Generator also uses 24-hour times');
-        console.log(`PASS ${width}px: 24-hour time selection, capacity edit, validation, preview and series generation`);
+        console.log(`PASS ${width}px: unchanged-save toast, copying unchanged schedules, 24-hour time selection, capacity edit, validation, preview and series generation`);
     }
 } finally {
     await send('Page.close').catch(() => {});

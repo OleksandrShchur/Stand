@@ -36,7 +36,7 @@ export default function AdminSchedulePage() {
     const [draft, setDraft] = useState<Draft | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [notice, setNotice] = useState<number | null>(null);
+    const [notice, setNotice] = useState<{ id: number; kind: 'saved' | 'unchanged' } | null>(null);
     const [busy, setBusy] = useState(false);
     const [retry, setRetry] = useState(0);
     const [leave, setLeave] = useState<(() => void) | null>(null);
@@ -104,12 +104,20 @@ export default function AdminSchedulePage() {
         catch (e) { setError(message(e)); }
         finally { setBusy(false); }
     };
+    const saveDay = () => {
+        if (!draft || busy) return;
+        if (!dirty) {
+            setNotice({ id: Date.now(), kind: 'unchanged' });
+            return;
+        }
+        void prepare([date]);
+    };
     const save = async () => {
         if (!review || busy) return;
         setBusy(true); setError('');
         try {
             await adminApi.saveSchedule({ ...review.dto, acknowledgeExistingBookings: true });
-            setNotice(Date.now());
+            setNotice({ id: Date.now(), kind: 'saved' });
             if (review.dto.dates.includes(date)) setRetry(n => n + 1);
             setReview(null); setCopyOpen(false);
         } catch (e) { setError(message(e)); }
@@ -132,15 +140,15 @@ export default function AdminSchedulePage() {
                 },
             }}>Розклад</Typography>
             <Snackbar
-                key={notice}
+                key={notice?.id}
                 open={notice !== null}
-                autoHideDuration={10000}
+                autoHideDuration={notice?.kind === 'unchanged' ? 5000 : 10000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 sx={{ top: { xs: 64, sm: 24 } }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setNotice(null); }}
             >
-                <Alert severity="success" variant="filled" onClose={() => setNotice(null)}>
-                    Розклад збережено
+                <Alert severity={notice?.kind === 'unchanged' ? 'info' : 'success'} variant="filled" onClose={() => setNotice(null)}>
+                    {notice?.kind === 'unchanged' ? 'Немає змін для збереження' : 'Розклад збережено'}
                 </Alert>
             </Snackbar>
             {error && <Alert severity="error" sx={{ mb: 2 }} action={!draft && <Button color="inherit" onClick={() => setRetry(n => n + 1)}>Повторити</Button>}>{error}</Alert>}
@@ -172,8 +180,8 @@ export default function AdminSchedulePage() {
                                 {validation && <Alert severity="error" sx={{ mb: 1.5 }}>{validation}</Alert>}
                                 {draft.isActive && inactive && <Alert severity="warning" sx={{ mb: 1.5 }}>У розкладі є неактивна локація. Вимкніть її тут або увімкніть у довіднику.</Alert>}
                                 <Stack direction="row" spacing={1} sx={{ '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 }, '& .MuiButton-startIcon': { display: { xs: 'none', sm: 'inherit' } } }}>
-                                    <Button variant="contained" startIcon={<SaveOutlinedIcon />} loading={busy} disabled={!!validation || (draft.isActive && inactive)} onClick={() => prepare([date])}>Зберегти</Button>
-                                    <Button variant="text" startIcon={<ContentCopyIcon />} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
+                                    <Button variant="contained" startIcon={<SaveOutlinedIcon />} loading={busy} disabled={dirty && (!!validation || (draft.isActive && inactive))} onClick={saveDay}>Зберегти</Button>
+                                    <Button variant="outlined" startIcon={<ContentCopyIcon />} disabled={busy || !!validation || (draft.isActive && inactive)} onClick={() => { setCopyOpen(true); setCopyDates([]); }}>Копіювати</Button>
                                 </Stack>
                             </Box>
                         </CardContent></Card>
