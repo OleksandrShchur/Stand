@@ -1,18 +1,11 @@
 const WEEKDAYS_SHORT = ['нд', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-const MONTHS_GENITIVE = [
-    'січня',
-    'лютого',
-    'березня',
-    'квітня',
-    'травня',
-    'червня',
-    'липня',
-    'серпня',
-    'вересня',
-    'жовтня',
-    'листопада',
-    'грудня',
-];
+export const DATE_PICKER_FORMAT = 'DD.MM.YYYY';
+
+const dateTimeFormatter = new Intl.DateTimeFormat('uk-UA', {
+    timeZone: 'Europe/Kyiv',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
 
 /** Parses a "yyyy-MM-dd" civil date string into a local Date (midnight, no TZ shifting). */
 export function parseIsoDate(iso: string): Date {
@@ -20,9 +13,10 @@ export function parseIsoDate(iso: string): Date {
     return new Date(y, m - 1, d);
 }
 
-export function formatDateHuman(iso: string): string {
-    const date = parseIsoDate(iso);
-    return `${date.getDate()} ${MONTHS_GENITIVE[date.getMonth()]}`;
+/** Formats an ISO civil date as dd.MM.yyyy without time zone conversion. */
+export function formatDate(iso: string): string {
+    const [year, month, day] = iso.split('-');
+    return `${day}.${month}.${year}`;
 }
 
 export function formatWeekdayShort(iso: string): string {
@@ -30,11 +24,10 @@ export function formatWeekdayShort(iso: string): string {
     return WEEKDAYS_SHORT[date.getDay()];
 }
 
-export function formatDateFull(iso: string): string {
-    const date = parseIsoDate(iso);
-    const weekday = date.toLocaleDateString('uk-UA', { weekday: 'long' });
-    const capitalizedWeekday = weekday.charAt(0).toLocaleUpperCase('uk-UA') + weekday.slice(1);
-    return `${capitalizedWeekday}, ${date.getDate()} ${MONTHS_GENITIVE[date.getMonth()]} ${date.getFullYear()}`;
+/** Formats a timestamp as dd.MM.yyyy, HH:mm in Kyiv time. */
+export function formatDateTime(iso: string): string {
+    const parts = Object.fromEntries(dateTimeFormatter.formatToParts(new Date(iso)).map(({ type, value }) => [type, value]));
+    return `${parts.day}.${parts.month}.${parts.year}, ${parts.hour}:${parts.minute}`;
 }
 
 export function dateRangeIso(startIso: string, endIso: string): string[] {

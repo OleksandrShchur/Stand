@@ -15,7 +15,7 @@ import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import type { DayScheduleDto, LocationAdminDto, SaveScheduleDto, ScheduleLocationDto, ScheduleRangeDto, ScheduleSaveResultDto } from '../../api/types';
 import { LoadingState } from '../../components/StateMessage';
-import { formatDateFull, formatDateHuman, todayIso } from '../../utils/date';
+import { formatDate, todayIso } from '../../utils/date';
 import { matchingDates, validateRanges } from './scheduleModel';
 import LocationSchedule from './LocationSchedule';
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
@@ -162,7 +162,7 @@ export default function AdminSchedulePage() {
                     {loading && <LoadingState label="Завантажуємо розклад…" />}
                     {!loading && draft && source && <>
                         <Card variant="outlined"><CardContent>
-                            <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{formatDateFull(date)}</Typography>
+                            <Typography component="h2" variant="h6" sx={{ mb: 1 }}>{formatDate(date)}</Typography>
                             <FormControlLabel control={<Switch checked={draft.isActive} disabled={busy} onChange={e => setDraft({ ...draft, isActive: e.target.checked })} />}
                                 label={draft.isActive ? 'День відкритий для запису' : 'День закритий для запису'} />
                         </CardContent></Card>
@@ -209,7 +209,7 @@ export default function AdminSchedulePage() {
                 <DialogTitle id="copy-title">Копіювати розклад дня</DialogTitle>
                 <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                     <Stack spacing={2} sx={{ pt: 1, minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
-                        <Typography>Копіюється поточний розклад за {formatDateHuman(date)}: стан дня, локації та всі інтервали, включно з незбереженими змінами.</Typography>
+                        <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали, включно з незбереженими змінами.</Typography>
                         <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
                             <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0 }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0 }}>За днями тижня</ToggleButton>
                         </ToggleButtonGroup>
@@ -218,7 +218,7 @@ export default function AdminSchedulePage() {
                                 <UkrainianDatePicker label="Додати дату" name="copy-date" value={extraDate} onChange={setExtraDate} />
                                 <IconButton aria-label="Додати дату до копіювання" disabled={!extraDate || copyDates.includes(extraDate) || copyDates.length >= 366} onClick={() => { setCopyDates([...copyDates, extraDate]); setExtraDate(''); }} sx={{ mt: 0.5, minHeight: 44 }}><AddIcon /></IconButton>
                             </Stack>
-                            <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>{copyDates.map(day => <Chip key={day} sx={{ maxWidth: '100%' }} label={formatDateFull(day)} onDelete={() => setCopyDates(copyDates.filter(d => d !== day))} />)}</Stack>
+                            <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>{copyDates.map(day => <Chip key={day} sx={{ maxWidth: '100%' }} label={formatDate(day)} onDelete={() => setCopyDates(copyDates.filter(d => d !== day))} />)}</Stack>
                         </> : <>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                                 <UkrainianDatePicker label="Від" name="copy-from" value={copyFrom} onChange={setCopyFrom} />
@@ -240,7 +240,7 @@ export default function AdminSchedulePage() {
                 <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}><Stack spacing={2} sx={{ pt: 1 }}>
                     {review && <>
                         <Typography>Дат: <strong>{review.result.updatedDates}</strong> · {review.dto.isActive ? 'Відкрито для запису' : 'Закрито для запису'}</Typography>
-                        <Box sx={{ maxHeight: 120, overflowY: 'auto' }}><Typography variant="body2">{review.dto.dates.map(formatDateFull).join('; ')}</Typography></Box>
+                        <Box sx={{ maxHeight: 120, overflowY: 'auto' }}><Typography variant="body2">{review.dto.dates.map(formatDate).join('; ')}</Typography></Box>
                         {review.dto.locations.map(l => <Box key={l.locationId}><Typography sx={{ fontWeight: 700 }}>{locations.find(place => place.id === l.locationId)?.name}</Typography>
                             <Typography variant="body2">{l.slots.map(slot => `${slot.startTime}–${slot.endTime}`).join(', ')}</Typography></Box>)}
                         <Alert severity={review.result.preservedBookings ? 'warning' : 'info'}>

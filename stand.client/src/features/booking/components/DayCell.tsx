@@ -1,6 +1,6 @@
 import { Button, Box, Typography } from '@mui/material';
 import CheckIcon from '@mui/icons-material/Check';
-import { formatDateFull, parseIsoDate } from '../../../utils/date';
+import { formatDate, parseIsoDate } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 
 export default function DayCell({
@@ -21,7 +21,7 @@ export default function DayCell({
     onUnavailable?: (date: string) => void;
 }) {
     const disabled = !isAvailable;
-    const label = `${formatDateFull(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є записи' : 'немає записів'}`;
+    const label = `${formatDate(date)}, ${readOnly ? bookingCopy.readOnly : isAvailable ? 'є записи' : 'немає записів'}`;
 
     return (
         <Button

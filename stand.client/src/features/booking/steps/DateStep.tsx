@@ -6,7 +6,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
-import { dateRangeIso, formatDateHuman, parseIsoDate } from '../../../utils/date';
+import { dateRangeIso, formatDate, parseIsoDate } from '../../../utils/date';
 import type { CalendarDto } from '../../../api/types';
 import { getKyivDateTime } from '../slotTimeStatus';
 import { pagePadding } from '../../../layoutSpacing';
@@ -71,11 +71,11 @@ export default function DateStep({ selectedDate, onSelect, onContinue, onBack }:
 
     const explainUnavailableDate = (date: string) => {
         const reason = bookingWindow && date > bookingWindow.last
-            ? `Запис відкрито лише до ${formatDateHuman(bookingWindow.last)}.`
+            ? `Запис відкрито лише до ${formatDate(bookingWindow.last)}.`
             : bookingWindow && date < bookingWindow.first
                 ? 'На цю дату немає записів для перегляду.'
                 : 'Запис на цю дату не відкрито. Оберіть доступний день.';
-        setDateHint({ message: `${formatDateHuman(date)}: ${reason}`, key: Date.now() });
+        setDateHint({ message: `${formatDate(date)}: ${reason}`, key: Date.now() });
     };
 
     const monthLabel = `${month.toLocaleDateString('uk-UA', { month: 'long' })} ${month.getFullYear()}`;

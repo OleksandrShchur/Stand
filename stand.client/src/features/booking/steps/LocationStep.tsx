@@ -5,7 +5,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { LocationDto } from '../../../api/types';
-import { formatDateFull } from '../../../utils/date';
+import { formatDate } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
 import { surfaceShadow } from '../../../surfaceStyles';
@@ -48,7 +48,7 @@ export default function LocationStep({ date, onSelect, onBack, selectedLocationI
                     <Typography component="h1" id="location-heading" variant="h5">{bookingCopy.selectLocation}</Typography>
                     {!showAvailabilityChips && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                 </Stack>
-                <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                <Chip label={formatDate(date)} size="small" color="primary" variant="outlined" />
             </Stack>
 
             {locations.length === 0 ? (

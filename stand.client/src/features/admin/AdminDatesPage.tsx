@@ -8,6 +8,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState } from '../../components/StateMessage';
+import { formatDate } from '../../utils/date';
 
 const WEEKDAY_LABELS = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'];
 const WEEKDAY_OPTIONS = [
@@ -116,7 +117,7 @@ export default function AdminDatesPage() {
                                     key={c.date}
                                     value={c.date}
                                     disabled={bulkBusy || !!pendingDate}
-                                    aria-label={`${c.day}, ${MONTH_NAMES[month - 1]}${pendingDate === c.date ? ', зберігаємо' : ''}`}
+                                    aria-label={`${formatDate(c.date)}${pendingDate === c.date ? ', зберігаємо' : ''}`}
                                     selected={!!activeMap[c.date]}
                                     onChange={() => toggleDay(c.date!)}
                                     size="small"

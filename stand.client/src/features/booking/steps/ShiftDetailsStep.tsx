@@ -5,7 +5,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
 import type { BookingSummaryDto, SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull, todayIso } from '../../../utils/date';
+import { formatDate, todayIso } from '../../../utils/date';
 import { bookingCopy } from '../bookingCopy';
 import { isContinuousSelection, sortSlots } from '../slotSelection';
 import { pagePadding } from '../../../layoutSpacing';
@@ -76,7 +76,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                         <Box>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Дата</Typography>
                             <Typography sx={{ fontSize: 18, fontWeight: 600, lineHeight: 1.5 }}>
-                                {formatDateFull(date)}
+                                {formatDate(date)}
                             </Typography>
                         </Box>
                         <Box sx={{ p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>

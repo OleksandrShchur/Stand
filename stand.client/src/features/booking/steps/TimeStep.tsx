@@ -4,7 +4,7 @@ import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, EmptyState, SkeletonList } from '../../../components/StateMessage';
 import type { SlotAvailabilityDto } from '../../../api/types';
-import { formatDateFull } from '../../../utils/date';
+import { formatDate } from '../../../utils/date';
 import SlotCard from '../components/SlotCard';
 import { bookingCopy } from '../bookingCopy';
 import { listGap, pagePadding } from '../../../layoutSpacing';
@@ -59,7 +59,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                     {readOnly && <Chip label={bookingCopy.archive} size="small" variant="outlined" />}
                 </Stack>
                 <Stack spacing={0.5} sx={{ alignItems: 'flex-end' }}>
-                    <Chip label={formatDateFull(date)} size="small" color="primary" variant="outlined" />
+                    <Chip label={formatDate(date)} size="small" color="primary" variant="outlined" />
                     <Chip label={locationName} size="small" variant="outlined" />
                 </Stack>
             </Stack>
