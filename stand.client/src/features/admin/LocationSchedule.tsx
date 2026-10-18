@@ -13,6 +13,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { DayScheduleDto, LocationAdminDto, ScheduleLocationDto, ScheduleRangeDto } from '../../api/types';
 import { generateRanges, validateRanges } from './scheduleModel';
+import UkrainianTimePicker from '../../components/UkrainianTimePicker';
 
 interface Props {
     location: LocationAdminDto;
@@ -23,8 +24,8 @@ interface Props {
     onChange: (slots: ScheduleRangeDto[] | null) => void;
 }
 
-// Only the location being edited mounts time inputs. Native date/time controls
-// must be able to shrink without imposing their intrinsic width on the page.
+// Only the location being edited mounts time controls. Controls must be able
+// to shrink without imposing their intrinsic width on the page.
 export default function LocationSchedule({ location, slots, bookings, busy, otherLocations, onChange }: Props) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -94,8 +95,8 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                                 <ToggleButton value="single" sx={{ flex: 1, minWidth: 0, whiteSpace: 'normal' }}>Один інтервал</ToggleButton>
                             </ToggleButtonGroup>
                             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                                <TextField fullWidth label="Від" type="time" value={start} disabled={busy} onChange={event => setStart(event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
-                                <TextField fullWidth label="До" type="time" value={end} disabled={busy} onChange={event => setEnd(event.target.value)} slotProps={{ inputLabel: { shrink: true } }} />
+                                <UkrainianTimePicker label="Від" name={`schedule-${location.id}-from`} value={start} disabled={busy} size="medium" clearable={false} onChange={setStart} />
+                                <UkrainianTimePicker label="До" name={`schedule-${location.id}-to`} value={end} disabled={busy} size="medium" clearable={false} onChange={setEnd} />
                             </Stack>
                             {mode === 'bulk' && <TextField label="Тривалість інтервалу, хв" type="number" value={duration} disabled={busy} onChange={event => setDuration(Number(event.target.value))}
                                 slotProps={{ htmlInput: { min: 1, max: 1439, inputMode: 'numeric' } }} helperText="60 — щогодини; 30 — кожні пів години." />}
@@ -120,8 +121,8 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                             <IconButton aria-label={`Видалити інтервал ${slot.startTime}–${slot.endTime}`} disabled={busy} onClick={() => { onChange(slots.filter((_, i) => i !== index)); setEditingIndex(null); }} sx={{ width: 44, height: 44, flexShrink: 0 }}><DeleteOutlineIcon /></IconButton>
                         </Stack>
                         {editingIndex === index && <Stack spacing={2} sx={{ mt: 2 }}>
-                            <TextField label="Початок" type="time" value={slot.startTime} disabled={busy} fullWidth slotProps={{ inputLabel: { shrink: true } }} onChange={event => onChange(slots.map((item, i) => i === index ? { ...item, startTime: event.target.value } : item))} />
-                            <TextField label="Завершення" type="time" value={slot.endTime} disabled={busy} fullWidth slotProps={{ inputLabel: { shrink: true } }} onChange={event => onChange(slots.map((item, i) => i === index ? { ...item, endTime: event.target.value } : item))} />
+                            <UkrainianTimePicker label="Початок" name={`schedule-${location.id}-${index}-start`} value={slot.startTime} disabled={busy} size="medium" clearable={false} onChange={time => onChange(slots.map((item, i) => i === index ? { ...item, startTime: time } : item))} />
+                            <UkrainianTimePicker label="Завершення" name={`schedule-${location.id}-${index}-end`} value={slot.endTime} disabled={busy} size="medium" clearable={false} onChange={time => onChange(slots.map((item, i) => i === index ? { ...item, endTime: time } : item))} />
                             <TextField label="Кількість місць" type="number" value={slot.capacity} disabled={busy} fullWidth
                                 slotProps={{ htmlInput: { min: Math.max(1, bookings.filter(b => b.startTime === slot.startTime && b.endTime === slot.endTime).length), max: 2147483647, step: 1, inputMode: 'numeric' } }}
                                 helperText="Щоб зменшити кількість місць нижче кількості записів, спочатку скасуйте зайві записи."

@@ -14,6 +14,10 @@ let nextId = 0;
 const pending = new Map();
 socket.onmessage = event => {
     const value = JSON.parse(event.data);
+    if (value.method === 'Page.javascriptDialogOpening') {
+        send('Page.handleJavaScriptDialog', { accept: true });
+        return;
+    }
     if (!value.id) return;
     const task = pending.get(value.id); pending.delete(value.id);
     value.error ? task.reject(value.error) : task.resolve(value.result);
@@ -33,6 +37,12 @@ const wait = async expression => {
 };
 const button = text => `[...document.querySelectorAll('button')].find(b => b.checkVisibility() && b.textContent.trim() === ${JSON.stringify(text)})`;
 const click = async expression => { await evaluate(`(${expression}).click()`); await pause(); };
+const clickClock = async expression => {
+    const point = await evaluate(`(() => { const e=${expression}; e.scrollIntoView({block:'nearest'}); const r=e.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; })()`);
+    await send('Input.dispatchMouseEvent', { type: 'mousePressed', button: 'left', clickCount: 1, ...point });
+    await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, ...point });
+    await pause();
+};
 const setNumber = async (expression, value) => {
     await evaluate(`(() => { const e=${expression}; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,${JSON.stringify(String(value))}); e.dispatchEvent(new Event('input',{bubbles:true})); })()`);
     await pause();
@@ -55,6 +65,22 @@ try {
         await click(button('Налаштувати час'));
         await wait(`${editor} !== null`);
         await click(editButton);
+        const endTime = 'document.querySelector("input[name=schedule-1-0-end]")';
+        const clockNumber = text => `[...document.querySelectorAll('.MuiClockNumber-root')].find(e=>e.textContent===${JSON.stringify(text)})`;
+        const selectEnd = async (hour, minute) => {
+            await click(`document.querySelector('button[aria-label="Обрати завершення"]')`);
+            await wait("!!document.querySelector('.MuiTimeClock-root')");
+            assert.ok(await evaluate(`${clockNumber('13')} !== undefined && ${clockNumber('23')} !== undefined`), 'Hour picker uses a 24-hour clock');
+            assert.ok(await evaluate('![...document.querySelectorAll(".MuiTimeClock-root,.MuiTimePickerToolbar-root")].some(e=>/\\b(AM|PM)\\b/.test(e.innerText))'), 'Picker has no AM/PM control');
+            assert.ok(await evaluate(`(() => { const r=document.querySelector('.MuiTimeClock-root').getBoundingClientRect(); return r.left>=0 && r.right<=${width}; })()`), '24-hour clock fits the viewport');
+            await clickClock(clockNumber(hour)); await clickClock(clockNumber(minute));
+            await click(button('OK'));
+            await wait("!document.querySelector('.MuiTimeClock-root')");
+        };
+        await selectEnd('17', '30');
+        assert.equal(await evaluate(`${endTime}.value`), '17:30', 'Afternoon selection retains 24-hour time and minute precision');
+        await screenshot(`${width}-24-hour-time`);
+        await selectEnd('11', '00');
         assert.equal(await evaluate(`${lastNumber}.value`), '3', 'Existing interval capacity is loaded');
         await setNumber(lastNumber, 0);
         await wait(`${editor}.innerText.includes('цілим числом')`);
@@ -77,7 +103,8 @@ try {
         await click(button('Додати серію'));
         await wait(`document.querySelectorAll(${JSON.stringify('button[aria-label^="Видалити інтервал"]')}).length === 8`);
         assert.equal(await evaluate(`(${editor}.innerText.match(/Місць: 4/g) || []).length`), 8, 'Generator applies the selected capacity to every interval');
-        console.log(`PASS ${width}px: capacity edit, validation, preview and series generation`);
+        assert.equal(await evaluate('document.querySelector("input[name=schedule-1-to]").value'), '17:00', 'Generator also uses 24-hour times');
+        console.log(`PASS ${width}px: 24-hour time selection, capacity edit, validation, preview and series generation`);
     }
 } finally {
     await send('Page.close').catch(() => {});

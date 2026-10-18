@@ -63,13 +63,6 @@ async function screenshot(name) {
     const result = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false });
     writeFileSync(`artifacts/admin-mobile/${name}.png`, Buffer.from(result.data, 'base64'));
 }
-async function input(selector, value) {
-    await evaluate(`(() => {
-        const element=document.querySelector(${JSON.stringify(selector)});
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(element,${JSON.stringify(value)});
-        element.dispatchEvent(new Event('input',{bubbles:true})); element.dispatchEvent(new Event('change',{bubbles:true}));
-    })()`);
-}
 async function navigate(path) {
     // Discard only local drafts without triggering a native before-unload dialog.
     await send('Page.handleJavaScriptDialog', { accept: true }).catch(() => {});
@@ -129,8 +122,12 @@ try {
     }
     await tap(button('Один інтервал'));
     await wait(`${button('Додати інтервал')} !== undefined`);
-    await input(`${'.MuiDialog-root'} input[type=time]`, '09:00');
-    await evaluate("(() => { const e=document.querySelectorAll('.MuiDialog-root input[type=time]')[1]; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(e,'12:00'); e.dispatchEvent(new Event('input',{bubbles:true})); })()");
+    await tap(`document.querySelector('button[aria-label="Обрати до"]')`);
+    await wait("!!document.querySelector('.MuiTimeClock-root')");
+    await tap(`[...document.querySelectorAll('.MuiClockNumber-root')].find(e=>e.textContent==='12')`);
+    await tap(`[...document.querySelectorAll('.MuiClockNumber-root')].find(e=>e.textContent==='00')`);
+    await tap(button('OK'));
+    await wait("!document.querySelector('.MuiTimeClock-root')");
     await tap(button('Додати інтервал'));
     await wait("document.querySelectorAll('button[aria-label^=\"Видалити інтервал\"]').length === 1");
     await tap(button('Готово'));
