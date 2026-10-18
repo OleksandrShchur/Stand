@@ -10,10 +10,12 @@ interface Props {
     name: string;
     value: string;
     disabled?: boolean;
+    size?: 'small' | 'medium';
+    clearable?: boolean;
     onChange: (isoDate: string) => void;
 }
 
-export default function UkrainianDatePicker({ label, name, value, disabled, onChange }: Props) {
+export default function UkrainianDatePicker({ label, name, value, disabled, size = 'medium', clearable = false, onChange }: Props) {
     return <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="uk" localeText={ukUA.components.MuiLocalizationProvider.defaultProps.localeText}>
         <DatePicker
             label={label}
@@ -28,8 +30,12 @@ export default function UkrainianDatePicker({ label, name, value, disabled, onCh
                 fieldDayPlaceholder: () => 'dd',
                 fieldMonthPlaceholder: () => 'MM',
                 fieldYearPlaceholder: () => 'yyyy',
+                clearButtonLabel: 'Очистити дату',
             }}
-            slotProps={{ textField: { fullWidth: true, sx: { minWidth: 0, '& .MuiPickersInputBase-sectionsContainer': { minWidth: 0, fontSize: 16 } } } }}
+            slotProps={{
+                field: { clearable },
+                textField: { fullWidth: true, size, sx: { minWidth: 0, '& .MuiPickersInputBase-sectionsContainer': { minWidth: 0, fontSize: 16 } } },
+            }}
         />
     </LocalizationProvider>;
 }

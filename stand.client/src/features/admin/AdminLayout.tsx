@@ -65,6 +65,7 @@ export default function AdminLayout() {
     };
     const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
     const headerTitle = location.pathname === '/admin/schedule' ? 'Розклад'
+        : location.pathname === '/admin/bookings' ? 'Записи'
         : location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель';
     const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 

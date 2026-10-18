@@ -158,22 +158,13 @@ try {
     await wait(`${button('Скасувати запис')} !== undefined`);
     assert.ok(await evaluate("[...document.querySelectorAll('.MuiChip-label')].every(chip=>chip.textContent==='Записано')"), 'The default booking list contains booked records only');
     await tap("document.querySelector('.MuiAccordionSummary-root')");
-    await tap("document.querySelectorAll('[role=combobox]')[2]");
-    await wait("[...document.querySelectorAll('[role=option]')].some(option=>option.textContent==='Не записано')");
-    await tap("[...document.querySelectorAll('[role=option]')].find(option=>option.textContent==='Не записано')");
-    await tap(button('Застосувати'));
-    await wait("[...document.querySelectorAll('.MuiChip-label')].some(chip=>chip.textContent==='Не записано')");
-    assert.ok(await evaluate("[...document.querySelectorAll('.MuiChip-label')].every(chip=>chip.textContent==='Не записано')"), 'Not-booked filter must submit false correctly');
-    assert.equal(await evaluate(`${button('Скасувати запис')} !== undefined`), false, 'Inactive history cannot be cancelled again in the UI');
-    await tap("document.querySelectorAll('[role=combobox]')[2]");
-    await tap("[...document.querySelectorAll('[role=option]')].find(option=>option.textContent==='Записано')");
     await tap(button('Застосувати'));
     await wait(`${button('Скасувати запис')} !== undefined`);
     await tap(button('Скасувати запис'));
     await wait(`${dialog}?.innerText.includes('Так, скасувати запис')`);
     await screenshot('booking-state-cancel-warning');
     await tap(button('Залишити запис'));
-    console.log('PASS binary booking filter and cancellation confirmation on a phone');
+    console.log('PASS active booking list and cancellation confirmation on a phone');
     for (const width of [320, 393, 414]) {
         deviceWidth = width;
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: true, screenWidth: width, screenHeight: 852 });
