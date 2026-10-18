@@ -16,8 +16,8 @@ Changes include named landmarks and controls, logical heading levels, a visible
 skip link, page/step titles and focus management, stronger focus indicators and
 input borders, readable status colors, larger icon targets, calendar reflow at
 320 CSS pixels, field-error focus and announcements, and reduced-motion support
-for the booking transition. Date/time explanations and booking confirmation
-messages remain available until dismissed.
+for the booking transition. Date/time explanations remain available until
+dismissed. Booking confirmation toasts close automatically after 10 seconds.
 
 Reproduce the browser checks
 ----------------------------

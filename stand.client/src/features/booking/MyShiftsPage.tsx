@@ -89,6 +89,7 @@ export default function MyShiftsPage() {
             <BrandHeader title={`${bookingCopy.myShiftsButton}${!loading && !error ? ` (${shifts.length})` : ''}`} />
             <Snackbar
                 open={successToastOpen}
+                autoHideDuration={10000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessToastOpen(false); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
