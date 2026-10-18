@@ -15,12 +15,14 @@ import UkrainianDatePicker from '../../components/UkrainianDatePicker';
 import UkrainianTimePicker from '../../components/UkrainianTimePicker';
 import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
+import { groupBookingCards } from './bookingCardGroups';
 
 export default function AdminBookingsPage() {
     const [searchParams] = useSearchParams();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [items, setItems] = useState<BookingAdminDto[]>([]);
+    const cardGroups = groupBookingCards(items);
     const [total, setTotal] = useState(0);
     const [locations, setLocations] = useState<LocationAdminDto[]>([]);
 
@@ -131,24 +133,40 @@ export default function AdminBookingsPage() {
                 <>
                 <Stack spacing={2} sx={{ display: { xs: 'flex', md: 'none' } }}>
                     <Typography variant="body2" color="text.secondary">Знайдено записів: {total}</Typography>
-                    {items.map(b => <Card variant="outlined" key={b.id}><CardContent>
-                        <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                            <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
-                            <IconButton
-                                id={`booking-actions-${b.id}`}
-                                aria-label={`Дії для запису ${b.publicNumber}`}
-                                aria-haspopup="menu"
-                                aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
-                                aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
-                                onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
-                                sx={{ flexShrink: 0, width: 44, height: 44, mt: -1, mr: -1 }}
-                            >
-                                <MoreVertIcon />
-                            </IconButton>
-                        </Stack>
-                        <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
-                        <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
-                    </CardContent></Card>)}
+                    {cardGroups.map(group => <Stack key={group[0].id} sx={{
+                        gap: '3px',
+                        borderRadius: '16px',
+                        boxShadow: '0 0 10px rgba(31, 42, 36, 0.18)',
+                    }}>
+                        {group.map(b => <Card variant="outlined" key={b.id} sx={{
+                            borderRadius: 0,
+                            '&:first-of-type': {
+                                borderTopLeftRadius: '16px',
+                                borderTopRightRadius: '16px',
+                            },
+                            '&:last-of-type': {
+                                borderBottomLeftRadius: '16px',
+                                borderBottomRightRadius: '16px',
+                            },
+                        }}><CardContent>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                                <Typography component="h2" variant="h6" sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>{[b.firstName, b.lastName].filter(Boolean).join(' ') || 'Без імені'}</Typography>
+                                <IconButton
+                                    id={`booking-actions-${b.id}`}
+                                    aria-label={`Дії для запису ${b.publicNumber}`}
+                                    aria-haspopup="menu"
+                                    aria-controls={actionMenu?.booking.id === b.id ? 'booking-actions-menu' : undefined}
+                                    aria-expanded={actionMenu?.booking.id === b.id ? true : undefined}
+                                    onClick={(event) => setActionMenu({ anchorEl: event.currentTarget, booking: b })}
+                                    sx={{ flexShrink: 0, width: 44, height: 44, mt: -1, mr: -1 }}
+                                >
+                                    <MoreVertIcon />
+                                </IconButton>
+                            </Stack>
+                            <Typography sx={{ fontWeight: 600, mt: 1 }}>{formatDateFull(b.date)}</Typography>
+                            <Typography>{b.startTime}–{b.endTime} · {b.locationName}</Typography>
+                        </CardContent></Card>)}
+                    </Stack>)}
                 </Stack>
                 <Menu
                     id="booking-actions-menu"
