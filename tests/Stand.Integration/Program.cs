@@ -57,6 +57,7 @@ try
     await BookingSearchChecks.Run(connection);
     await BookingTimeRangeChecks.Run(connection);
     await AdminUserChecks.Run(connection);
+    await BookingOverlapChecks.Run(connection);
     await using (var db = new StandDbContext(DbOptions(counter)))
     {
         var current = new CurrentPublicUser(db);

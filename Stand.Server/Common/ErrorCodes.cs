@@ -17,6 +17,7 @@ public static class ErrorCodes
     public const string SlotTooSoon = "SLOT_TOO_SOON";
     public const string SlotFull = "SLOT_FULL";
     public const string DuplicatePhoneSlot = "DUPLICATE_PHONE_SLOT";
+    public const string BookingTimeConflict = "BOOKING_TIME_CONFLICT";
     public const string InvalidCredentials = "INVALID_CREDENTIALS";
     public const string AccountDisabled = "ACCOUNT_DISABLED";
     public const string LoginTaken = "LOGIN_TAKEN";

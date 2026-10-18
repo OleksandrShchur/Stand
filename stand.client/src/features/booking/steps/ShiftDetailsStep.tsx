@@ -1,6 +1,6 @@
 import ParticipantList from '../components/ParticipantList';
 import { useEffect, useState } from 'react';
-import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, Divider, Snackbar, Stack, Typography } from '@mui/material';
 import { publicApi } from '../../../api/publicApi';
 import { ApiError } from '../../../api/client';
 import { ErrorState, SkeletonList } from '../../../components/StateMessage';
@@ -28,6 +28,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
     const [slots, setSlots] = useState<SlotAvailabilityDto[]>([]);
     const [submitting, setSubmitting] = useState(false);
     const [bookingError, setBookingError] = useState<string | null>(null);
+    const [overlapNotice, setOverlapNotice] = useState<string | null>(null);
     const canConfirm = Boolean(onConfirmed) && date >= todayIso();
 
     const load = () => {
@@ -47,12 +48,17 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
         if (!isContinuousSelection(slots) || !onConfirmed || !canConfirm || submitting) return;
         setSubmitting(true);
         setBookingError(null);
+        setOverlapNotice(null);
         const ids = slots.map((slot) => slot.timeSlotId);
         publicApi.bookMany(date, locationId, ids, bookingRequestKey(date, locationId, ids)).then((summaries) => {
             clearBookingRequest();
             onConfirmed(summaries);
         })
             .catch((e) => {
+                if (e instanceof ApiError && e.errorCode === 'BOOKING_TIME_CONFLICT') {
+                    setOverlapNotice(e.message);
+                    return;
+                }
                 const conflict = e instanceof ApiError && ['SLOT_FULL', 'SLOT_TOO_SOON', 'DATE_NOT_BOOKABLE', 'TIME_SLOT_BLOCKED', 'LOCATION_INACTIVE', 'DUPLICATE_PHONE_SLOT'].includes(e.errorCode ?? '');
                 if (conflict) {
                     load();
@@ -69,6 +75,10 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
 
     return (
         <Box sx={{ pb: canConfirm ? 'calc(104px + env(safe-area-inset-bottom, 0px))' : 0 }}>
+            <Snackbar open={overlapNotice !== null} autoHideDuration={12000} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                sx={{ top: { xs: 72, sm: 24 } }} onClose={(_, reason) => { if (reason !== 'clickaway') setOverlapNotice(null); }}>
+                <Alert severity="error" variant="filled" onClose={() => setOverlapNotice(null)} sx={{ width: '100%' }}>{overlapNotice}</Alert>
+            </Snackbar>
             <Typography component="h1" variant="h5" sx={{ mb: 2 }}>{canConfirm ? bookingCopy.confirmHeading : bookingCopy.shiftDetails}</Typography>
             <Card variant="outlined">
                 <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
