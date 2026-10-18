@@ -26,9 +26,11 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         [FromQuery] string? search = null,
         [FromQuery] TimeOnly? timeFrom = null,
         [FromQuery] TimeOnly? timeTo = null,
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null,
         CancellationToken ct = default)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo, dateFrom, dateTo);
 
         var total = await query.CountAsync(ct);
         page = Math.Max(1, page);
@@ -73,9 +75,11 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         CancellationToken ct = default,
         [FromQuery] string? search = null,
         [FromQuery] TimeOnly? timeFrom = null,
-        [FromQuery] TimeOnly? timeTo = null)
+        [FromQuery] TimeOnly? timeTo = null,
+        [FromQuery] DateOnly? dateFrom = null,
+        [FromQuery] DateOnly? dateTo = null)
     {
-        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo);
+        var query = BuildFilteredQuery(date, locationId, timeSlotId, phone, isBooked, search, timeFrom, timeTo, dateFrom, dateTo);
 
         var entities = await query
             .OrderBy(b => b.Date).ThenBy(b => b.TimeSlot.SortOrder)
@@ -100,10 +104,12 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
 
     private IQueryable<Data.Entities.Booking> BuildFilteredQuery(
         string? date, int? locationId, int? timeSlotId, string? phone, bool? isBooked, string? search,
-        TimeOnly? timeFrom, TimeOnly? timeTo)
+        TimeOnly? timeFrom, TimeOnly? timeTo, DateOnly? dateFrom, DateOnly? dateTo)
     {
         if (timeFrom.HasValue && timeTo.HasValue && timeFrom.Value >= timeTo.Value)
             throw new ValidationAppException("Час «Від» має бути раніше часу «До».");
+        if (dateFrom.HasValue && dateTo.HasValue && dateFrom.Value > dateTo.Value)
+            throw new ValidationAppException("Дата «Від» має бути не пізніше дати «До».");
 
         var query = db.Bookings.Include(b => b.Location).Include(b => b.TimeSlot).AsQueryable();
 
@@ -116,6 +122,9 @@ public sealed class AdminBookingsController(StandDbContext db) : ControllerBase
         {
             query = query.Where(b => b.LocationId == locationId);
         }
+
+        if (dateFrom.HasValue) query = query.Where(b => b.Date >= dateFrom.Value);
+        if (dateTo.HasValue) query = query.Where(b => b.Date <= dateTo.Value);
 
         if (timeSlotId is > 0)
         {

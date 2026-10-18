@@ -46,7 +46,11 @@ export async function startFixture(port = 5198, { bookings } = {}) {
             }
             if (path === '/api/admin/dashboard') {
                 const rates = locations.map(location => ({ locationId: location.id, locationName: location.name, capacity: 3, booked: 1, fillRatePercent: 33 }));
-                return send({ todayBookedCount: 2, upcomingBookedCount: 2, todayByLocation: rates, upcomingByLocation: rates });
+                const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kyiv' }).format(new Date());
+                const horizonEnd = new Date(`${today}T12:00:00Z`);
+                horizonEnd.setUTCDate(horizonEnd.getUTCDate() + 14);
+                return send({ todayBookedCount: 2, upcomingBookedCount: 2, todayByLocation: rates, upcomingByLocation: rates,
+                    today, horizonEnd: horizonEnd.toISOString().slice(0, 10) });
             }
             response.writeHead(404); return send({ title: `Missing fixture: ${path}` });
         }

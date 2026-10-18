@@ -231,7 +231,7 @@ GET/POST/PUT  /api/admin/locations       + activate/deactivate
 GET/POST/PUT  /api/admin/timeslots       + activate/deactivate
 GET/PUT       /api/admin/dates           + POST /bulk
 GET/POST/DELETE /api/admin/exceptions
-GET  /api/admin/bookings                 filters: date, locationId, timeFrom, timeTo, timeSlotId, isBooked, search, phone
+GET  /api/admin/bookings                 filters: date, dateFrom, dateTo, locationId, timeFrom, timeTo, timeSlotId, isBooked, search, phone
 POST /api/admin/bookings/{id}/cancel
 GET  /api/admin/bookings/export.csv
 GET  /api/admin/dashboard
@@ -248,6 +248,13 @@ matches when its end is after `timeFrom` and its start is before `timeTo`.
 For example, 09:00–11:00 matches From 10:00 and 12:00–15:00 matches To 13:00.
 Bookings that only touch a boundary are excluded. From must be earlier than To
 when both are supplied. The same filters apply to CSV export.
+
+Dashboard booking totals and location cards link to filtered bookings. Today's
+cards apply the dashboard's Kyiv date; overall location cards apply the inclusive
+period from that date through the configured booking horizon. The dashboard API
+returns `today` and `horizonEnd` so these links use the same dates as its counts.
+Bookings accept inclusive `dateFrom`/`dateTo` filters, also honored by CSV export.
+Applied dates and location remain visible as removable chips above the results.
 
 ---
 

@@ -224,6 +224,43 @@ try {
     assert.equal(last().timeFrom, '10:00');
     assert.equal(last().timeTo, '13:00');
     assert.equal(last().isBooked, 'true');
+    for (const width of [393, 1280]) {
+        await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: width < 600 });
+        await send('Page.navigate', { url: 'http://127.0.0.1:5199/admin' });
+        await waitFor(() => evaluate('document.querySelectorAll("main a.MuiCardActionArea-root").length === 5'), 'dashboard links');
+        const dashboard = await evaluate('fetch("/api/admin/dashboard").then(response=>response.json())');
+        const links = await evaluate('[...document.querySelectorAll("main a.MuiCardActionArea-root")].map(a=>a.getAttribute("href"))');
+        assert.deepEqual(Object.fromEntries(new URL(links[0], 'http://localhost').searchParams), { date: dashboard.today });
+        assert.deepEqual(Object.fromEntries(new URL(links[1], 'http://localhost').searchParams), { date: dashboard.today, locationId: '1' });
+        assert.deepEqual(Object.fromEntries(new URL(links[3], 'http://localhost').searchParams), { dateFrom: dashboard.today, dateTo: dashboard.horizonEnd, locationId: '1' });
+        for (const href of links) {
+            await send('Page.navigate', { url: 'http://127.0.0.1:5199/admin' });
+            await waitFor(() => evaluate('document.querySelectorAll("main a.MuiCardActionArea-root").length === 5'), 'dashboard reloaded');
+            const before = requests.length;
+            await click(`[...document.querySelectorAll('main a.MuiCardActionArea-root')].find(a=>a.getAttribute('href')===${JSON.stringify(href)})`);
+            await ready();
+            assert.equal(await evaluate('location.pathname'), '/admin/bookings');
+            const expected = Object.fromEntries(new URL(href, 'http://localhost').searchParams);
+            assert.ok(requests.length > before);
+            for (const query of requests.slice(before)) {
+                for (const key of ['date', 'dateFrom', 'dateTo', 'locationId']) assert.equal(query[key], expected[key], 'The initial request applies the exact dashboard scope');
+                assert.equal(query.isBooked, 'true');
+                assert.equal(query.page, '1');
+            }
+            if (expected.locationId) assert.ok(await evaluate(`document.querySelector('[aria-label="Застосовані фільтри"]').innerText.includes('Локація ${expected.locationId}')`));
+            if (expected.dateFrom) assert.ok(await evaluate(`document.querySelector('[aria-label="Застосовані фільтри"]').innerText.includes('Період:')`));
+            await click("document.querySelector('button[aria-label=\"Наступна сторінка\"]')"); await ready();
+            assert.equal(last().page, '2');
+            for (const [key, value] of Object.entries(expected)) assert.equal(last()[key], value, 'Pagination retains the dashboard filters');
+        }
+        await click(`[...document.querySelectorAll('.MuiChip-root')].find(chip=>chip.textContent.startsWith('Період:')).querySelector('.MuiChip-deleteIcon')`);
+        await ready();
+        assert.equal(last().dateFrom, undefined);
+        assert.equal(last().dateTo, undefined);
+        assert.equal(last().locationId, '2', 'Clearing the date range retains the location');
+        assert.equal(last().page, '1');
+        console.log(`PASS ${width}px: dashboard total, today's locations and overall locations open the exact booking filters; pagination retains scope; date range can be cleared`);
+    }
     assert.deepEqual(errors, []);
     console.log('PASS mobile/desktop date and analog clock confirmation, cancellation and dismissal; optional From/To bounds, range validation, minute precision and clearing; phone and name search; pagination reset and request cancellation');
 } finally {

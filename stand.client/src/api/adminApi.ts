@@ -15,6 +15,8 @@ import type {
 
 export interface BookingFilters {
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     locationId?: number;
     timeSlotId?: number;
     timeFrom?: string;

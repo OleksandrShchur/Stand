@@ -197,6 +197,8 @@ export interface LocationFillRateDto {
 }
 
 export interface DashboardDto {
+    today: string;
+    horizonEnd: string;
     todayBookedCount: number;
     upcomingBookedCount: number;
     todayByLocation: LocationFillRateDto[];

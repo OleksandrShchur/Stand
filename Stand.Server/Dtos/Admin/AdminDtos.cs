@@ -70,4 +70,6 @@ public sealed record DashboardDto(
     int TodayBookedCount,
     int UpcomingBookedCount,
     List<LocationFillRateDto> TodayByLocation,
-    List<LocationFillRateDto> UpcomingByLocation);
+    List<LocationFillRateDto> UpcomingByLocation,
+    string Today,
+    string HorizonEnd);
