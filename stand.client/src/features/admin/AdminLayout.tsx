@@ -31,12 +31,15 @@ import { pagePadding } from '../../layoutSpacing';
 
 const DRAWER_WIDTH = 248;
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
     { to: '/admin', label: 'Огляд', icon: <DashboardOutlinedIcon />, end: true },
     { to: '/admin/schedule', label: 'Розклад', icon: <CalendarMonthOutlinedIcon /> },
     { to: '/admin/bookings', label: 'Записи', icon: <ListAltOutlinedIcon /> },
     { to: '/admin/locations', label: 'Локації', icon: <PlaceOutlinedIcon /> },
-    { to: '/admin/authorized-users', label: 'Користувачі сайту', icon: <PersonAddAltOutlinedIcon /> },
+    { to: '/admin/authorized-users', label: 'Користувачі сайту', bottomLabel: 'Користувачі', icon: <PersonAddAltOutlinedIcon /> },
+];
+
+const SIDE_NAV_ITEMS = [
     { to: '/admin/users', label: 'Адміністратори', icon: <GroupOutlinedIcon /> },
 ];
 
@@ -45,7 +48,7 @@ export default function AdminLayout() {
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
-    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const hasSideNav = useMediaQuery(theme.breakpoints.up('sm'));
     const [mobileOpen, setMobileOpen] = useState(false);
 
     if (loading) {
@@ -59,6 +62,8 @@ export default function AdminLayout() {
     const handleLogout = () => {
         logout().then(() => navigate('/admin/login', { replace: true }));
     };
+    const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
+    const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 
     const drawerContent = (
         <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -66,12 +71,12 @@ export default function AdminLayout() {
                 <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Стенди Адмін</Typography>
             </Toolbar>
             <List sx={{ flex: 1 }}>
-                {NAV_ITEMS.map((item) => (
+                {sideNavItems.map((item) => (
                     <ListItemButton
                         key={item.to}
                         component={NavLink}
                         to={item.to}
-                        end={item.end}
+                        end={item.to === '/admin'}
                         onClick={() => setMobileOpen(false)}
                         sx={{
                             mx: 1,
@@ -99,8 +104,9 @@ export default function AdminLayout() {
     );
 
     return (
-        <Box sx={{ display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
-            {isDesktop ? (
+        <Box sx={{ '--admin-navigation-clearance': { xs: 'calc(92px + env(safe-area-inset-bottom))', sm: '12px' },
+            '--admin-sidebar-width': `${DRAWER_WIDTH}px`, display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
+            {hasSideNav ? (
                 <Drawer
                     variant="permanent"
                     sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', border: 'none' } }}
@@ -120,7 +126,7 @@ export default function AdminLayout() {
             )}
 
             <Box sx={{ flex: '1 1 0%', width: 0, minWidth: 0 }}>
-                {!isDesktop && (
+                {!hasSideNav && (
                     <AppBar position="sticky" elevation={0}>
                         <Toolbar>
                             <IconButton aria-label="Відкрити меню адміністратора" color="inherit" edge="start" onClick={() => setMobileOpen(true)} sx={{ mr: 1 }}>
@@ -131,17 +137,49 @@ export default function AdminLayout() {
                     </AppBar>
                 )}
 
-                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(80px + env(safe-area-inset-bottom))', md: 4 } }}>
+                <Box component="main" sx={{ ...pagePadding, width: '100%', minWidth: 0, pb: { xs: 'calc(var(--admin-navigation-clearance) + 16px)', sm: 4 } }}>
                     <Box key={location.pathname} className="content-enter" sx={{ minWidth: 0 }}><Outlet /></Box>
                 </Box>
             </Box>
-            {!isDesktop && <Paper elevation={4} sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: theme.zIndex.appBar, pb: 'env(safe-area-inset-bottom)' }}>
-                <BottomNavigation showLabels value={['/admin', '/admin/schedule', '/admin/bookings'].includes(location.pathname) ? location.pathname : false} sx={{ '& .MuiBottomNavigationAction-root': { maxWidth: 'none' } }}>
-                    <BottomNavigationAction component={NavLink} to="/admin" value="/admin" label="Огляд" icon={<DashboardOutlinedIcon />} />
-                    <BottomNavigationAction component={NavLink} to="/admin/schedule" value="/admin/schedule" label="Розклад" icon={<CalendarMonthOutlinedIcon />} />
-                    <BottomNavigationAction component={NavLink} to="/admin/bookings" value="/admin/bookings" label="Записи" icon={<ListAltOutlinedIcon />} />
+            {!hasSideNav && <Box sx={{ position: 'fixed', bottom: 'calc(12px + env(safe-area-inset-bottom))', left: 0, right: 0,
+                zIndex: theme.zIndex.appBar, px: { xs: 1, sm: 2 }, pointerEvents: 'none' }}>
+            <Paper elevation={0} sx={{ maxWidth: 600, mx: 'auto', borderRadius: '999px', pointerEvents: 'auto',
+                bgcolor: 'rgba(249, 253, 250, 0.94)', border: '1px solid rgba(255, 255, 255, 0.85)',
+                backgroundImage: 'linear-gradient(135deg, rgba(255,255,255,0.45), rgba(232,244,237,0.18))',
+                boxShadow: '0 8px 32px rgba(25, 59, 43, 0.14), 0 2px 8px rgba(25, 59, 43, 0.06), inset 0 1px 0 rgba(255,255,255,0.9)',
+                '@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)))': {
+                    bgcolor: 'rgba(249, 253, 250, 0.74)', backdropFilter: 'blur(20px) saturate(160%)', WebkitBackdropFilter: 'blur(20px) saturate(160%)',
+                } }}>
+                <BottomNavigation component="nav" aria-label="Основна навігація адміністратора" showLabels
+                    value={selectedNavIndex >= 0 ? location.pathname : false}
+                    sx={{ position: 'relative', isolation: 'isolate', height: 68, p: 0.75, bgcolor: 'transparent', borderRadius: 'inherit',
+                        '&::before': { content: '""', position: 'absolute', zIndex: -1, top: 6, bottom: 6, left: 6,
+                            width: `calc((100% - 12px) / ${PRIMARY_NAV_ITEMS.length})`, borderRadius: '999px',
+                            background: 'linear-gradient(145deg, rgba(255,255,255,0.95), rgba(202,229,214,0.65))',
+                            border: '1px solid rgba(255,255,255,0.9)', boxShadow: '0 2px 8px rgba(32, 79, 55, 0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
+                            opacity: selectedNavIndex < 0 ? 0 : 1, transform: `translateX(${Math.max(0, selectedNavIndex) * 100}%)`,
+                            transition: 'transform 420ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease',
+                        },
+                        '& .MuiBottomNavigationAction-root': { flex: '1 1 0%', minWidth: 0, maxWidth: 'none', px: 0.25, py: 0.5, gap: 0.25,
+                            borderRadius: '999px', color: 'text.secondary', transform: 'scale(1)',
+                            transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1), color 200ms ease',
+                            '&.Mui-selected': { color: 'primary.dark', transform: 'translateY(-1px) scale(1.04)' },
+                            '&:active': { transform: 'scale(0.96)' },
+                            '&.Mui-focusVisible': { outline: '2px solid', outlineColor: 'primary.main', outlineOffset: -3 },
+                        },
+                        '& .MuiSvgIcon-root': { fontSize: 23, transition: 'transform 300ms cubic-bezier(0.22, 1, 0.36, 1)' },
+                        '& .Mui-selected .MuiSvgIcon-root': { transform: 'scale(1.08)' },
+                        '& .MuiBottomNavigationAction-label, & .MuiBottomNavigationAction-label.Mui-selected': { fontSize: { xs: '0.625rem', sm: '0.75rem' } },
+                        '& .MuiBottomNavigationAction-label.Mui-selected': { fontWeight: 700 },
+                        '@media (prefers-reduced-motion: reduce)': {
+                            '&::before, & .MuiBottomNavigationAction-root, & .MuiSvgIcon-root, & .MuiBottomNavigationAction-label': { transition: 'none' },
+                        },
+                    }}>
+                    {PRIMARY_NAV_ITEMS.map(item => <BottomNavigationAction key={item.to} component={NavLink} to={item.to} end={item.end}
+                        value={item.to} label={item.bottomLabel ?? item.label} aria-label={item.label} icon={item.icon} />)}
                 </BottomNavigation>
-            </Paper>}
+            </Paper>
+            </Box>}
         </Box>
     );
 }
