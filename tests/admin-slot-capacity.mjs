@@ -149,7 +149,7 @@ try {
         assert.ok(await evaluate(`(() => { const content = document.querySelector('[data-testid="schedule-review-content"]'); return content.scrollWidth <= content.clientWidth; })()`), 'Review cards fit the mobile viewport');
         await evaluate('Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {})))');
         await screenshot(`${width}-capacity-preview`);
-        await click(button('Назад до редагування'));
+        await click(button('Назад'));
         await click(button('Налаштувати час'));
         await click(button('Очистити час'));
         await wait(`${confirmation('Видалити всі інтервали?')} !== undefined`);

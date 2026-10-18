@@ -255,7 +255,7 @@ export default function AdminSchedulePage() {
                     {review && <ScheduleReviewContent schedule={review.dto} result={review.result} locations={locations} />}
                     {error && <Alert severity="error">{error}</Alert>}
                 </Stack></DialogContent>
-                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', borderTop: '1px solid', borderColor: 'divider', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, alignItems: 'stretch', '& > .MuiButton-root': { width: '100%', minWidth: 0, ml: '0 !important' } }}><Button variant="outlined" disabled={busy} onClick={() => setReview(null)}>Назад до редагування</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
+                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', borderTop: '1px solid', borderColor: 'divider', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, alignItems: 'stretch', '& > .MuiButton-root': { width: '100%', minWidth: 0, height: 44, py: 0, px: 1, whiteSpace: 'nowrap', ml: '0 !important' } }}><Button variant="outlined" disabled={busy} onClick={() => setReview(null)}>Назад</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
             </Dialog>
             <Dialog open={!!leave} onClose={() => setLeave(null)} fullWidth maxWidth="xs" aria-labelledby="leave-title">
                 <DialogTitle id="leave-title">Залишити незбережені зміни?</DialogTitle>
