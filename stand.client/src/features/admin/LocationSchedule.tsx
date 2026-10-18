@@ -113,8 +113,11 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
         <Dialog open={open && enabled} onClose={closeEditor} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby={`location-time-${location.id}`} data-testid="location-time-editor">
             <DialogTitle id={`location-time-${location.id}`} sx={{ display: 'flex', alignItems: 'start', gap: 1, p: 2, minWidth: 0 }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography component="span" sx={{ display: 'block', fontWeight: 700 }}>Час чергувань</Typography>
-                    <Typography component="span" variant="body2" color="text.secondary" title={location.name} sx={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{location.name}</Typography>
+                    <Typography component="span" sx={{ display: 'block', fontWeight: 700 }}>Час стендів</Typography>
+                    <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', columnGap: 1, alignItems: 'baseline' }}>
+                        <Typography component="span" variant="body2" color="text.secondary" title={location.name} sx={{ minWidth: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', overflowWrap: 'anywhere' }}>{location.name}</Typography>
+                        <Typography component="time" dateTime={date} variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>· {formatDate(date)}</Typography>
+                    </Stack>
                 </Box>
                 <IconButton aria-label="Закрити редактор часу" onClick={closeEditor} sx={{ flexShrink: 0, width: 44, height: 44 }}><CloseIcon /></IconButton>
             </DialogTitle>

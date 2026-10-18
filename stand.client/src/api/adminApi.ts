@@ -15,6 +15,8 @@ import type {
 
 export interface BookingFilters {
     date?: string;
+    dateFrom?: string;
+    dateTo?: string;
     locationId?: number;
     timeSlotId?: number;
     timeFrom?: string;
@@ -88,6 +90,9 @@ export const adminApi = {
     // Admin users
     listUsers: () => api.get<AdminUserDto[]>('/api/admin/users'),
     createUser: (login: string, password: string) => api.post<AdminUserDto>('/api/admin/users', { login, password }),
+    changeUserPassword: (id: number, password: string, confirmPassword: string) =>
+        api.put<void>(`/api/admin/users/${id}/password`, { password, confirmPassword }),
+    deleteUser: (id: number) => api.del<void>(`/api/admin/users/${id}`),
     enableUser: (id: number) => api.post<AdminUserDto>(`/api/admin/users/${id}/enable`),
     disableUser: (id: number) => api.post<AdminUserDto>(`/api/admin/users/${id}/disable`),
 

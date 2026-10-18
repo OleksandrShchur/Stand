@@ -231,11 +231,13 @@ GET/POST/PUT  /api/admin/locations       + activate/deactivate
 GET/POST/PUT  /api/admin/timeslots       + activate/deactivate
 GET/PUT       /api/admin/dates           + POST /bulk
 GET/POST/DELETE /api/admin/exceptions
-GET  /api/admin/bookings                 filters: date, locationId, timeFrom, timeTo, timeSlotId, isBooked, search, phone
+GET  /api/admin/bookings                 filters: date, dateFrom, dateTo, locationId, timeFrom, timeTo, timeSlotId, isBooked, search, phone
 POST /api/admin/bookings/{id}/cancel
 GET  /api/admin/bookings/export.csv
 GET  /api/admin/dashboard
 GET/POST /api/admin/users                + disable/enable
+PUT      /api/admin/users/{id}/password  { password, confirmPassword }
+DELETE   /api/admin/users/{id}           cannot delete the signed-in administrator
 ```
 
 The bookings search field accepts phone numbers, first names, surnames, or full
@@ -248,6 +250,20 @@ matches when its end is after `timeFrom` and its start is before `timeTo`.
 For example, 09:00–11:00 matches From 10:00 and 12:00–15:00 matches To 13:00.
 Bookings that only touch a boundary are excluded. From must be earlier than To
 when both are supplied. The same filters apply to CSV export.
+
+Dashboard booking totals and location cards link to filtered bookings. Today's
+cards apply the dashboard's Kyiv date; overall location cards apply the inclusive
+period from that date through the configured booking horizon. The dashboard API
+returns `today` and `horizonEnd` so these links use the same dates as its counts.
+Bookings accept inclusive `dateFrom`/`dateTo` filters, also honored by CSV export.
+Applied dates and location remain visible as removable chips above the results.
+
+Administrator rows use a three-dot menu on mobile and desktop. Every row offers
+password changes with matching confirmation and a minimum of eight characters;
+other administrators can also be deleted after an in-app confirmation. The API
+enforces self-deletion protection. Deleted or disabled administrators lose access
+on their next authenticated request. Existing enable/disable endpoints remain
+available for API clients; the administrators screen no longer displays status.
 
 ---
 

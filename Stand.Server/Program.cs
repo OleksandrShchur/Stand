@@ -78,6 +78,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         var absoluteLifetime = TimeSpan.FromDays(adminAuthSection.AbsoluteExpirationDays);
         options.Events.OnValidatePrincipal = async ctx =>
         {
+            var idRaw = ctx.Principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var db = ctx.HttpContext.RequestServices.GetRequiredService<StandDbContext>();
+            if (!int.TryParse(idRaw, out var adminId) ||
+                !await db.AdminUsers.AnyAsync(user => user.Id == adminId && user.IsActive, ctx.HttpContext.RequestAborted))
+            {
+                ctx.RejectPrincipal();
+                await ctx.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
+            }
             var issuedAtRaw = ctx.Principal?.FindFirst(AdminClaimTypes.IssuedAtUtcTicks)?.Value;
             if (issuedAtRaw is not null && long.TryParse(issuedAtRaw, out var ticks))
             {

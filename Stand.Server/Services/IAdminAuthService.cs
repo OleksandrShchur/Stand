@@ -13,4 +13,8 @@ public interface IAdminAuthService
     Task<AdminUser> SetActiveAsync(int adminUserId, bool isActive, CancellationToken ct);
 
     Task<List<AdminUser>> ListAsync(CancellationToken ct);
+
+    Task ChangePasswordAsync(int adminUserId, string password, string confirmPassword, CancellationToken ct);
+
+    Task DeleteAsync(int adminUserId, int currentAdminId, CancellationToken ct);
 }

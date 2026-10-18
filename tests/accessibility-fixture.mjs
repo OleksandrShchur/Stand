@@ -9,7 +9,7 @@ const slots = [1, 2, 3].map((id, index) => ({ id, timeSlotId: id, startTime: `${
 const booking = { id: 1, publicNumber: 'TEST-1', date: fixtureDate, locationId: 1, locationName: locations[0].name, locationAddress: locations[0].address, timeSlotId: 1, startTime: '10:00', endTime: '11:00', firstName: 'Олена', lastName: 'Тестова', phone: '+380670000001', isBooked: true, cancelToken: 'fixture-token', createdAtUtc: new Date().toISOString(), participants: slots[0].participants };
 const root = resolve('stand.client/dist');
 
-export async function startFixture(port = 5198, { bookings } = {}) {
+export async function startFixture(port = 5198, { bookings, adminUsers } = {}) {
     const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         if (url.pathname.startsWith('/api/')) {
@@ -23,6 +23,7 @@ export async function startFixture(port = 5198, { bookings } = {}) {
                 }
                 return send(path.includes('/admin/') ? { id: 1, login: 'Тест' } : { id: 1, phone: booking.phone });
             }
+            if (adminUsers && (path === '/api/admin/users' || path.startsWith('/api/admin/users/'))) return adminUsers(url, request, response);
             if (request.method !== 'GET') {
                 // Preview only. Unexpected mutations fail so a test cannot accidentally save.
                 if (path === '/api/admin/schedule/preview') return send({ updatedDates: 1, preservedBookings: 0 });
@@ -40,9 +41,17 @@ export async function startFixture(port = 5198, { bookings } = {}) {
             if (path === '/api/admin/users') return send([1, 2].map(id => ({ id, login: `Адмін ${id}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/authorized-users') return send(Array.from({ length: 12 }, (_, i) => ({ id: i + 1, firstName: `Ім’я ${i + 1}`, lastName: 'Тестове', phone: `+3806700000${String(i).padStart(2, '0')}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/schedule') return send({ date: url.searchParams.get('date'), isActive: true, isCustom: true, locations: [{ locationId: 1, slots: slots.slice(0, 2).map(({ startTime, endTime, capacity }) => ({ startTime, endTime, capacity })) }], bookings: [], horizonDays: 14, minLeadTimeMinutes: 60 });
+            if (path === '/api/admin/dates') {
+                const month = url.searchParams.get('from').slice(0, 7);
+                return send([10, 11, 12].map(day => ({ id: day, date: `${month}-${day}`, isActive: day !== 11 })));
+            }
             if (path === '/api/admin/dashboard') {
                 const rates = locations.map(location => ({ locationId: location.id, locationName: location.name, capacity: 3, booked: 1, fillRatePercent: 33 }));
-                return send({ todayBookedCount: 2, upcomingBookedCount: 2, todayByLocation: rates, upcomingByLocation: rates });
+                const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Kyiv' }).format(new Date());
+                const horizonEnd = new Date(`${today}T12:00:00Z`);
+                horizonEnd.setUTCDate(horizonEnd.getUTCDate() + 14);
+                return send({ todayBookedCount: 2, upcomingBookedCount: 2, todayByLocation: rates, upcomingByLocation: rates,
+                    today, horizonEnd: horizonEnd.toISOString().slice(0, 10) });
             }
             response.writeHead(404); return send({ title: `Missing fixture: ${path}` });
         }

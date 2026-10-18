@@ -69,4 +69,28 @@ public sealed class AdminAuthService(StandDbContext db) : IAdminAuthService
 
     public async Task<List<AdminUser>> ListAsync(CancellationToken ct) =>
         await db.AdminUsers.OrderBy(u => u.Login).ToListAsync(ct);
+
+    public async Task ChangePasswordAsync(int adminUserId, string password, string confirmPassword, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(password) || password.Length < 8)
+            throw new ValidationAppException("Пароль має містити щонайменше 8 символів.");
+        if (password != confirmPassword)
+            throw new ValidationAppException("Паролі не збігаються.");
+
+        var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Id == adminUserId, ct)
+            ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Адміністратора не знайдено.");
+        user.PasswordHash = _hasher.HashPassword(user, password);
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteAsync(int adminUserId, int currentAdminId, CancellationToken ct)
+    {
+        if (adminUserId == currentAdminId)
+            throw new ValidationAppException("Неможливо видалити власний акаунт.");
+
+        var user = await db.AdminUsers.FirstOrDefaultAsync(u => u.Id == adminUserId, ct)
+            ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Адміністратора не знайдено.");
+        db.AdminUsers.Remove(user);
+        await db.SaveChangesAsync(ct);
+    }
 }

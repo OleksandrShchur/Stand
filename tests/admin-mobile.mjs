@@ -102,7 +102,7 @@ try {
     await wait("document.querySelectorAll('input[type=checkbox]:checked').length === 0 && document.body.innerText.includes('День закритий для запису')");
     await tap("document.querySelector('input[type=checkbox]')");
     await tap("document.querySelectorAll('input[type=checkbox]')[1]");
-    await wait(`${dialog}?.innerText.includes('Час чергувань')`);
+    await wait(`${dialog}?.innerText.includes('Час стендів')`);
     await checkWidth('Full-screen time generator');
     assert.equal(await evaluate(`${dialog}.getBoundingClientRect().width`), deviceWidth);
     for (const width of [320, 393, 414]) {

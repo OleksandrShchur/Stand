@@ -27,7 +27,8 @@ public sealed class AdminDashboardController(StandDbContext db, IKyivClock clock
         var todayByLocation = await FillRateByLocationAsync(today, today, ct);
         var upcomingByLocation = await FillRateByLocationAsync(today, horizonEnd, ct);
 
-        return Ok(new DashboardDto(todayBooked, upcomingBooked, todayByLocation, upcomingByLocation));
+        return Ok(new DashboardDto(todayBooked, upcomingBooked, todayByLocation, upcomingByLocation,
+            today.ToString("yyyy-MM-dd"), horizonEnd.ToString("yyyy-MM-dd")));
     }
 
     private async Task<List<LocationFillRateDto>> FillRateByLocationAsync(DateOnly fromDate, DateOnly toDate, CancellationToken ct)

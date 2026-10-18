@@ -15,7 +15,7 @@ static class BookingTimeRangeChecks
         await using var transaction = await db.Database.BeginTransactionAsync();
         var location = new Location { Name = "Time filter " + Guid.NewGuid(), Capacity = 10, IsActive = true };
         var date = new DateOnly(2030, 1, 1);
-        async Task<Booking> Row(string start, string end, bool booked = true)
+        async Task<Booking> Row(string start, string end, bool booked = true, DateOnly? onDate = null)
         {
             var from = TimeOnly.Parse(start);
             var to = TimeOnly.Parse(end);
@@ -24,7 +24,7 @@ static class BookingTimeRangeChecks
             var booking = new Booking
             {
                 PublicNumber = Guid.NewGuid().ToString("N")[..20], CancelToken = Guid.NewGuid(),
-                Location = location, TimeSlot = slot, Date = date, IsBooked = booked,
+                Location = location, TimeSlot = slot, Date = onDate ?? date, IsBooked = booked,
                 FirstName = "Василь", LastName = "Пупкін",
             };
             db.Add(booking);
@@ -75,6 +75,35 @@ static class BookingTimeRangeChecks
             try { await Search(from, to); throw new Exception("Invalid range was accepted"); }
             catch (ValidationAppException) { Console.WriteLine("PASS Empty or reversed time range is rejected"); }
         }
+        var tomorrow = await Row("09:00", "11:00", onDate: date.AddDays(1));
+        var lastDay = await Row("09:00", "11:00", onDate: date.AddDays(14));
+        var past = await Row("09:00", "11:00", onDate: date.AddDays(-1));
+        var beyondHorizon = await Row("09:00", "11:00", onDate: date.AddDays(15));
+        var cancelled = await Row("09:00", "11:00", false, date.AddDays(1));
+        var foreign = await Row("09:00", "11:00", onDate: date.AddDays(1));
+        foreign.Location = new Location { Name = "Other dashboard location " + Guid.NewGuid(), Capacity = 2, IsActive = true };
+        await db.SaveChangesAsync();
+        var range = (BookingListResultDto)((OkObjectResult)await controller.List(null, location.Id, null, null, true,
+            dateFrom: date, dateTo: date.AddDays(14))).Value!;
+        Check(range.TotalCount == 7 && range.Items.Any(b => b.Id == morning.Id) && range.Items.Any(b => b.Id == lastDay.Id)
+            && !range.Items.Any(b => new[] { past.Id, beyondHorizon.Id, cancelled.Id, foreign.Id }.Contains(b.Id)),
+            "Dashboard period includes both boundary dates and only active bookings at the chosen location");
+        var rangePage = (BookingListResultDto)((OkObjectResult)await controller.List(null, location.Id, null, null, true,
+            page: 2, pageSize: 2, dateFrom: date, dateTo: date.AddDays(14))).Value!;
+        Check(rangePage.TotalCount == 7 && rangePage.Items.Count == 2, "Date range applies before pagination");
+        var singleDay = (BookingListResultDto)((OkObjectResult)await controller.List(date.ToString("yyyy-MM-dd"), location.Id, null, null, true)).Value!;
+        Check(singleDay.TotalCount == 5 && !singleDay.Items.Any(b => b.Id == tomorrow.Id), "Today's dashboard link excludes other dates");
+        var rangeCsv = (FileContentResult)await controller.ExportCsv(null, location.Id, null, null, true,
+            dateFrom: date, dateTo: date.AddDays(14));
+        var rangeText = System.Text.Encoding.UTF8.GetString(rangeCsv.FileContents);
+        Check(rangeText.Contains(lastDay.PublicNumber) && !rangeText.Contains(beyondHorizon.PublicNumber)
+            && !rangeText.Contains(past.PublicNumber) && !rangeText.Contains(cancelled.PublicNumber), "CSV honors the dashboard date range");
+        try
+        {
+            await controller.List(null, location.Id, null, null, true, dateFrom: date.AddDays(1), dateTo: date);
+            throw new Exception("Reversed date range was accepted");
+        }
+        catch (ValidationAppException) { Console.WriteLine("PASS Reversed date range is rejected"); }
         await transaction.RollbackAsync();
     }
 }

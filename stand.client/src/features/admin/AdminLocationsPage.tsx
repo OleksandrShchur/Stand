@@ -119,7 +119,6 @@ export default function AdminLocationsPage() {
                             <TableCell>Назва</TableCell>
                             <TableCell>Адреса</TableCell>
                             <TableCell align="center">Місць за замовчуванням</TableCell>
-                            <TableCell align="center">Порядок</TableCell>
                             <TableCell align="center">Активна</TableCell>
                             <TableCell align="center">Дії</TableCell>
                         </TableRow>
@@ -130,7 +129,6 @@ export default function AdminLocationsPage() {
                                 <TableCell sx={{ fontWeight: 600 }}>{loc.name}</TableCell>
                                 <TableCell>{loc.address}</TableCell>
                                 <TableCell align="center">{loc.capacity}</TableCell>
-                                <TableCell align="center">{loc.sortOrder}</TableCell>
                                 <TableCell align="center">
                                     <Switch slotProps={{ input: { 'aria-label': `Активна локація: ${loc.name}` } }} aria-busy={updatingId === loc.id} disabled={updatingId !== null} checked={loc.isActive} onChange={() => toggleActive(loc)} size="small" />
                                 </TableCell>

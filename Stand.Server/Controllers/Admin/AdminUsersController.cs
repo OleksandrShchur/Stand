@@ -34,6 +34,21 @@ public sealed class AdminUsersController(IAdminAuthService authService) : Contro
         return Ok(ToDto(user));
     }
 
+    [HttpPut("{id:int}/password")]
+    public async Task<IActionResult> ChangePassword(int id, [FromBody] ChangeAdminPasswordDto dto, CancellationToken ct)
+    {
+        await authService.ChangePasswordAsync(id, dto.Password, dto.ConfirmPassword, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
+    {
+        var currentId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        await authService.DeleteAsync(id, currentId, ct);
+        return NoContent();
+    }
+
     [HttpPost("{id:int}/enable")]
     public async Task<IActionResult> Enable(int id, CancellationToken ct)
     {

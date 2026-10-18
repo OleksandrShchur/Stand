@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Link,
+    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Link,
     IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Paper, Stack, Table, TableBody, TableCell, TableContainer, TableHead,
     TablePagination, TableRow, TextField, Typography,
 } from '@mui/material';
@@ -32,7 +32,11 @@ export default function AdminBookingsPage() {
     const [locations, setLocations] = useState<LocationAdminDto[]>([]);
 
     const [date, setDate] = useState(() => searchParams.get('date') || '');
-    const [locationId, setLocationId] = useState<number | ''>('');
+    const [locationId, setLocationId] = useState<number | ''>(() => {
+        const id = Number(searchParams.get('locationId'));
+        return Number.isInteger(id) && id > 0 ? id : '';
+    });
+    const [dateRange, setDateRange] = useState(() => ({ from: searchParams.get('dateFrom') || '', to: searchParams.get('dateTo') || '' }));
     const [timeFrom, setTimeFrom] = useState('');
     const [timeTo, setTimeTo] = useState('');
     const [search, setSearch] = useState('');
@@ -54,6 +58,8 @@ export default function AdminBookingsPage() {
         setError(null);
         adminApi.listBookings({
             date: date || undefined,
+            dateFrom: dateRange.from || undefined,
+            dateTo: dateRange.to || undefined,
             locationId: locationId || undefined,
             timeFrom: timeFrom || undefined,
             timeTo: timeTo || undefined,
@@ -70,7 +76,7 @@ export default function AdminBookingsPage() {
             .catch((e) => { if (!controller.signal.aborted) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити записи.'); })
             .finally(() => { if (!controller.signal.aborted) setLoading(false); });
         return () => controller.abort();
-    }, [date, locationId, timeFrom, timeTo, searchFilter, page, pageSize, refresh]);
+    }, [date, dateRange.from, dateRange.to, locationId, timeFrom, timeTo, searchFilter, page, pageSize, refresh]);
 
     useEffect(() => {
         adminApi.listLocations()
@@ -101,11 +107,11 @@ export default function AdminBookingsPage() {
             })}>Записи</Typography>
 
             <Accordion slotProps={{ heading: { component: 'h2' } }} variant="outlined" disableGutters sx={{ mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[date, locationId, timeFrom, timeTo, searchFilter].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[date, dateRange.from, dateRange.to, locationId, timeFrom, timeTo, searchFilter].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
                 <AccordionDetails>
                 <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} useFlexGap sx={{ flexWrap: 'wrap', alignItems: { xs: 'stretch', sm: 'center' } }}>
                     <Box sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}>
-                        <UkrainianDatePicker label="Дата" name="booking-date" value={date} onChange={(value) => { setDate(value); setPage(0); }} size="small" clearable confirmSelection />
+                        <UkrainianDatePicker label="Дата" name="booking-date" value={date} onChange={(value) => { setDate(value); setDateRange({ from: '', to: '' }); setPage(0); }} size="small" clearable confirmSelection />
                     </Box>
                     <TextField label="Локація" select value={locationId} onChange={(e) => { setLocationId(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
                         sx={{ minWidth: 180 }} size="small">
@@ -127,6 +133,15 @@ export default function AdminBookingsPage() {
                 </Stack>
                 </AccordionDetails>
             </Accordion>
+
+            {(date || dateRange.from || dateRange.to || locationId) && <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1, mb: 2 }} aria-label="Застосовані фільтри">
+                {date && <Chip variant="outlined" label={`Дата: ${formatDate(date)}`} onDelete={() => { setDate(''); setPage(0); }} />}
+                {(dateRange.from || dateRange.to) && <Chip variant="outlined"
+                    label={`Період: ${dateRange.from ? formatDate(dateRange.from) : '…'} – ${dateRange.to ? formatDate(dateRange.to) : '…'}`}
+                    onDelete={() => { setDateRange({ from: '', to: '' }); setPage(0); }} />}
+                {locationId && <Chip variant="outlined" label={locations.find(location => location.id === locationId)?.name ?? `Локація ${locationId}`}
+                    onDelete={() => { setLocationId(''); setPage(0); }} />}
+            </Stack>}
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={() => setRefresh(n => n + 1)} /></Box>}
             {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
@@ -185,7 +200,7 @@ export default function AdminBookingsPage() {
                         <ListItemText>Скасувати запис</ListItemText>
                     </MenuItem>}
                 </Menu>
-                <TableContainer component={Paper} variant="outlined" sx={{ px: { md: 1 }, pt: { md: 1 } }}>
+                <TableContainer component={Paper} variant="outlined" sx={{ mt: { xs: 1, md: 0 }, px: { md: 1 }, pt: { md: 1 } }}>
                     <Table size="small" aria-label="Записи на чергування" sx={{ display: { xs: 'none', md: 'table' }, borderCollapse: 'separate', borderSpacing: '0 3px' }}>
                         <TableHead>
                             <TableRow>
@@ -249,7 +264,7 @@ export default function AdminBookingsPage() {
                         labelRowsPerPage="На сторінці:"
                         labelDisplayedRows={({ from, to, count }) => `${from}–${to} з ${count}`}
                         getItemAriaLabel={(type) => ({ first: 'Перша сторінка', last: 'Остання сторінка', next: 'Наступна сторінка', previous: 'Попередня сторінка' })[type]}
-                        sx={{ '& .MuiTablePagination-toolbar': { px: { xs: 0, sm: 2 } }, '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } }, '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } } }}
+                        sx={{ pt: { md: 1 }, '& .MuiTablePagination-toolbar': { px: { xs: 0, sm: 2 } }, '& .MuiTablePagination-selectLabel': { display: { xs: 'none', sm: 'block' } }, '& .MuiTablePagination-spacer': { display: { xs: 'none', sm: 'block' } } }}
                     />
                 </TableContainer>
                 </>
