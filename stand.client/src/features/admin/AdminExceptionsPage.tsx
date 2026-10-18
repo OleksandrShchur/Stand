@@ -63,7 +63,7 @@ export default function AdminExceptionsPage() {
         <Box>
             <Typography variant="h4" sx={{ mb: 2 }}>Винятки за датою</Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Дозволяють вимкнути конкретний час чергування для окремої дати (наприклад, через свято), без зміни глобального списку часу.
+                Дозволяють вимкнути конкретний час стенду для окремої дати (наприклад, через свято), без зміни глобального списку часу.
             </Typography>
 
             <Card variant="outlined" sx={{ mb: 3 }}>

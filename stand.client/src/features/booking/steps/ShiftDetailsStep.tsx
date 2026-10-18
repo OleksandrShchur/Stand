@@ -80,7 +80,7 @@ export default function ShiftDetailsStep({ date, locationId, locationName, locat
                             </Typography>
                         </Box>
                         <Box sx={{ p: 1.5, bgcolor: 'background.default', borderRadius: 1 }}>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Час чергування</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>Час стенду</Typography>
                             <Typography sx={{ fontSize: 24, fontWeight: 700, lineHeight: 1.3, color: 'primary.dark', fontVariantNumeric: 'tabular-nums' }}>
                                 {slots[0].startTime}–{slots[slots.length - 1].endTime}
                             </Typography>

@@ -19,6 +19,7 @@ import { formatDate, todayIso } from '../../utils/date';
 import { matchingDates, validateRanges } from './scheduleModel';
 import LocationSchedule from './LocationSchedule';
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
+import ScheduleReviewContent from './ScheduleReviewContent';
 
 const WEEKDAYS = [{ value: 1, label: 'Пн' }, { value: 2, label: 'Вт' }, { value: 3, label: 'Ср' },
     { value: 4, label: 'Чт' }, { value: 5, label: 'Пт' }, { value: 6, label: 'Сб' }, { value: 0, label: 'Нд' }];
@@ -246,27 +247,20 @@ export default function AdminSchedulePage() {
             </Dialog>
 
             <Dialog open={!!review} onClose={() => { if (!busy) setReview(null); }} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby="review-title">
-                <DialogTitle id="review-title">Підтвердити розклад</DialogTitle>
-                <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}><Stack spacing={2} sx={{ pt: 1 }}>
-                    {review && <>
-                        <Typography>Дат: <strong>{review.result.updatedDates}</strong> · {review.dto.isActive ? 'Відкрито для запису' : 'Закрито для запису'}</Typography>
-                        <Box sx={{ maxHeight: 120, overflowY: 'auto' }}><Typography variant="body2">{review.dto.dates.map(formatDate).join('; ')}</Typography></Box>
-                        {review.dto.locations.map(l => <Box key={l.locationId}><Typography sx={{ fontWeight: 700 }}>{locations.find(place => place.id === l.locationId)?.name}</Typography>
-                            <Typography variant="body2">{l.slots.map(slot => `${slot.startTime}–${slot.endTime} · ${slot.capacity} місць`).join(', ')}</Typography></Box>)}
-                        <Alert severity={review.result.preservedBookings ? 'warning' : 'info'}>
-                            {review.result.preservedBookings ? `Поза розкладом залишаться записи: ${review.result.preservedBookings}. ` : ''}
-                            Усі наявні записи залишаться чинними на початковий час. Збереження розкладу не скасовує їх. Нові записи дозволятимуться лише за цим розкладом.
-                        </Alert>
-                        {review.result.updatedDates > 1 && <Alert severity="warning">Цей розклад замінить налаштування кожної обраної дати.</Alert>}
-                    </>}
+                <DialogTitle id="review-title" sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
+                    Підтвердити розклад
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Перевірте дати, час і кількість місць.</Typography>
+                </DialogTitle>
+                <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere', bgcolor: 'background.default', p: 2 }}><Stack spacing={2} sx={{ pt: 2 }}>
+                    {review && <ScheduleReviewContent schedule={review.dto} result={review.result} locations={locations} />}
                     {error && <Alert severity="error">{error}</Alert>}
                 </Stack></DialogContent>
-                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button disabled={busy} onClick={() => setReview(null)}>Назад до редагування</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
+                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', borderTop: '1px solid', borderColor: 'divider', flexDirection: { xs: 'column-reverse', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button variant="outlined" disabled={busy} onClick={() => setReview(null)}>Назад до редагування</Button><Button loading={busy} variant="contained" onClick={save}>Зберегти розклад</Button></DialogActions>
             </Dialog>
             <Dialog open={!!leave} onClose={() => setLeave(null)} fullWidth maxWidth="xs" aria-labelledby="leave-title">
                 <DialogTitle id="leave-title">Залишити незбережені зміни?</DialogTitle>
                 <DialogContent>Зміни розкладу ще не збережено. Після переходу їх буде втрачено.</DialogContent>
-                <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button onClick={() => setLeave(null)}>Продовжити редагування</Button><Button color="error" onClick={() => { leave?.(); setLeave(null); }}>Відкинути зміни</Button></DialogActions>
+                <DialogActions sx={{ p: 2, flexDirection: { xs: 'column', sm: 'row' }, gap: 1, '& > .MuiButton-root': { width: { xs: '100%', sm: 'auto' }, ml: '0 !important' } }}><Button variant="outlined" onClick={() => setLeave(null)}>Продовжити редагування</Button><Button variant="outlined" color="error" onClick={() => { leave?.(); setLeave(null); }}>Відкинути зміни</Button></DialogActions>
             </Dialog>
         </Box>
     );

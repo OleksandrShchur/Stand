@@ -145,7 +145,9 @@ try {
         await click(button('Готово'));
         await click(button('Зберегти'));
         await wait('document.body.innerText.includes("Підтвердити розклад")');
-        assert.ok(await evaluate('document.body.innerText.includes("10:00–11:00 · 5 місць")'), 'Save review shows the edited capacity');
+        assert.ok(await evaluate(`Array.from(document.querySelectorAll('[data-testid="schedule-review-location"] tbody tr')).some(row => row.cells[0].textContent === '10:00–11:00' && row.cells[1].textContent === '5')`), 'Save review aligns the edited interval with its capacity');
+        assert.ok(await evaluate(`(() => { const content = document.querySelector('[data-testid="schedule-review-content"]'); return content.scrollWidth <= content.clientWidth; })()`), 'Review cards fit the mobile viewport');
+        await evaluate('Promise.all(document.getAnimations().map(animation => animation.finished.catch(() => {})))');
         await screenshot(`${width}-capacity-preview`);
         await click(button('Назад до редагування'));
         await click(button('Налаштувати час'));

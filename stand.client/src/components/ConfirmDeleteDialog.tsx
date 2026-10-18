@@ -24,7 +24,7 @@ export default function ConfirmDeleteDialog({ open, title, description, children
             {error && <Alert severity="error" sx={{ mt: 2 }}>{error}</Alert>}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, flexWrap: 'wrap', gap: 1 }}>
-            <Button autoFocus disabled={busy} onClick={onCancel}>Скасувати</Button>
+            <Button variant="outlined" autoFocus disabled={busy} onClick={onCancel}>Скасувати</Button>
             <Button variant="contained" color="error" loading={busy} disabled={busy} onClick={onConfirm}>{confirmLabel}</Button>
         </DialogActions>
     </Dialog>;
