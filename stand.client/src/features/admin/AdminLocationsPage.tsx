@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-    Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, IconButton, Stack,
+    Alert, Box, Button, Card, CardContent, Chip, Dialog, DialogActions, DialogContent, DialogTitle, Fab, FormControlLabel, IconButton, Stack,
     ListItemIcon, ListItemText, Menu, MenuItem, Paper, Switch, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
@@ -85,11 +85,14 @@ export default function AdminLocationsPage() {
     if (loading) return <LoadingState />;
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Typography component="h1" variant="h4">Локації</Typography>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>Додати</Button>
-            </Box>
+        <Box sx={{ pb: 9 }}>
+            <Typography component="h1" variant="h4" sx={(theme) => ({
+                mb: 2,
+                [theme.breakpoints.down('sm')]: {
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                },
+            })}>Локації</Typography>
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
 
@@ -97,15 +100,15 @@ export default function AdminLocationsPage() {
                 {items.map(loc => <Card key={loc.id} variant="outlined"><CardContent sx={{ p: 1.5, '&:last-child': { pb: 1.5 } }}>
                     <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
                         <Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-                            <Typography component="h2" variant="h6">{loc.name}</Typography>
+                            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                                <Typography component="h2" variant="h6" sx={{ minWidth: 0 }}>{loc.name}</Typography>
+                                <Chip size="small" label={loc.isActive ? 'Активна' : 'Неактивна'} color={loc.isActive ? 'success' : 'default'} sx={{ flexShrink: 0 }} />
+                            </Stack>
                             {loc.address && <Typography variant="body2" color="text.secondary">{loc.address}</Typography>}
                         </Box>
                         {actionsButton(loc)}
                     </Stack>
-                    <Stack direction="row" useFlexGap sx={{ mt: 0.5, gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <Typography variant="body2">{loc.capacity} місць на інтервал</Typography>
-                        <Chip size="small" label={loc.isActive ? 'Активна' : 'Неактивна'} color={loc.isActive ? 'success' : 'default'} />
-                    </Stack>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>Місць на інтервал: {loc.capacity}</Typography>
                 </CardContent></Card>)}
             </Stack>
 
@@ -139,6 +142,17 @@ export default function AdminLocationsPage() {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            <Fab color="primary" aria-label="Додати локацію" title="Додати локацію" onClick={openCreate}
+                sx={{
+                    position: 'fixed',
+                    right: { xs: 'max(16px, env(safe-area-inset-right, 0px))', sm: 24 },
+                    bottom: 'calc(var(--admin-navigation-clearance, 12px) + 8px)',
+                    zIndex: (theme) => theme.zIndex.appBar - 1,
+                    borderRadius: 1,
+                }}>
+                <AddIcon />
+            </Fab>
 
             <Menu id="location-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)} onClose={() => setActionMenu(null)}
                 slotProps={{ paper: { sx: { minWidth: 180 } } }} sx={{ '& .MuiMenuItem-root': { minHeight: 48 } }}>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Link, Pagination, Stack,
+    Box, Button, Card, CardContent, Dialog, DialogActions, DialogContent, DialogTitle, Fab, IconButton, Link, Pagination, Stack,
     InputAdornment, ListItemIcon, ListItemText, Menu, MenuItem, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
     TextField, Tooltip, Typography,
 } from '@mui/material';
@@ -119,11 +119,14 @@ export default function AdminAuthorizedUsersPage() {
     if (loading) return <LoadingState />;
 
     return (
-        <Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                <Typography component="h1" variant="h4">Користувачі сайту</Typography>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={() => openForm()}>Додати</Button>
-            </Box>
+        <Box sx={{ pb: 9 }}>
+            <Typography component="h1" variant="h4" sx={(theme) => ({
+                mb: 2,
+                [theme.breakpoints.down('sm')]: {
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                },
+            })}>Користувачі сайту</Typography>
 
             {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
             <TextField fullWidth label="Пошук за ім’ям або телефоном" value={search} onChange={event => { setSearch(event.target.value); setPage(1); }} sx={{ mb: 2 }} />
@@ -182,6 +185,17 @@ export default function AdminAuthorizedUsersPage() {
                 </Table>
             </TableContainer>
             {pageCount > 1 && <Box sx={{ mt: 2 }}>{pagination('Сторінки користувачів під списком')}</Box>}
+
+            <Fab color="primary" aria-label="Додати користувача сайту" title="Додати користувача сайту" onClick={() => openForm()}
+                sx={{
+                    position: 'fixed',
+                    right: { xs: 'max(16px, env(safe-area-inset-right, 0px))', sm: 24 },
+                    bottom: 'calc(var(--admin-navigation-clearance, 12px) + 8px)',
+                    zIndex: (theme) => theme.zIndex.appBar - 1,
+                    borderRadius: 1,
+                }}>
+                <AddIcon />
+            </Fab>
 
             <Menu id="user-actions-menu" anchorEl={actionMenu?.anchor} open={Boolean(actionMenu)}
                 onClose={() => setActionMenu(null)}
