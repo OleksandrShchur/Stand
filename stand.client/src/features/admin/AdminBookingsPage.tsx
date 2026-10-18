@@ -6,13 +6,13 @@ import {
     TablePagination, TableRow, TextField, Typography,
 } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import { adminApi, type BookingFilters } from '../../api/adminApi';
+import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import { LoadingState, ErrorState, EmptyState } from '../../components/StateMessage';
 import UkrainianDatePicker from '../../components/UkrainianDatePicker';
-import type { BookingAdminDto, LocationAdminDto, TimeSlotAdminDto } from '../../api/types';
+import UkrainianTimePicker from '../../components/UkrainianTimePicker';
+import type { BookingAdminDto, LocationAdminDto } from '../../api/types';
 import { formatDateFull } from '../../utils/date';
 
 export default function AdminBookingsPage() {
@@ -22,12 +22,13 @@ export default function AdminBookingsPage() {
     const [items, setItems] = useState<BookingAdminDto[]>([]);
     const [total, setTotal] = useState(0);
     const [locations, setLocations] = useState<LocationAdminDto[]>([]);
-    const [timeSlots, setTimeSlots] = useState<TimeSlotAdminDto[]>([]);
 
     const [date, setDate] = useState(() => searchParams.get('date') || '');
     const [locationId, setLocationId] = useState<number | ''>('');
-    const [timeSlotId, setTimeSlotId] = useState<number | ''>('');
-    const [phone, setPhone] = useState('');
+    const [timeFrom, setTimeFrom] = useState('');
+    const [timeTo, setTimeTo] = useState('');
+    const [search, setSearch] = useState('');
+    const searchFilter = normalizeBookingSearch(search);
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(10);
 
@@ -36,44 +37,38 @@ export default function AdminBookingsPage() {
     const [cancelError, setCancelError] = useState('');
     const [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<BookingAdminDto | null>(null);
-    const [applied, setApplied] = useState<BookingFilters>(() => ({ date: date || undefined, isBooked: true }));
     const [refresh, setRefresh] = useState(0);
 
-    const buildFilters = (): BookingFilters => ({
-        date: date || undefined,
-        locationId: locationId || undefined,
-        timeSlotId: timeSlotId || undefined,
-        phone: phone || undefined,
-        isBooked: true,
-        page: page + 1,
-        pageSize,
-    });
-
-    const load = () => {
+    useEffect(() => {
+        const controller = new AbortController();
         setLoading(true);
         setError(null);
-        let current = true;
-        adminApi.listBookings({ ...applied, page: page + 1, pageSize })
+        adminApi.listBookings({
+            date: date || undefined,
+            locationId: locationId || undefined,
+            timeFrom: timeFrom || undefined,
+            timeTo: timeTo || undefined,
+            search: searchFilter,
+            isBooked: true,
+            page: page + 1,
+            pageSize,
+        }, controller.signal)
             .then((res) => {
-                if (!current) return;
+                if (controller.signal.aborted) return;
                 setItems(res.items); setTotal(res.totalCount);
                 if (!res.items.length && res.totalCount > 0 && page > 0) setPage(Math.max(0, Math.ceil(res.totalCount / pageSize) - 1));
             })
-            .catch((e) => { if (current) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити записи.'); })
-            .finally(() => { if (current) setLoading(false); });
-        return () => { current = false; };
-    };
+            .catch((e) => { if (!controller.signal.aborted) setError(e instanceof ApiError ? e.message : 'Не вдалося завантажити записи.'); })
+            .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+        return () => controller.abort();
+    }, [date, locationId, timeFrom, timeTo, searchFilter, page, pageSize, refresh]);
 
     useEffect(() => {
-        Promise.all([adminApi.listLocations(), adminApi.listTimeSlots(true)])
-            .then(([locs, slots]) => { setLocations(locs); setTimeSlots(slots); })
+        adminApi.listLocations()
+            .then(setLocations)
             .catch(() => setError('Не вдалося завантажити фільтри. Оновіть сторінку, щоб спробувати ще раз.'));
     }, []);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(load, [page, pageSize, applied, refresh]);
-
-    const applyFilters = () => { setPage(0); setApplied(buildFilters()); };
     const requestCancel = (booking: BookingAdminDto) => { setCancelError(''); setCancelTarget(booking); };
 
     const doCancel = () => {
@@ -97,29 +92,34 @@ export default function AdminBookingsPage() {
             })}>Записи</Typography>
 
             <Accordion slotProps={{ heading: { component: 'h2' } }} variant="outlined" disableGutters sx={{ mb: 2 }}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[applied.date, applied.locationId, applied.timeSlotId, applied.phone].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography sx={{ fontWeight: 600 }}>Фільтри{[date, locationId, timeFrom, timeTo, searchFilter].some(Boolean) ? ' · застосовано' : ''}</Typography></AccordionSummary>
                 <AccordionDetails>
                 <Stack spacing={2} direction={{ xs: 'column', sm: 'row' }} useFlexGap sx={{ flexWrap: 'wrap', alignItems: { xs: 'stretch', sm: 'center' } }}>
                     <Box sx={{ minWidth: 160, width: { xs: '100%', sm: 180 } }}>
-                        <UkrainianDatePicker label="Дата" name="booking-date" value={date} onChange={setDate} size="small" clearable />
+                        <UkrainianDatePicker label="Дата" name="booking-date" value={date} onChange={(value) => { setDate(value); setPage(0); }} size="small" clearable confirmSelection />
                     </Box>
-                    <TextField label="Локація" select value={locationId} onChange={(e) => setLocationId(e.target.value ? Number(e.target.value) : '')}
+                    <TextField label="Локація" select value={locationId} onChange={(e) => { setLocationId(e.target.value ? Number(e.target.value) : ''); setPage(0); }}
                         sx={{ minWidth: 180 }} size="small">
                         <MenuItem value="">Усі локації</MenuItem>
                         {locations.map((l) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
                     </TextField>
-                    <TextField label="Час" select value={timeSlotId} onChange={(e) => setTimeSlotId(e.target.value ? Number(e.target.value) : '')}
-                        sx={{ minWidth: 150 }} size="small">
-                        <MenuItem value="">Увесь час</MenuItem>
-                        {timeSlots.map((s) => <MenuItem key={s.id} value={s.id}>{s.startTime}–{s.endTime}</MenuItem>)}
-                    </TextField>
-                    <TextField label="Телефон" value={phone} onChange={(e) => setPhone(e.target.value)} sx={{ minWidth: 160 }} size="small" />
-                    <Button loading={loading} loadingPosition="start" variant="contained" startIcon={<RefreshIcon />} onClick={applyFilters}>Застосувати</Button>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 1, minWidth: 0, width: { xs: '100%', sm: 368 }, alignItems: 'start' }}>
+                        <UkrainianTimePicker label="Час від" name="booking-time-from" value={timeFrom} before={timeTo}
+                            onChange={(value) => { setTimeFrom(value); setPage(0); }} />
+                        <UkrainianTimePicker label="Час до" name="booking-time-to" value={timeTo} after={timeFrom}
+                            onChange={(value) => { setTimeTo(value); setPage(0); }} />
+                    </Box>
+                    <TextField label="Телефон, ім’я або прізвище" name="booking-search" type="search" value={search} onChange={(e) => {
+                        const next = e.target.value;
+                        if (normalizeBookingSearch(next) !== searchFilter) setPage(0);
+                        setSearch(next);
+                    }} helperText={search && !searchFilter ? 'Введіть щонайменше 2 літери або цифри для пошуку.' : undefined}
+                        sx={{ minWidth: { xs: 0, sm: 240 } }} size="small" />
                 </Stack>
                 </AccordionDetails>
             </Accordion>
 
-            {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={load} /></Box>}
+            {error && <Box sx={{ mb: 2 }}><ErrorState message={error} onRetry={() => setRefresh(n => n + 1)} /></Box>}
             {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
             {loading && <LoadingState />}
 
@@ -222,6 +222,13 @@ export default function AdminBookingsPage() {
             </Dialog>
         </Box>
     );
+}
+
+function normalizeBookingSearch(value: string): string | undefined {
+    const normalized = /\p{L}/u.test(value)
+        ? value.trim().replace(/\s+/g, ' ').toLocaleLowerCase('uk-UA')
+        : value.replace(/\D/g, '');
+    return normalized.length >= 2 ? normalized : undefined;
 }
 
 function BookingDetails({ booking }: { booking: BookingAdminDto }) {

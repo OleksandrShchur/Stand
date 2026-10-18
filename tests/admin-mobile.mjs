@@ -158,7 +158,6 @@ try {
     await wait(`${button('Скасувати запис')} !== undefined`);
     assert.ok(await evaluate("[...document.querySelectorAll('.MuiChip-label')].every(chip=>chip.textContent==='Записано')"), 'The default booking list contains booked records only');
     await tap("document.querySelector('.MuiAccordionSummary-root')");
-    await tap(button('Застосувати'));
     await wait(`${button('Скасувати запис')} !== undefined`);
     await tap(button('Скасувати запис'));
     await wait(`${dialog}?.innerText.includes('Так, скасувати запис')`);

@@ -227,12 +227,23 @@ GET/POST/PUT  /api/admin/locations       + activate/deactivate
 GET/POST/PUT  /api/admin/timeslots       + activate/deactivate
 GET/PUT       /api/admin/dates           + POST /bulk
 GET/POST/DELETE /api/admin/exceptions
-GET  /api/admin/bookings                 filters: date, locationId, timeSlotId, isBooked, phone
+GET  /api/admin/bookings                 filters: date, locationId, timeFrom, timeTo, timeSlotId, isBooked, search, phone
 POST /api/admin/bookings/{id}/cancel
 GET  /api/admin/bookings/export.csv
 GET  /api/admin/dashboard
 GET/POST /api/admin/users                + disable/enable
 ```
+
+The bookings search field accepts phone numbers, first names, surnames, or full
+names after two characters. Name matching ignores case, supports partial names
+and either full-name order. The `search` filter also applies to CSV export;
+the existing `phone` API filter remains available.
+
+Time filters use 24-hour clock inputs, with either bound optional. A booking
+matches when its end is after `timeFrom` and its start is before `timeTo`.
+For example, 09:00–11:00 matches From 10:00 and 12:00–15:00 matches To 13:00.
+Bookings that only touch a boundary are excluded. From must be earlier than To
+when both are supplied. The same filters apply to CSV export.
 
 ---
 

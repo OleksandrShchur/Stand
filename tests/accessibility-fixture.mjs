@@ -9,7 +9,7 @@ const slots = [1, 2, 3].map((id, index) => ({ id, timeSlotId: id, startTime: `${
 const booking = { id: 1, publicNumber: 'TEST-1', date: fixtureDate, locationId: 1, locationName: locations[0].name, locationAddress: locations[0].address, timeSlotId: 1, startTime: '10:00', endTime: '11:00', firstName: 'Олена', lastName: 'Тестова', phone: '+380670000001', isBooked: true, cancelToken: 'fixture-token', createdAtUtc: new Date().toISOString(), participants: slots[0].participants };
 const root = resolve('stand.client/dist');
 
-export async function startFixture(port = 5198) {
+export async function startFixture(port = 5198, { bookings } = {}) {
     const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         if (url.pathname.startsWith('/api/')) {
@@ -33,7 +33,10 @@ export async function startFixture(port = 5198) {
             if (path === '/api/slots' || path === '/api/admin/timeslots') return send(slots);
             if (path === '/api/bookings/mine') return send([booking]);
             if (path === '/api/bookings/fixture-token') return send(booking);
-            if (path === '/api/admin/bookings') return send({ items: [booking], totalCount: 1, page: 1, pageSize: 10 });
+            if (path === '/api/admin/bookings') {
+                if (bookings) return bookings(url, response);
+                return send({ items: [booking], totalCount: 1, page: 1, pageSize: 10 });
+            }
             if (path === '/api/admin/users') return send([1, 2].map(id => ({ id, login: `Адмін ${id}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/authorized-users') return send(Array.from({ length: 12 }, (_, i) => ({ id: i + 1, firstName: `Ім’я ${i + 1}`, lastName: 'Тестове', phone: `+3806700000${String(i).padStart(2, '0')}`, isActive: true, createdAtUtc: booking.createdAtUtc })));
             if (path === '/api/admin/schedule') return send({ date: url.searchParams.get('date'), isActive: true, isCustom: true, locations: [{ locationId: 1, slots: slots.slice(0, 2).map(({ startTime, endTime }) => ({ startTime, endTime })) }], bookings: [], horizonDays: 14, minLeadTimeMinutes: 60 });
