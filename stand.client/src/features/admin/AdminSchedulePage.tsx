@@ -124,7 +124,13 @@ export default function AdminSchedulePage() {
 
     return (
         <Box sx={{ width: '100%', minWidth: 0, maxWidth: 1000, mx: 'auto', pb: { xs: 14, md: 0 }, overflowWrap: 'anywhere' }}>
-            <Typography component="h1" variant="h4" sx={{ mb: 2 }}>Розклад</Typography>
+            <Typography component="h1" variant="h4" sx={{
+                mb: 2,
+                [theme.breakpoints.down('sm')]: {
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                },
+            }}>Розклад</Typography>
             <Snackbar
                 key={notice}
                 open={notice !== null}
