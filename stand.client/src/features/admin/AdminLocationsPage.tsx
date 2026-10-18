@@ -13,7 +13,7 @@ import { LoadingState, ErrorState } from '../../components/StateMessage';
 import type { LocationAdminDto } from '../../api/types';
 
 type FormState = { name: string; address: string; capacity: number; sortOrder: number; isActive: boolean };
-const emptyForm: FormState = { name: '', address: '', capacity: 3, sortOrder: 0, isActive: true };
+const emptyForm: FormState = { name: '', address: '', capacity: 2, sortOrder: 0, isActive: true };
 
 export default function AdminLocationsPage() {
     const [loading, setLoading] = useState(true);
@@ -108,7 +108,7 @@ export default function AdminLocationsPage() {
                         </Box>
                         {actionsButton(loc)}
                     </Stack>
-                    <Typography variant="body2" sx={{ mt: 0.5 }}>Місць на інтервал: {loc.capacity}</Typography>
+                    <Typography variant="body2" sx={{ mt: 0.5 }}>Місць за замовчуванням: {loc.capacity}</Typography>
                 </CardContent></Card>)}
             </Stack>
 
@@ -118,7 +118,7 @@ export default function AdminLocationsPage() {
                         <TableRow>
                             <TableCell>Назва</TableCell>
                             <TableCell>Адреса</TableCell>
-                            <TableCell align="center">Місткість</TableCell>
+                            <TableCell align="center">Місць за замовчуванням</TableCell>
                             <TableCell align="center">Порядок</TableCell>
                             <TableCell align="center">Активна</TableCell>
                             <TableCell align="center">Дії</TableCell>
@@ -192,18 +192,19 @@ export default function AdminLocationsPage() {
                     <TextField label="Назва" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} fullWidth autoFocus />
                     <TextField label="Адреса / підзаголовок" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} fullWidth />
                     <TextField
-                        label="Місткість на слот"
+                        label="Місць за замовчуванням"
                         type="number"
                         value={form.capacity}
                         onChange={(e) => setForm({ ...form, capacity: Number(e.target.value) })}
                         fullWidth
-                        slotProps={{ htmlInput: { min: 1 } }}
+                        helperText="Початкова кількість місць для нових інтервалів. У розкладі кожен інтервал налаштовується окремо."
+                        slotProps={{ htmlInput: { min: 1, step: 1 } }}
                     />
                     <FormControlLabel
                         control={<Switch checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} />}
                         label="Активна"
                     />
-                    {editing && <Alert severity="warning">Зміна назви чи місткості стосується всіх дат. Вимкнення закриє нові записи на цю локацію. Наявні записи залишаться чинними.</Alert>}
+                    {editing && <Alert severity="warning">Зміна кількості місць за замовчуванням не змінює збережені інтервали в окремих розкладах. Для дат зі спільним розкладом ця кількість застосовується до всіх інтервалів. Вимкнення закриє нові записи на цю локацію.</Alert>}
                     {formError && <ErrorState message={formError} />}
                 </DialogContent>
                 <DialogActions>

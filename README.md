@@ -181,7 +181,11 @@ rate-limited to 5 attempts/minute per IP.
   only bookable if their **start time is at least 1 hour** from now
   (`Booking:MinLeadTimeMinutes`, default 60); earlier slots show as
   «Недоступно» and are rejected on booking with `SLOT_TOO_SOON`.
-- **Capacity:** configurable per location (seeded default **3**). Enforced
+- **Capacity:** configurable per date/location/interval in the admin schedule.
+  New locations default to **2**; new intervals start with the location's default.
+  Existing location settings and schedule capacities are preserved on upgrade.
+  Capacity cannot be saved below the interval's current booked count; a user or
+  admin must cancel enough bookings first. Enforced
   under concurrent requests via a DB transaction with a `WITH (UPDLOCK,
   HOLDLOCK)` row-locking count inside `BookingService`, so parallel booking
   attempts for the same date/location/time slot are serialized rather than
@@ -384,14 +388,37 @@ PUT  /api/admin/schedule
 ```
 
 The PUT and preview accept `{ dates, isActive, locations: [{ locationId, slots:
-[{ startTime, endTime }] }], acknowledgeExistingBookings }`. Replacing a schedule
+[{ startTime, endTime, capacity }] }], acknowledgeExistingBookings }`. Replacing a schedule
 with affected bookings requires acknowledgment. The operation is atomic across
 all selected dates and coordinated with in-flight bookings using transaction
 locks. Time ranges referenced by bookings are not rewritten.
 
+Each interval has its own positive whole-number capacity. The series generator
+prefills the location's default, and admins can change any generated interval
+individually. Copying across dates or locations includes capacity, and the review
+lists it beside each interval. Changing a location's default does not change
+capacities already saved in custom schedules. Legacy dates continue using the
+location default until saved in the schedule editor.
+
+Apply `0016_AddScheduleSlotCapacity.sql` through `Stand.DbMigrator` before starting
+this version of the server. It adds `ScheduleSlots.Capacity`, backfills existing
+intervals from their location settings (at least the current booked count), and
+sets the default for new locations to two without changing existing locations.
+The EF capacity mappings were verified against a LocalDB scaffold. Both preview
+and save reject a capacity below the current booked count, including when copying
+to multiple dates or acknowledging affected bookings. Saving rechecks under date
+locks to cover bookings made since preview. Availability, concurrent booking
+limits and dashboard fill rates all use each interval's saved capacity.
+
 Validation: `npm test` and `npm run build` in `stand.client`; the SQL integration
 checks in `tests/Stand.Integration` use only the disposable `StandPerfTest`
 database. Apply the migration to that test database before running them.
+
+The focused capacity browser regression is `node tests/admin-slot-capacity.mjs`.
+Build the client first and launch an isolated Chrome debugging endpoint on port
+9245 (or set `ADMIN_CHROME_URL`). It uses an API fixture without a database and
+checks capacity editing, invalid values, save review and generated series at
+320, 393 and 414 CSS pixels.
 
 The mobile browser regression is `node tests/admin-mobile.mjs` from the repo
 root. Point `ADMIN_BASE_URL` at a running local app backed by the isolated test

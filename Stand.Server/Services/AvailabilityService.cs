@@ -110,7 +110,9 @@ public sealed class AvailabilityService(
                 (date > min || slot.EndTime > currentTime) &&
                 db.Bookings.Count(booking => booking.Date == date && booking.TimeSlotId == slot.Id &&
                     booking.LocationId == location.Id &&
-                    booking.IsBooked) < location.Capacity));
+                    booking.IsBooked) < (db.ScheduleSlots
+                        .Where(s => s.Date == date && s.LocationId == location.Id && s.TimeSlotId == slot.Id)
+                        .Select(s => (int?)s.Capacity).FirstOrDefault() ?? location.Capacity)));
     }
 
     public async Task EnsureDateBookableAsync(DateOnly date, CancellationToken ct)
@@ -158,6 +160,8 @@ public sealed class AvailabilityService(
             .Select(t => new
             {
                 t.Id, t.StartTime, t.EndTime, t.IsActive,
+                Capacity = db.ScheduleSlots.Where(s => s.Date == date && s.LocationId == locationId && s.TimeSlotId == t.Id)
+                    .Select(s => (int?)s.Capacity).FirstOrDefault() ?? location.Capacity,
                 IsBlocked = db.AvailableDates.Any(d => d.Date == date && d.UseCustomSchedule)
                     ? !db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == locationId && s.TimeSlotId == t.Id)
                     : !t.IsActive || t.IsScheduleOnly || db.DateTimeSlotExceptions.Any(e => e.Date == date && e.IsBlocked && e.TimeSlotId == t.Id),
@@ -183,13 +187,13 @@ public sealed class AvailabilityService(
             var isBlocked = slot.IsBlocked;
             var isTooSoon = IsSlotTooSoon(date, slot.StartTime);
             var booked = bookedCounts.GetValueOrDefault(slot.Id, 0);
-            var remaining = Math.Max(0, location.Capacity - booked);
+            var remaining = Math.Max(0, slot.Capacity - booked);
 
             result.Add(new SlotAvailabilityDto(
                 slot.Id,
                 slot.StartTime.ToString("HH:mm"),
                 slot.EndTime.ToString("HH:mm"),
-                location.Capacity,
+                slot.Capacity,
                 booked,
                 remaining,
                 IsFull: isBlocked || isTooSoon || remaining <= 0,

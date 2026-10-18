@@ -6,7 +6,7 @@ import ts from 'typescript';
 const source = readFileSync(new URL('../src/features/admin/scheduleModel.ts', import.meta.url), 'utf8');
 const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
 const { generateRanges, validateRanges, matchingDates } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
-const range = (startTime, endTime) => ({ startTime, endTime });
+const range = (startTime, endTime, capacity = 2) => ({ startTime, endTime, capacity });
 
 test('09:00 to 17:00 creates exactly eight hourly slots', () => {
     const slots = generateRanges('09:00', '17:00', 60);
@@ -20,6 +20,23 @@ test('supports fractional-hour starts and arbitrary minute durations', () => {
 });
 test('custom unequal ranges allow adjacent slots and breaks', () => {
     assert.equal(validateRanges([range('14:00', '17:00'), range('09:00', '12:00'), range('12:00', '13:00')]), null);
+});
+test('generation uses the default of two or the supplied location capacity', () => {
+    assert.deepEqual(generateRanges('09:00', '10:00', 30), [range('09:00', '09:30'), range('09:30', '10:00')]);
+    assert.deepEqual(generateRanges('09:00', '10:00', 30, 5), [range('09:00', '09:30', 5), range('09:30', '10:00', 5)]);
+});
+test('each interval supports an independent positive whole capacity', () => {
+    assert.equal(validateRanges([range('09:00', '10:00', 1), range('10:00', '11:00', 5)]), null);
+    for (const capacity of [0, -1, 1.5, NaN, Infinity, undefined, null, 2147483648]) {
+        assert.ok(validateRanges([{ startTime: '09:00', endTime: '10:00', capacity }]));
+        if (capacity !== undefined) assert.throws(() => generateRanges('09:00', '10:00', 30, capacity));
+    }
+});
+test('capacity cannot fall below bookings for that exact interval', () => {
+    const bookings = [range('09:00', '10:00'), range('09:00', '10:00'), range('10:00', '11:00')];
+    assert.ok(validateRanges([range('09:00', '10:00', 1)], bookings));
+    assert.equal(validateRanges([range('09:00', '10:00', 2), range('10:00', '11:00', 1)], bookings), null);
+    assert.equal(validateRanges([range('09:00', '10:00', 1)], bookings.slice(1)), null);
 });
 test('rejects overlapping and duplicate slots', () => {
     assert.ok(validateRanges([range('09:00', '12:00'), range('11:00', '13:00')]));

@@ -35,6 +35,7 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
     const [start, setStart] = useState('09:00');
     const [end, setEnd] = useState('17:00');
     const [duration, setDuration] = useState(60);
+    const [capacity, setCapacity] = useState(location.capacity);
     const [error, setError] = useState('');
     const [copyId, setCopyId] = useState('');
     const enabled = slots !== undefined;
@@ -42,9 +43,9 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
     const closeEditor = () => { setOpen(false); setEditingIndex(null); };
     const add = () => {
         try {
-            const generated = mode === 'single' ? [{ startTime: start, endTime: end }] : generateRanges(start, end, duration);
+            const generated = mode === 'single' ? [{ startTime: start, endTime: end, capacity }] : generateRanges(start, end, duration, capacity);
             const next = [...(slots || []), ...generated].sort((a, b) => a.startTime.localeCompare(b.startTime));
-            const invalid = validateRanges(next);
+            const invalid = validateRanges(next, bookings);
             if (invalid) throw new Error(invalid);
             onChange(next); setError(''); setEditingIndex(null); setGeneratorOpen(mode === 'single');
         } catch (issue) { setError(issue instanceof Error ? issue.message : 'Перевірте час інтервалів.'); }
@@ -62,12 +63,12 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                     label={<Box sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                         <Typography sx={{ fontWeight: 700 }}>{location.name}{!location.isActive ? ' · Неактивна' : ''}</Typography>
                         <Typography variant="body2" color="text.secondary">{location.address}</Typography>
-                        <Typography variant="caption" color="text.secondary">Місць на інтервал: {location.capacity}</Typography>
+                        <Typography variant="caption" color="text.secondary">Місць за замовчуванням: {location.capacity}</Typography>
                     </Box>} />
                 {bookings.length > 0 && <Typography variant="caption" color="warning.dark" sx={{ display: 'block', mt: 1 }}>Наявних записів: {bookings.length}. Вони залишаться чинними.</Typography>}
                 {enabled && <>
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, mb: 1 }}>
-                        {slots.length ? `${slots.length} інтервалів · ${slots.slice(0, 3).map(slot => `${slot.startTime}–${slot.endTime}`).join(', ')}${slots.length > 3 ? '…' : ''}` : 'Час ще не додано'}
+                        {slots.length ? `${slots.length} інтервалів · ${slots.slice(0, 3).map(slot => `${slot.startTime}–${slot.endTime} (${slot.capacity} місць)`).join(', ')}${slots.length > 3 ? '…' : ''}` : 'Час ще не додано'}
                     </Typography>
                     <Button fullWidth variant="outlined" startIcon={<AccessTimeIcon />} disabled={busy} onClick={openEditor}>Налаштувати час</Button>
                 </>}
@@ -99,6 +100,9 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                             {mode === 'bulk' && <TextField label="Тривалість інтервалу, хв" type="number" value={duration} disabled={busy} onChange={event => setDuration(Number(event.target.value))}
                                 slotProps={{ htmlInput: { min: 1, max: 1439, inputMode: 'numeric' } }} helperText="60 — щогодини; 30 — кожні пів години." />}
                             {mode === 'single' && <Typography variant="body2" color="text.secondary">Увесь період — один інтервал. Можна додати кілька різних періодів із перервами.</Typography>}
+                            <TextField label="Кількість місць" type="number" value={capacity} disabled={busy} onChange={event => setCapacity(Number(event.target.value))}
+                                slotProps={{ htmlInput: { min: 1, max: 2147483647, step: 1, inputMode: 'numeric' } }}
+                                helperText={mode === 'bulk' ? 'Для кожного інтервалу серії. Після додавання можна змінити окремо.' : 'Максимальна кількість записів на цей інтервал.'} />
                             {error && <Alert severity="error">{error}</Alert>}
                             <Button variant="contained" fullWidth startIcon={<AddIcon />} disabled={busy} onClick={add}>{mode === 'bulk' ? 'Додати серію' : 'Додати інтервал'}</Button>
                         </Stack></AccordionDetails>
@@ -108,25 +112,32 @@ export default function LocationSchedule({ location, slots, bookings, busy, othe
                     {!slots?.length && <Typography variant="body2" color="text.secondary">Додайте серію однакових інтервалів або окремі періоди вище.</Typography>}
                     {slots?.map((slot, index) => <Box key={index} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, minWidth: 0 }}>
                         <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', minWidth: 0 }}>
-                            <Typography sx={{ flex: 1, minWidth: 0, fontWeight: 700 }}>{slot.startTime}–{slot.endTime}</Typography>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Typography sx={{ fontWeight: 700 }}>{slot.startTime}–{slot.endTime}</Typography>
+                                <Typography variant="body2" color="text.secondary">Місць: {slot.capacity} · Записів: {bookings.filter(b => b.startTime === slot.startTime && b.endTime === slot.endTime).length}</Typography>
+                            </Box>
                             <IconButton aria-label={`Змінити інтервал ${slot.startTime}–${slot.endTime}`} onClick={() => setEditingIndex(editingIndex === index ? null : index)} sx={{ width: 44, height: 44, flexShrink: 0 }}><EditOutlinedIcon /></IconButton>
                             <IconButton aria-label={`Видалити інтервал ${slot.startTime}–${slot.endTime}`} disabled={busy} onClick={() => { onChange(slots.filter((_, i) => i !== index)); setEditingIndex(null); }} sx={{ width: 44, height: 44, flexShrink: 0 }}><DeleteOutlineIcon /></IconButton>
                         </Stack>
                         {editingIndex === index && <Stack spacing={2} sx={{ mt: 2 }}>
                             <TextField label="Початок" type="time" value={slot.startTime} disabled={busy} fullWidth slotProps={{ inputLabel: { shrink: true } }} onChange={event => onChange(slots.map((item, i) => i === index ? { ...item, startTime: event.target.value } : item))} />
                             <TextField label="Завершення" type="time" value={slot.endTime} disabled={busy} fullWidth slotProps={{ inputLabel: { shrink: true } }} onChange={event => onChange(slots.map((item, i) => i === index ? { ...item, endTime: event.target.value } : item))} />
+                            <TextField label="Кількість місць" type="number" value={slot.capacity} disabled={busy} fullWidth
+                                slotProps={{ htmlInput: { min: Math.max(1, bookings.filter(b => b.startTime === slot.startTime && b.endTime === slot.endTime).length), max: 2147483647, step: 1, inputMode: 'numeric' } }}
+                                helperText="Щоб зменшити кількість місць нижче кількості записів, спочатку скасуйте зайві записи."
+                                onChange={event => onChange(slots.map((item, i) => i === index ? { ...item, capacity: Number(event.target.value) } : item))} />
                         </Stack>}
                     </Box>)}
                     {!!slots?.length && <Button disabled={busy} color="error" onClick={() => { onChange([]); setEditingIndex(null); setGeneratorOpen(true); }}>Очистити час</Button>}
-                    {!!slots?.length && validateRanges(slots) && <Alert severity="error">{validateRanges(slots)}</Alert>}
+                    {!!slots?.length && validateRanges(slots, bookings) && <Alert severity="error">{validateRanges(slots, bookings)}</Alert>}
                     {otherLocations.length > 0 && <Stack spacing={1.5}>
-                        <TextField select fullWidth label="Взяти час іншої локації" value={copyId} disabled={busy} onChange={event => setCopyId(event.target.value)}>
+                        <TextField select fullWidth label="Взяти час і місця іншої локації" value={copyId} disabled={busy} onChange={event => setCopyId(event.target.value)}>
                             {otherLocations.map(other => <MenuItem key={other.locationId} value={String(other.locationId)} sx={{ whiteSpace: 'normal', overflowWrap: 'anywhere' }}>{other.name}</MenuItem>)}
                         </TextField>
                         <Button variant="outlined" disabled={busy || !copyId} onClick={() => {
                             const other = otherLocations.find(item => String(item.locationId) === copyId);
                             if (other) { onChange(other.slots.map(slot => ({ ...slot }))); setError(''); setEditingIndex(null); setGeneratorOpen(false); }
-                        }}>Замінити час</Button>
+                        }}>Замінити час і місця</Button>
                     </Stack>}
                 </Stack>
             </DialogContent>

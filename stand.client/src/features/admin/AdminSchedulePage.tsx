@@ -87,7 +87,7 @@ export default function AdminSchedulePage() {
                 [...previous.locations, { locationId: id, slots }],
     }));
     const validation = draft?.locations.map(l => {
-        const invalid = validateRanges(l.slots);
+        const invalid = validateRanges(l.slots, source?.bookings.filter(b => b.locationId === l.locationId));
         return invalid ? `${locations.find(place => place.id === l.locationId)?.name}: ${invalid}` : '';
     }).find(Boolean) || '';
     const inactive = draft?.locations.some(l => !locations.find(place => place.id === l.locationId)?.isActive);
@@ -209,7 +209,7 @@ export default function AdminSchedulePage() {
                 <DialogTitle id="copy-title">Копіювати розклад дня</DialogTitle>
                 <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
                     <Stack spacing={2} sx={{ pt: 1, minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
-                        <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали, включно з незбереженими змінами.</Typography>
+                        <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали з кількістю місць, включно з незбереженими змінами.</Typography>
                         <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
                             <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0 }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0 }}>За днями тижня</ToggleButton>
                         </ToggleButtonGroup>
@@ -242,7 +242,7 @@ export default function AdminSchedulePage() {
                         <Typography>Дат: <strong>{review.result.updatedDates}</strong> · {review.dto.isActive ? 'Відкрито для запису' : 'Закрито для запису'}</Typography>
                         <Box sx={{ maxHeight: 120, overflowY: 'auto' }}><Typography variant="body2">{review.dto.dates.map(formatDate).join('; ')}</Typography></Box>
                         {review.dto.locations.map(l => <Box key={l.locationId}><Typography sx={{ fontWeight: 700 }}>{locations.find(place => place.id === l.locationId)?.name}</Typography>
-                            <Typography variant="body2">{l.slots.map(slot => `${slot.startTime}–${slot.endTime}`).join(', ')}</Typography></Box>)}
+                            <Typography variant="body2">{l.slots.map(slot => `${slot.startTime}–${slot.endTime} · ${slot.capacity} місць`).join(', ')}</Typography></Box>)}
                         <Alert severity={review.result.preservedBookings ? 'warning' : 'info'}>
                             {review.result.preservedBookings ? `Поза розкладом залишаться записи: ${review.result.preservedBookings}. ` : ''}
                             Усі наявні записи залишаться чинними на початковий час. Збереження розкладу не скасовує їх. Нові записи дозволятимуться лише за цим розкладом.

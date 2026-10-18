@@ -49,8 +49,17 @@ public sealed class AdminLocationsController(StandDbContext db) : ControllerBase
     {
         Validate(dto);
 
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await ScheduleLock.AcquireLocationAsync(db, id, true, ct);
         var entity = await db.Locations.FirstOrDefaultAsync(l => l.Id == id, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Локацію не знайдено.");
+
+        if (dto.Capacity < entity.Capacity && await db.Bookings
+            .Where(b => b.LocationId == id && b.IsBooked &&
+                !db.AvailableDates.Any(d => d.Date == b.Date && d.UseCustomSchedule))
+            .GroupBy(b => new { b.Date, b.TimeSlotId }).AnyAsync(g => g.Count() > dto.Capacity, ct))
+            throw new ConflictAppException(ErrorCodes.Conflict,
+                "У спільному розкладі вже є більше записів, ніж вказана місткість. Спочатку користувач або адміністратор має скасувати зайві записи.");
 
         entity.Name = dto.Name.Trim();
         entity.Address = string.IsNullOrWhiteSpace(dto.Address) ? null : dto.Address.Trim();
@@ -60,6 +69,7 @@ public sealed class AdminLocationsController(StandDbContext db) : ControllerBase
         entity.UpdatedAtUtc = DateTime.UtcNow;
 
         await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
         return Ok(new LocationAdminDto(entity.Id, entity.Name, entity.Address, entity.Capacity, entity.SortOrder, entity.IsActive));
     }
 
