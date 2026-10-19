@@ -83,10 +83,10 @@ export default function UserLoginPage() {
                                     htmlInput: {
                                         inputMode: 'numeric',
                                         autoComplete: 'tel-national',
-                                        'aria-label': 'Номер телефону після +380',
+                                        'aria-label': 'Номер телефону після +38, починаючи з 0',
                                     },
                                     input: {
-                                        startAdornment: <InputAdornment position="start">+380</InputAdornment>,
+                                        startAdornment: <InputAdornment position="start">+38</InputAdornment>,
                                     },
                                 }}
                                 error={Boolean(error)}
