@@ -3,7 +3,7 @@ import { Box, type BoxProps } from '@mui/material';
 import { useLocation } from 'react-router-dom';
 
 // Wait for asynchronously loaded headings before announcing a new page or step.
-export default function MainContent({ focusKey, ...props }: BoxProps & { focusKey?: string }) {
+export default function MainContent({ focusKey, focusHeading = true, ...props }: BoxProps & { focusKey?: string; focusHeading?: boolean }) {
     const ref = useRef<HTMLElement>(null);
     const { pathname } = useLocation();
 
@@ -14,8 +14,10 @@ export default function MainContent({ focusKey, ...props }: BoxProps & { focusKe
             const heading = main.querySelector('h1');
             if (!heading) return false;
             document.title = `${heading.textContent} — Стенди`;
-            heading.tabIndex = -1;
-            heading.focus({ preventScroll: true });
+            if (focusHeading) {
+                heading.tabIndex = -1;
+                heading.focus({ preventScroll: true });
+            }
             window.scrollTo(0, 0);
             return true;
         };
@@ -23,7 +25,7 @@ export default function MainContent({ focusKey, ...props }: BoxProps & { focusKe
         const observer = new MutationObserver(() => { if (announce()) observer.disconnect(); });
         observer.observe(main, { childList: true, subtree: true });
         return () => observer.disconnect();
-    }, [pathname, focusKey]);
+    }, [pathname, focusKey, focusHeading]);
 
     return <Box {...props} ref={ref} component="main" id="main-content" tabIndex={-1} />;
 }

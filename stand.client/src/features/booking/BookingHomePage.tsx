@@ -33,7 +33,7 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
-            <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
+            <Container component={MainContent} focusHeading={false} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Card variant="outlined">
                         <CardContent>

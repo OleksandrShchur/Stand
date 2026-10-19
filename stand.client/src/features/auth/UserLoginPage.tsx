@@ -61,7 +61,7 @@ export default function UserLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
             <BrandHeader title="Вхід" showHome={false} />
-            <Container component={MainContent} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Container component={MainContent} focusHeading={false} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
@@ -83,10 +83,10 @@ export default function UserLoginPage() {
                                     htmlInput: {
                                         inputMode: 'numeric',
                                         autoComplete: 'tel-national',
-                                        'aria-label': 'Номер телефону після +380',
+                                        'aria-label': 'Номер телефону після +38, починаючи з 0',
                                     },
                                     input: {
-                                        startAdornment: <InputAdornment position="start">+380</InputAdornment>,
+                                        startAdornment: <InputAdornment position="start">+38</InputAdornment>,
                                     },
                                 }}
                                 error={Boolean(error)}

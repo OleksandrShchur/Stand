@@ -58,7 +58,7 @@ export default function AdminAuthorizedUsersPage() {
 
     const openForm = (user: AuthorizedUserAdminDto | null = null) => {
         setEditingUser(user);
-        setPhoneDigits(user ? user.phone.slice(4) : '');
+        setPhoneDigits(user ? user.phone.slice(3) : '');
         setFirstName(user?.firstName ?? '');
         setLastName(user?.lastName ?? '');
         setSubmitted(false);
@@ -239,7 +239,7 @@ export default function AdminAuthorizedUsersPage() {
                         slotProps={{
                             formHelperText: { 'aria-live': 'polite' },
                             htmlInput: { inputMode: 'numeric', autoComplete: 'tel-national' },
-                            input: { startAdornment: <InputAdornment position="start">+380</InputAdornment> },
+                            input: { startAdornment: <InputAdornment position="start">+38</InputAdornment> },
                         }}
                         error={submitted && Boolean(validationError)}
                         helperText={submitted ? validationError : ' '}
