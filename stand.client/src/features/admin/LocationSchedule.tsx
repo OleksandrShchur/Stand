@@ -25,13 +25,14 @@ interface Props {
     slots?: ScheduleRangeDto[];
     bookings: DayScheduleDto['bookings'];
     busy: boolean;
+    readOnly?: boolean;
     otherLocations: (ScheduleLocationDto & { name: string })[];
     onChange: (slots: ScheduleRangeDto[] | null) => void;
 }
 
 // Only the location being edited mounts time controls. Controls must be able
 // to shrink without imposing their intrinsic width on the page.
-export default function LocationSchedule({ date, location, slots, bookings, busy, otherLocations, onChange }: Props) {
+export default function LocationSchedule({ date, location, slots, bookings, busy, readOnly = false, otherLocations, onChange }: Props) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [open, setOpen] = useState(false);
@@ -51,10 +52,10 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
     const slotIssues = getRangeErrors(slots ?? [], bookings);
     const hasSlotErrors = slotIssues.some(issue => issue.capacity || issue.time);
     const generatorCapacityError = getRangeErrors([{ startTime: start, endTime: end, capacity }])[0].capacity;
-    const openEditor = () => { setError(''); setGeneratorOpen(!slots?.length); setEditingIndex(null); setOpen(true); };
+    const openEditor = () => { if (readOnly) return; setError(''); setGeneratorOpen(!slots?.length); setEditingIndex(null); setOpen(true); };
     const closeEditor = () => { setRemovalTarget(null); setActionMenu(null); setAttentionIndex(null); setOpen(false); setEditingIndex(null); };
     const confirmRemoval = () => {
-        if (!removalTarget || busy) return;
+        if (!removalTarget || busy || readOnly) return;
         if (removalTarget.kind === 'location') { onChange(null); closeEditor(); return; }
         if (removalTarget.kind === 'all') { onChange([]); setGeneratorOpen(true); }
         else if (removalTarget.kind === 'replace') { onChange(removalTarget.slots); setError(''); setGeneratorOpen(false); }
@@ -76,6 +77,7 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
         else { setAttentionIndex(index); setEditingIndex(index); }
     };
     const add = () => {
+        if (readOnly || busy) return;
         try {
             const generated = mode === 'single' ? [{ startTime: start, endTime: end, capacity }] : generateRanges(start, end, duration, capacity);
             const next = [...(slots || []), ...generated].sort((a, b) => a.startTime.localeCompare(b.startTime));
@@ -88,9 +90,10 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
     return <>
         <Card variant="outlined" sx={{ minWidth: 0, opacity: location.isActive || enabled ? 1 : 0.65 }}>
             <CardContent>
-                <FormControlLabel sx={{ alignItems: 'start', m: 0, width: '100%', minWidth: 0, '& .MuiFormControlLabel-label': { flex: 1, minWidth: 0 } }}
-                    control={<Checkbox checked={enabled} disabled={busy || (!location.isActive && !enabled)}
+                <FormControlLabel sx={{ alignItems: 'start', m: 0, width: '100%', minWidth: 0, '& .MuiFormControlLabel-label': { flex: 1, minWidth: 0 }, ...(readOnly && { '& .MuiFormControlLabel-label.Mui-disabled': { color: 'text.primary' } }) }}
+                    control={<Checkbox checked={enabled} disabled={busy || readOnly || (!location.isActive && !enabled)}
                         onChange={event => {
+                            if (readOnly) return;
                             if (!event.target.checked && slots?.length) { setRemovalTarget({ kind: 'location' }); return; }
                             onChange(event.target.checked ? [] : null);
                             if (event.target.checked) { setGeneratorOpen(true); setOpen(true); } else closeEditor();
@@ -105,12 +108,18 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
                     <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5, mb: 1 }}>
                         {slots.length ? `${slots.length} інтервалів · ${slots.slice(0, 3).map(slot => `${slot.startTime}–${slot.endTime} (${slot.capacity} місць)`).join(', ')}${slots.length > 3 ? '…' : ''}` : 'Час ще не додано'}
                     </Typography>
-                    <Button fullWidth variant="outlined" startIcon={<AccessTimeIcon />} disabled={busy} onClick={openEditor}>Налаштувати час</Button>
+                    {readOnly ? <Accordion disableGutters variant="outlined" sx={{ boxShadow: 'none' }}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2">Переглянути час ({slots.length})</Typography></AccordionSummary>
+                        <AccordionDetails><Stack spacing={1}>{slots.map(slot => <Stack key={`${slot.startTime}-${slot.endTime}`} direction="row" useFlexGap sx={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{slot.startTime}–{slot.endTime}</Typography>
+                            <Typography variant="body2" color="text.secondary">Місць: {slot.capacity}</Typography>
+                        </Stack>)}</Stack></AccordionDetails>
+                    </Accordion> : <Button fullWidth variant="outlined" startIcon={<AccessTimeIcon />} disabled={busy} onClick={openEditor}>Налаштувати час</Button>}
                 </>}
             </CardContent>
         </Card>
 
-        <Dialog open={open && enabled} onClose={closeEditor} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby={`location-time-${location.id}`} data-testid="location-time-editor">
+        <Dialog open={open && enabled && !readOnly} onClose={closeEditor} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby={`location-time-${location.id}`} data-testid="location-time-editor">
             <DialogTitle id={`location-time-${location.id}`} sx={{ display: 'flex', alignItems: 'start', gap: 1, p: 2, minWidth: 0 }}>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography component="span" sx={{ display: 'block', fontWeight: 700 }}>Час стендів</Typography>
@@ -210,7 +219,7 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
                     </Stack>}
                 </Stack>
             </DialogContent>
-            <Menu id={`interval-actions-menu-${location.id}`} anchorEl={actionMenu?.anchor} open={!!actionMenu && open && enabled} onClose={() => setActionMenu(null)}
+            <Menu id={`interval-actions-menu-${location.id}`} anchorEl={actionMenu?.anchor} open={!!actionMenu && open && enabled && !readOnly} onClose={() => setActionMenu(null)}
                 slotProps={{ list: { 'aria-labelledby': actionMenu ? `interval-actions-${location.id}-${actionMenu.index}` : undefined }, paper: { sx: { minWidth: 180 } } }}
                 sx={{ '& .MuiMenuItem-root': { minHeight: 48 } }}>
                 <MenuItem disabled={busy} sx={{ color: 'error.main' }} onClick={() => {
@@ -229,7 +238,7 @@ export default function LocationSchedule({ date, location, slots, bookings, busy
                 <Button variant="contained" onClick={finishEditor} fullWidth sx={{ ml: '0 !important' }}>Готово</Button>
             </DialogActions>
         </Dialog>
-        <ConfirmDeleteDialog open={removalTarget !== null} busy={busy} onCancel={() => setRemovalTarget(null)} onConfirm={confirmRemoval}
+        <ConfirmDeleteDialog open={removalTarget !== null && !readOnly} busy={busy} onCancel={() => setRemovalTarget(null)} onConfirm={confirmRemoval}
             title={removalTarget?.kind === 'interval' ? 'Видалити інтервал?' : removalTarget?.kind === 'location' ? 'Прибрати локацію з розкладу?' : removalTarget?.kind === 'replace' ? 'Замінити час локації?' : 'Видалити всі інтервали?'}
             confirmLabel={removalTarget?.kind === 'interval' ? 'Так, видалити' : removalTarget?.kind === 'location' ? 'Так, прибрати' : removalTarget?.kind === 'replace' ? 'Так, замінити' : 'Так, видалити всі'}
             description={removalTarget?.kind === 'interval'

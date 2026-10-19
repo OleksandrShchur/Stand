@@ -15,7 +15,7 @@ namespace Stand.Server.Controllers.Admin;
 [ApiController]
 [Route("api/admin/schedule")]
 [Authorize]
-public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingOptions> options) : ControllerBase
+public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingOptions> options, IKyivClock clock) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<DayScheduleDto>> Get([FromQuery] string date, CancellationToken ct)
@@ -61,6 +61,7 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         if (dto.Dates is not { Count: > 0 and <= 366 } || dto.Locations is null || dto.Locations.Count > 100)
             throw new ValidationAppException("Оберіть від 1 до 366 дат та не більше 100 локацій.");
         var dates = dto.Dates.Select(ParseDate).Distinct().Order().ToList();
+        ScheduleArchive.EnsureEditable(dates, clock.TodayLocal);
         var locationIds = dto.Locations.Select(l => l.LocationId).ToList();
         if (locationIds.Distinct().Count() != locationIds.Count)
             throw new ValidationAppException("Локації не можуть повторюватися.");
@@ -140,6 +141,7 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
                     db.ScheduleSlots.Add(new ScheduleSlot { Date = date, LocationId = locationId, TimeSlotId = slotMap[range].Id,
                         Capacity = capacities[(locationId, range)] });
         await db.SaveChangesAsync(ct);
+        ScheduleArchive.EnsureEditable(dates, clock.TodayLocal);
         await tx.CommitAsync(ct);
         return Ok(new ScheduleSaveResultDto(dates.Count, affected));
     }

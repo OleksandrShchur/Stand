@@ -5,19 +5,20 @@ using Stand.Server.Common;
 using Stand.Server.Data;
 using Stand.Server.Data.Entities;
 using Stand.Server.Dtos.Admin;
+using Stand.Server.Services;
 
 namespace Stand.Server.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/dates")]
 [Authorize]
-public sealed class AdminDatesController(StandDbContext db) : ControllerBase
+public sealed class AdminDatesController(StandDbContext db, IKyivClock clock) : ControllerBase
 {
     /// <summary>Lists whitelist entries within [from, to] (defaults to today..+60 days for the admin UI).</summary>
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? from, [FromQuery] string? to, CancellationToken ct)
     {
-        var fromDate = DateOnly.TryParse(from, out var f) ? f : DateOnly.FromDateTime(DateTime.UtcNow);
+        var fromDate = DateOnly.TryParse(from, out var f) ? f : clock.TodayLocal;
         var toDate = DateOnly.TryParse(to, out var t) ? t : fromDate.AddDays(60);
 
         var entities = await db.AvailableDates
@@ -41,6 +42,7 @@ public sealed class AdminDatesController(StandDbContext db) : ControllerBase
             throw new ValidationAppException("Некоректна дата.");
         }
 
+        ScheduleArchive.EnsureEditable([date], clock.TodayLocal);
         var entity = await db.AvailableDates.FirstOrDefaultAsync(d => d.Date == date, ct);
         if (entity is null)
         {
@@ -53,6 +55,7 @@ public sealed class AdminDatesController(StandDbContext db) : ControllerBase
             entity.UpdatedAtUtc = DateTime.UtcNow;
         }
 
+        ScheduleArchive.EnsureEditable([date], clock.TodayLocal);
         await db.SaveChangesAsync(ct);
         return Ok(new AvailableDateAdminDto(entity.Id, entity.Date.ToString("yyyy-MM-dd"), entity.IsActive));
     }
@@ -76,6 +79,7 @@ public sealed class AdminDatesController(StandDbContext db) : ControllerBase
             .Where(d => weekdays.Contains(d.DayOfWeek))
             .ToList();
 
+        ScheduleArchive.EnsureEditable(dates, clock.TodayLocal);
         var existing = await db.AvailableDates
             .Where(a => dates.Contains(a.Date))
             .ToDictionaryAsync(a => a.Date, ct);
@@ -94,6 +98,7 @@ public sealed class AdminDatesController(StandDbContext db) : ControllerBase
             }
         }
 
+        ScheduleArchive.EnsureEditable(dates, clock.TodayLocal);
         await db.SaveChangesAsync(ct);
         return Ok(new { updated = dates.Count });
     }

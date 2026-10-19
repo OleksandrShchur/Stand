@@ -5,13 +5,14 @@ using Stand.Server.Common;
 using Stand.Server.Data;
 using Stand.Server.Data.Entities;
 using Stand.Server.Dtos.Admin;
+using Stand.Server.Services;
 
 namespace Stand.Server.Controllers.Admin;
 
 [ApiController]
 [Route("api/admin/exceptions")]
 [Authorize]
-public sealed class AdminExceptionsController(StandDbContext db) : ControllerBase
+public sealed class AdminExceptionsController(StandDbContext db, IKyivClock clock) : ControllerBase
 {
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? date, CancellationToken ct)
@@ -45,6 +46,7 @@ public sealed class AdminExceptionsController(StandDbContext db) : ControllerBas
             throw new ValidationAppException("Некоректна дата.");
         }
 
+        ScheduleArchive.EnsureEditable([date], clock.TodayLocal);
         var timeSlot = await db.TimeSlots.FirstOrDefaultAsync(t => t.Id == dto.TimeSlotId, ct)
             ?? throw new NotFoundAppException(ErrorCodes.TimeSlotNotFound, "Час не знайдено.");
 
@@ -60,6 +62,7 @@ public sealed class AdminExceptionsController(StandDbContext db) : ControllerBas
         entity.IsBlocked = dto.IsBlocked;
         entity.Note = string.IsNullOrWhiteSpace(dto.Note) ? null : dto.Note.Trim();
 
+        ScheduleArchive.EnsureEditable([date], clock.TodayLocal);
         await db.SaveChangesAsync(ct);
 
         return Ok(new DateTimeSlotExceptionAdminDto(
@@ -74,6 +77,7 @@ public sealed class AdminExceptionsController(StandDbContext db) : ControllerBas
         var entity = await db.DateTimeSlotExceptions.FirstOrDefaultAsync(e => e.Id == id, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Виняток не знайдено.");
 
+        ScheduleArchive.EnsureEditable([entity.Date], clock.TodayLocal);
         db.DateTimeSlotExceptions.Remove(entity);
         await db.SaveChangesAsync(ct);
         return NoContent();

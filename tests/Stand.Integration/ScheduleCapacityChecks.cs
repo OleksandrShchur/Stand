@@ -50,7 +50,7 @@ internal static class ScheduleCapacityChecks
         async Task Write(SaveScheduleDto dto, bool preview = false)
         {
             await using var db = new StandDbContext(dbOptions);
-            var controller = new AdminScheduleController(db, options);
+            var controller = new AdminScheduleController(db, options, clock);
             if (preview) await controller.Preview(dto, default);
             else await controller.Save(dto, default);
         }
@@ -70,7 +70,7 @@ internal static class ScheduleCapacityChecks
                 Check(slots.Select(s => s.Capacity).SequenceEqual([1, 3, 4]), "Public slots expose independent capacities on the same day and location");
                 var copied = await Availability(db).GetSlotsAsync(next, place.Id, default);
                 Check(copied.Select(s => s.Capacity).SequenceEqual([1, 3, 4]), "Copying to another date preserves each interval's capacity");
-                var day = (await new AdminScheduleController(db, options).Get(dateText, default)).Value!;
+                var day = (await new AdminScheduleController(db, options, clock).Get(dateText, default)).Value!;
                 Check(day.Locations.Single(l => l.LocationId == place.Id).Slots.Select(s => s.Capacity).SequenceEqual(new int?[] { 1, 3, 4 }),
                     "Admin schedule round-trips per-interval capacities");
                 Check((await Availability(db).GetSlotsAsync(date, other.Id, default)).Single().Capacity == 4,

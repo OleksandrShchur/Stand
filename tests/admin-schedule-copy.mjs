@@ -96,6 +96,11 @@ const pretty = date => date.split('-').reverse().join('.');
 mkdirSync('artifacts/admin-schedule-copy', { recursive: true });
 try {
     await send('Page.enable'); await send('Runtime.enable'); await send('Network.enable');
+    // Destinations in this test are day numbers 2..25. Keep today at the first
+    // of the month so they stay editable as the real calendar advances.
+    const firstOfMonth = new Date(); firstOfMonth.setDate(1); firstOfMonth.setHours(12, 0, 0, 0);
+    await send('Page.addScriptToEvaluateOnNewDocument', { source: `const RealDate = Date; const testNow = ${firstOfMonth.getTime()};
+        window.Date = class extends RealDate { constructor(...args) { super(...(args.length ? args : [testNow])); } static now() { return testNow; } };` });
     await send('Network.setCookie', { name: 'fixture-admin', value: 'true', url: base });
     for (const width of [320, 393, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: width < 600 });

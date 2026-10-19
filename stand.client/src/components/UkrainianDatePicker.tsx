@@ -46,6 +46,7 @@ interface Props {
     name: string;
     value: string;
     disabled?: boolean;
+    minDate?: string;
     size?: 'small' | 'medium';
     clearable?: boolean;
     confirmSelection?: boolean;
@@ -56,7 +57,7 @@ interface Props {
     onChange: (isoDate: string) => void;
 }
 
-export default function UkrainianDatePicker({ label, name, value, disabled, size = 'medium', clearable = false, confirmSelection = false, getSelectionIssue, activeDates, onCalendarOpen, onCalendarMonthChange, onChange }: Props) {
+export default function UkrainianDatePicker({ label, name, value, disabled, minDate, size = 'medium', clearable = false, confirmSelection = false, getSelectionIssue, activeDates, onCalendarOpen, onCalendarMonthChange, onChange }: Props) {
     // Calendar navigation must survive rerenders that refresh active-day highlights.
     const selectedDate = useMemo(() => value ? dayjs(value) : null, [value]);
     const [draft, setDraft] = useState<Dayjs | null>(() => value ? dayjs(value) : null);
@@ -84,6 +85,7 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
             value={confirmSelection ? draft : selectedDate}
             format={DATE_PICKER_FORMAT}
             disabled={disabled}
+            minDate={minDate ? dayjs(minDate) : undefined}
             open={confirmSelection ? open : undefined}
             onOpen={() => { if (confirmSelection) setOpen(true); setDismissedIssue(null); onCalendarOpen?.((confirmSelection ? draft : selectedDate)?.format('YYYY-MM-DD')); }}
             onMonthChange={month => onCalendarMonthChange?.(month.format('YYYY-MM-DD'))}
