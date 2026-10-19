@@ -23,7 +23,7 @@ const server = await startFixture(5198, { adminSchedule: async (url, request, re
         if (date === failedDate && failNext) {
             failNext = false; response.writeHead(503); return send({ title: 'Не вдалося завантажити базовий розклад.' });
         }
-        return send({ date, isActive: true, isCustom: true,
+        return send({ date, isActive: date !== editorDate && ![13, 15].includes(Number(date.slice(-2))), isCustom: true,
             locations: [{ locationId: date === editorDate ? 1 : 2, slots: [{ startTime: '10:00', endTime: '11:00', capacity: date === editorDate ? 3 : Number(date.slice(-2)) }] }],
             bookings: [], horizonDays: 14, minLeadTimeMinutes: 60 });
     }
@@ -33,6 +33,13 @@ const server = await startFixture(5198, { adminSchedule: async (url, request, re
         saves.push(dto); await new Promise(resolve => { releaseSave = resolve; });
     } else previews.push(dto);
     send({ updatedDates: dto.dates.length, preservedBookings: 1 });
+}, adminDates: (url, response) => {
+    const month = url.searchParams.get('from').slice(0, 7);
+    const lastDay = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate();
+    response.end(JSON.stringify(Array.from({ length: lastDay }, (_, i) => {
+        const date = `${month}-${String(i + 1).padStart(2, '0')}`;
+        return { id: i + 1, date, isActive: date !== editorDate && ![13, 15].includes(i + 1) };
+    })));
 } });
 const base = 'http://127.0.0.1:5198';
 const browser = process.env.ADMIN_CHROME_URL || 'http://127.0.0.1:9251';
@@ -67,11 +74,15 @@ const escape = async () => {
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
     await pause();
 };
-const choose = async (name, date) => {
-    await click(`document.querySelector('input[name="${name}"]').closest('.MuiFormControl-root').querySelector('button')`);
-    await wait('!!document.querySelector(".MuiDateCalendar-root")');
+const pickDay = async date => {
     const [year, month, day] = date.split('-').map(Number);
     await click(`document.querySelector('.MuiDateCalendar-root [data-timestamp="' + new Date(${year},${month - 1},${day}).getTime() + '"]')`);
+};
+const choose = async (name, date, confirm = true) => {
+    await click(`document.querySelector('input[name="${name}"]').closest('.MuiFormControl-root').querySelector('button')`);
+    await wait('!!document.querySelector(".MuiDateCalendar-root")');
+    await pickDay(date);
+    if (!confirm) return;
     if (await evaluate(`${button('OK')} !== undefined`)) await click(button('OK'));
     await wait('!document.querySelector(".MuiDateCalendar-root")');
 };
@@ -88,6 +99,7 @@ try {
     await send('Network.setCookie', { name: 'fixture-admin', value: 'true', url: base });
     for (const width of [320, 393, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: width < 600 });
+        await send('Emulation.setTouchEmulationEnabled', { enabled: width < 600 });
         await send('Page.navigate', { url: base + '/admin/schedule' });
         await wait(`${button('Копіювати')} !== undefined`);
         const days = [2, 4, 6, 8, 10].filter(day => day !== Number(editorDate.slice(-2))).map(day => `${editorDate.slice(0, 8)}${String(day).padStart(2, '0')}`);
@@ -96,10 +108,25 @@ try {
         await click(button('Копіювати'));
         assert.ok(await evaluate(`${sourceText}.includes('незбереженими змінами')`), 'Default source explains unsaved editor changes');
         assert.ok(await evaluate(`${sourceText}.includes(${JSON.stringify(pretty(editorDate))})`), 'Default source date is explicit');
+        const inactiveDate = `${editorDate.slice(0, 8)}${editorDate.endsWith('13') ? '15' : '13'}`;
+        const readsBeforeSelection = reads.length;
+        await choose('copy-source-date', inactiveDate, false);
+        await wait('!!document.querySelector("[data-testid=date-selection-warning]")');
+        assert.ok(await evaluate('document.querySelector("[data-testid=date-selection-warning]").innerText.includes("неактивний")'), 'An inactive selection explains why it cannot be a source');
+        assert.ok(await evaluate(`${button('OK')}.disabled`), 'Inactive dates cannot be confirmed');
+        assert.ok(await evaluate('(() => { const warning = document.querySelector("[data-testid=date-selection-warning]"); const toast = warning.closest(".MuiSnackbar-root"); return toast && getComputedStyle(toast).position === "fixed" && !warning.closest(".MuiPickersLayout-root"); })()'), 'Warning is a page toast outside the calendar layout');
+        await pause(); await pause();
+        const warningShot = await send('Page.captureScreenshot', { format: 'png' });
+        writeFileSync(`artifacts/admin-schedule-copy/inactive-${width}.png`, Buffer.from(warningShot.data, 'base64'));
+        await pickDay(otherDate);
+        await wait('!document.querySelector("[data-testid=date-selection-warning]")');
+        assert.equal(await evaluate(`${button('OK')}.disabled`), false, 'Choosing an active day clears the warning');
+        assert.equal(reads.length, readsBeforeSelection, 'Calendar selections do not load or replace the committed source');
+        await click(button('Відміна')); await wait('!document.querySelector(".MuiDateCalendar-root")');
         await addTarget(targetDate);
         await click(previewButton);
         await wait('!!document.querySelector("#review-title")');
-        assert.equal(previews.at(-1).isActive, false, 'Default source uses the draft');
+        assert.equal(previews.at(-1).isActive, true, 'Default source uses the active unsaved draft');
         assert.deepEqual(previews.at(-1).dates, [targetDate], 'Preview affects only selected destinations');
         assert.equal(await evaluate('document.activeElement.textContent'), 'Назад', 'Cancel is focused in replacement confirmation');
         await escape();
@@ -129,8 +156,16 @@ try {
         await choose('copy-source-date', editorDate);
         assert.ok(await evaluate(`${sourceText}.includes('незбереженими змінами')`), 'Returning to the editor date restores its unsaved draft');
         await escape(); await wait('!document.querySelector("#copy-title")');
-        assert.equal(await evaluate('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]").checked'), false, 'Changing source and cancelling preserves the original editor draft');
+        assert.equal(await evaluate('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]").checked'), true, 'Changing source and cancelling preserves the original editor draft');
     }
+
+    await click('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]")');
+    await click(button('Копіювати'));
+    await addTarget(`${editorDate.slice(0, 8)}25`);
+    assert.ok(await evaluate(`${previewButton}.disabled`), 'An already inactive editor day cannot be copied');
+    assert.ok(await evaluate('document.querySelector("[aria-labelledby=copy-title] .MuiAlert-root").innerText.includes("неактивний")'), 'An inactive committed source shows a banner at the top of the copy dialog');
+    await click(button('Назад')); await wait('!document.querySelector("#copy-title")');
+    await click('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]")');
 
     // Slow and failed reads must never permit copying an earlier source.
     const dates = [3, 5, 7].filter(day => day !== Number(editorDate.slice(-2))).map(day => `${editorDate.slice(0, 8)}${String(day).padStart(2, '0')}`);
@@ -156,7 +191,7 @@ try {
     assert.equal(saves[0].locations[0].slots[0].capacity, Number(failedDate.slice(-2)));
     releaseSave();
     await wait('!document.querySelector("#review-title") && !document.querySelector("#copy-title")');
-    assert.equal(await evaluate('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]").checked'), false, 'Saving targets does not overwrite the source editor draft');
+    assert.equal(await evaluate('document.querySelector("[data-testid=schedule-day-summary] input[type=checkbox]").checked'), true, 'Saving targets does not overwrite the source editor draft');
 
     // Weekday copying continues to use the open editor, even after picking a
     // different source in the individual-date tab.
@@ -169,7 +204,7 @@ try {
     const weekdayButton = `document.querySelector('[aria-label="Дні тижня для копіювання"] button[value="${weekday}"]')`;
     if (await evaluate(`${weekdayButton}.getAttribute('aria-pressed') !== 'true'`)) await click(weekdayButton);
     await click(previewButton); await wait('!!document.querySelector("#review-title")');
-    assert.equal(previews.at(-1).isActive, false, 'Weekday copying still uses the editor draft');
+    assert.equal(previews.at(-1).isActive, true, 'Weekday copying still uses the editor draft');
     assert.equal(previews.at(-1).locations[0].locationId, 1);
     assert.deepEqual(previews.at(-1).dates, [editorDate]);
     // Desktop backdrop dismissal cancels the replacement without a write.
@@ -177,7 +212,7 @@ try {
     await send('Input.dispatchMouseEvent', { type: 'mouseReleased', button: 'left', clickCount: 1, x: 5, y: 5 });
     await wait('!document.querySelector("#review-title")');
     assert.equal(saves.length, 1, 'Backdrop dismissal does not save');
-    console.log('Schedule copy: mobile/desktop layout, draft/saved sources, exact destinations, races, retries, cancellation, confirmed save and unchanged weekday flow passed.');
+    console.log('Schedule copy: inactive-source warnings and blocking, mobile/desktop layout, draft/saved sources, exact destinations, races, retries, cancellation, confirmed save and unchanged weekday flow passed.');
 } finally {
     releaseSlow?.(); releaseSave?.();
     await fetch(`${browser}/json/close/${target.id}`);

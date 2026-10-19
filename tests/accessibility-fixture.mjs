@@ -9,7 +9,7 @@ const slots = [1, 2, 3].map((id, index) => ({ id, timeSlotId: id, startTime: `${
 const booking = { id: 1, publicNumber: 'TEST-1', date: fixtureDate, locationId: 1, locationName: locations[0].name, locationAddress: locations[0].address, timeSlotId: 1, startTime: '10:00', endTime: '11:00', firstName: 'Олена', lastName: 'Тестова', phone: '+380670000001', isBooked: true, cancelToken: 'fixture-token', createdAtUtc: new Date().toISOString(), participants: slots[0].participants };
 const root = resolve('stand.client/dist');
 
-export async function startFixture(port = 5198, { bookings, adminUsers, bookingCreate, feedbackCreate, adminFeedback, adminLogout, adminSchedule } = {}) {
+export async function startFixture(port = 5198, { bookings, adminUsers, bookingCreate, feedbackCreate, adminFeedback, adminLogout, adminSchedule, adminDates } = {}) {
     const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         if (url.pathname.startsWith('/api/')) {
@@ -29,6 +29,7 @@ export async function startFixture(port = 5198, { bookings, adminUsers, bookingC
             if (adminFeedback && path === '/api/admin/feedback' && request.method === 'GET') return adminFeedback(url, response);
             if (adminLogout && path === '/api/admin/auth/logout' && request.method === 'POST') return adminLogout(request, response);
             if (adminSchedule && path.startsWith('/api/admin/schedule')) return adminSchedule(url, request, response);
+            if (adminDates && path === '/api/admin/dates' && request.method === 'GET') return adminDates(url, response);
             if (request.method !== 'GET') {
                 // Preview only. Unexpected mutations fail so a test cannot accidentally save.
                 if (path === '/api/admin/schedule/preview') return send({ updatedDates: 1, preservedBookings: 0 });

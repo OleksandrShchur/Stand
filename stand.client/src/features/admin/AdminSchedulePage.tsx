@@ -29,6 +29,7 @@ const message = (error: unknown) => error instanceof ApiError || error instanceo
 type Draft = { isActive: boolean; locations: ScheduleLocationDto[] };
 const snapshot = (day: Draft) => JSON.stringify({ isActive: day.isActive, locations: day.locations });
 const copyDateLabel = (day: string) => `${formatDate(day)} (${formatWeekdayShort(day)})`;
+const inactiveCopySourceMessage = 'Цей день неактивний. Його не можна використати як базову дату, оскільки немає розкладу для копіювання. Оберіть активний день.';
 
 export default function AdminSchedulePage() {
     const theme = useTheme();
@@ -44,7 +45,7 @@ export default function AdminSchedulePage() {
     const [busy, setBusy] = useState(false);
     const [retry, setRetry] = useState(0);
     const [calendarMonth, setCalendarMonth] = useState(() => todayIso().slice(0, 7));
-    const [activeDates, setActiveDates] = useState<string[]>([]);
+    const [calendarDays, setCalendarDays] = useState<Record<string, { revision: number; activeDates: string[] }>>({});
     const [calendarError, setCalendarError] = useState('');
     const [calendarRevision, setCalendarRevision] = useState(0);
     const [leave, setLeave] = useState<(() => void) | null>(null);
@@ -61,13 +62,15 @@ export default function AdminSchedulePage() {
     const [weekdays, setWeekdays] = useState([1, 2, 3, 4, 5]);
     const [review, setReview] = useState<{ dto: SaveScheduleDto; result: ScheduleSaveResultDto; sourceDate?: string } | null>(null);
     const dirty = !!draft && !!source && snapshot(draft) !== snapshot(source);
+    const activeDates = calendarDays[calendarMonth]?.revision === calendarRevision ? calendarDays[calendarMonth].activeDates : [];
+    const copyCalendarActiveDates = [...activeDates.filter(day => day !== date), ...(draft?.isActive && date.startsWith(calendarMonth) ? [date] : [])];
 
     useEffect(() => {
         let current = true;
         const month = dayjs(`${calendarMonth}-01`);
-        setActiveDates([]); setCalendarError('');
+        setCalendarError('');
         adminApi.listDates(month.format('YYYY-MM-DD'), month.endOf('month').format('YYYY-MM-DD'))
-            .then(days => { if (current) setActiveDates(days.filter(day => day.isActive).map(day => day.date)); })
+            .then(days => { if (current) setCalendarDays(previous => ({ ...previous, [calendarMonth]: { revision: calendarRevision, activeDates: days.filter(day => day.isActive).map(day => day.date) } })); })
             .catch(() => { if (current) setCalendarError('Не вдалося позначити активні дні. Спробуйте ще раз.'); });
         return () => { current = false; };
     }, [calendarMonth, calendarRevision]);
@@ -125,6 +128,15 @@ export default function AdminSchedulePage() {
     const targetDates = useMemo(() => copyMode === 'dates' ? [...copyDates].sort() : matchingDates(copyFrom, copyTo, weekdays),
         [copyMode, copyDates, copyFrom, copyTo, weekdays]);
     const copySchedule = copySourceDate === date ? draft : copySource?.date === copySourceDate ? copySource : null;
+    const copySourceInactive = copySchedule?.isActive === false;
+    const getCopySourceSelectionIssue = (next: string) => {
+        if (next === date) return draft?.isActive ? null : { message: inactiveCopySourceMessage };
+        const days = calendarDays[next.slice(0, 7)];
+        if (!days || days.revision !== calendarRevision) return calendarError && next.startsWith(calendarMonth)
+            ? { message: 'Не вдалося перевірити, чи активна дата. Закрийте календар і натисніть «Повторити».', severity: 'error' as const }
+            : { message: 'Перевіряємо, чи активна обрана дата…', severity: 'info' as const };
+        return days.activeDates.includes(next) ? null : { message: inactiveCopySourceMessage };
+    };
     const copyValidation = copySchedule?.locations.map(l => {
         const invalid = validateRanges(l.slots);
         return invalid ? `${locations.find(place => place.id === l.locationId)?.name}: ${invalid}` : '';
@@ -135,7 +147,7 @@ export default function AdminSchedulePage() {
         l.slots.some(slot => slot.startTime === booking.startTime && slot.endTime === booking.endTime))) || [];
 
     const prepare = async (targets: string[], schedule = draft, sourceDate?: string) => {
-        if (!schedule || busy || (schedule === draft && validation) || !targets.length) return;
+        if (!schedule || busy || (schedule === draft && validation) || (sourceDate && !schedule.isActive) || !targets.length) return;
         setBusy(true); setError('');
         const dto: SaveScheduleDto = { isActive: schedule.isActive, locations: schedule.locations, dates: targets };
         try { setReview({ dto, result: await adminApi.previewSchedule(dto), sourceDate }); }
@@ -269,6 +281,7 @@ export default function AdminSchedulePage() {
                 </DialogTitle>
                 <DialogContent dividers sx={{ p: 2, minWidth: 0, bgcolor: 'background.default', overflowWrap: 'anywhere', '& .MuiTypography-body2': { fontSize: '0.9375rem', lineHeight: 1.6 } }}>
                     <Stack spacing={2} sx={{ minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
+                        {copyMode === 'dates' && copySourceInactive && <Alert severity="warning">{inactiveCopySourceMessage}</Alert>}
                         {copyMode === 'weekdays' && <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали з кількістю місць, включно з незбереженими змінами.</Typography>}
                         <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth disabled={busy} value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
                             <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0, bgcolor: 'background.paper', whiteSpace: 'normal' }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0, bgcolor: 'background.paper', whiteSpace: 'normal' }}>За днями тижня</ToggleButton>
@@ -278,7 +291,7 @@ export default function AdminSchedulePage() {
                                 sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
                                 <Typography id="copy-source-heading" component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>1. Звідки копіюємо</Typography>
                                 <UkrainianDatePicker label="Базова дата розкладу" name="copy-source-date" value={copySourceDate} disabled={busy} confirmSelection
-                                    activeDates={activeDates} onCalendarOpen={() => setCalendarMonth((copySourceDate || todayIso()).slice(0, 7))}
+                                    getSelectionIssue={getCopySourceSelectionIssue} activeDates={copyCalendarActiveDates} onCalendarOpen={next => setCalendarMonth((next || copySourceDate || todayIso()).slice(0, 7))}
                                     onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} onChange={next => {
                                     setCopySourceDate(next); setCopySource(null); setCopySourceError(''); setError('');
                                 }} />
@@ -339,7 +352,7 @@ export default function AdminSchedulePage() {
                 <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', bgcolor: 'background.paper', flexShrink: 0,
                     display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: 1.5,
                     '& > .MuiButton-root': { minWidth: 0, minHeight: 48, m: '0 !important', lineHeight: 1.4 } }}><Button variant="outlined" disabled={busy} onClick={() => setCopyOpen(false)}>Назад</Button>
-                    <Button variant="contained" loading={busy} disabled={busy || !targetDates.length || (copyMode === 'dates' && (!copySchedule || !!copySourceError || !!copyValidation || copyTargetConflict))}
+                    <Button variant="contained" loading={busy} disabled={busy || !targetDates.length || (copyMode === 'dates' && (!copySchedule || copySourceInactive || !!copySourceError || !!copyValidation || copyTargetConflict))}
                         onClick={() => copyMode === 'dates' ? prepare(targetDates, copySchedule, copySourceDate) : prepare(targetDates)}>Переглянути зміни</Button></DialogActions>
             </Dialog>
 
