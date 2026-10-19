@@ -25,6 +25,9 @@ import BookingCardGroup from '../../components/BookingCardGroup';
 import { groupMyShiftCards } from '../../utils/bookingCardGroups';
 import { DATE_PICKER_FORMAT } from '../../utils/date';
 
+// Keep filters available for a later release; v1 shows all upcoming bookings.
+const SHOW_BOOKING_FILTERS = false;
+
 export default function MyShiftsPage() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
@@ -63,9 +66,9 @@ export default function MyShiftsPage() {
 
     useEffect(load, []);
 
-    const filtered = shifts.filter((shift) =>
+    const filtered = SHOW_BOOKING_FILTERS ? shifts.filter((shift) =>
         (!dateFilter || shift.date === dateFilter) &&
-        (!locationFilter || shift.locationName === locationFilter));
+        (!locationFilter || shift.locationName === locationFilter)) : shifts;
     const cardGroups = groupMyShiftCards(filtered);
     const locations = [...new Set(shifts.map((shift) => shift.locationName))].sort((a, b) => a.localeCompare(b, 'uk'));
     const shiftDates = new Set(shifts.map((shift) => shift.date));
@@ -103,7 +106,7 @@ export default function MyShiftsPage() {
                             </CardContent>
                         </Card>
                     )}
-                    {!loading && !error && shifts.length > 0 && (
+                    {SHOW_BOOKING_FILTERS && !loading && !error && shifts.length > 0 && (
                         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                             <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="uk" localeText={ukUA.components.MuiLocalizationProvider.defaultProps.localeText}>
                                 <DatePicker
@@ -180,7 +183,7 @@ export default function MyShiftsPage() {
                             </TextField>
                         </Stack>
                     )}
-                    {!loading && !error && shifts.length > 0 && filtered.length === 0 && (
+                    {SHOW_BOOKING_FILTERS && !loading && !error && shifts.length > 0 && filtered.length === 0 && (
                         <Box>
                             <Typography color="text.secondary">{bookingCopy.noMatchingShifts}</Typography>
                             <Button variant="outlined" sx={{ mt: 1.5 }} onClick={() => { setDateFilter(''); setLocationFilter(''); }}>{bookingCopy.resetFilters}</Button>
@@ -214,17 +217,12 @@ export default function MyShiftsPage() {
             </Container>
             <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
-                    <Stack direction="row" spacing={1}>
-                        <Button variant="outlined" size="large" onClick={() => {
-                            clearWizardState();
-                            navigate('/');
-                        }} sx={{ minHeight: 56, flexShrink: 0 }}>
-                            {bookingCopy.back}
-                        </Button>
-                        <Button variant="contained" size="large" onClick={() => navigate('/', { state: { startBooking: true } })} sx={{ minHeight: 56, flex: 1, minWidth: 0, px: 1 }}>
-                            {bookingCopy.startBooking}
-                        </Button>
-                    </Stack>
+                    <Button variant="outlined" size="large" fullWidth onClick={() => {
+                        clearWizardState();
+                        navigate('/');
+                    }} sx={{ minHeight: 56 }}>
+                        {bookingCopy.back}
+                    </Button>
                 </Container>
             </Box>
             <AppDialog
