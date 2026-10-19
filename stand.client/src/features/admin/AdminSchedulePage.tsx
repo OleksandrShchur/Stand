@@ -321,9 +321,16 @@ export default function AdminSchedulePage() {
                                 sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
                                 <Typography id="copy-target-heading" component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>2. На які дати застосовуємо</Typography>
                                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: 'stretch' }}>
-                                    <UkrainianDatePicker label="Цільова дата" name="copy-date" value={extraDate} disabled={busy} onChange={setExtraDate} />
+                                    <UkrainianDatePicker label="Цільова дата" name="copy-date" value={extraDate} disabled={busy} onChange={setExtraDate}
+                                        activeDates={activeDates} onCalendarOpen={next => setCalendarMonth((next || todayIso()).slice(0, 7))}
+                                        onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} />
                                     <Button variant="outlined" startIcon={<AddIcon />} aria-label="Додати дату до копіювання" disabled={busy || !extraDate || extraDate === copySourceDate || copyDates.includes(extraDate) || copyDates.length >= 366} onClick={() => { setCopyDates([...copyDates, extraDate]); setExtraDate(''); }} sx={{ flexShrink: 0, px: 2 }}>Додати</Button>
                                 </Stack>
+                                <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
+                                    <Box aria-hidden="true" sx={{ width: 10, height: 10, flexShrink: 0, borderRadius: '50%', bgcolor: 'var(--state-available-bg)', border: '1px solid', borderColor: 'success.main' }} />
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.875rem', lineHeight: 1.5 }}>Зеленим позначено дні з активним розкладом.</Typography>
+                                </Stack>
+                                {calendarError && <Alert severity="warning" action={<Button disabled={busy} onClick={() => setCalendarRevision(n => n + 1)}>Повторити</Button>}>{calendarError}</Alert>}
                                 {extraDate && extraDate === copySourceDate && <Typography variant="body2" color="error">Оберіть іншу дату: базову дату не потрібно додавати до цільових.</Typography>}
                                 <Typography variant="body2" role="status" sx={{ fontWeight: 700 }}>Обрано дат: {targetDates.length}</Typography>
                                 {targetDates.length ? <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>{targetDates.map(day => <Chip key={day} disabled={busy} sx={{ maxWidth: '100%' }} label={copyDateLabel(day)} onDelete={() => setCopyDates(copyDates.filter(d => d !== day))} />)}</Stack>
