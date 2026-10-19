@@ -271,7 +271,7 @@ export default function AdminSchedulePage() {
                             <Stack component="section" aria-labelledby="copy-source-heading" data-testid="copy-source" spacing={1.5}
                                 sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
                                 <Typography id="copy-source-heading" component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>1. Звідки копіюємо</Typography>
-                                <UkrainianDatePicker label="Базова дата розкладу" name="copy-source-date" value={copySourceDate} disabled={busy}
+                                <UkrainianDatePicker label="Базова дата розкладу" name="copy-source-date" value={copySourceDate} disabled={busy} confirmSelection
                                     activeDates={activeDates} onCalendarOpen={() => setCalendarMonth((copySourceDate || todayIso()).slice(0, 7))}
                                     onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} onChange={next => {
                                     setCopySourceDate(next); setCopySource(null); setCopySourceError(''); setError('');
