@@ -169,6 +169,7 @@ const theme = createTheme({
                     '--state-full-bg': '#EEF1EF',
                     '--state-full-border': '#CBD5CF',
                     '--state-full-text': '#4B5563',
+                    '--state-mine-bg': '#E0F2E5',
                     '--state-mine-border': '#207A4F',
                     '--state-mine-text': '#155C3A',
                 },

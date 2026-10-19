@@ -28,6 +28,28 @@ const next = slot(2, '11:00', '12:00');
 test('any available slot can start a selection', () => {
     assert.equal(canAddSlot(first, []), true);
 });
+
+test('own bookings cannot be selected even when seats remain or an old selection is restored', () => {
+    const mine = { ...next, isBookedByMe: true };
+    assert.equal(canAddSlot(mine, []), false);
+    assert.equal(canAddSlot(mine, [first]), false);
+    assert.equal(isContinuousSelection([first, mine]), false);
+    assert.deepEqual(toggleSlot(mine, []), []);
+    assert.deepEqual(toggleSlot(mine, [first]), [first]);
+    for (const selected of [[], [first], [mine]]) {
+        const message = getSlotDisabledReason(mine, selected);
+        assert.match(message, /Ви вже записані/);
+        assert.match(message, /11:00–12:00/);
+        assert.match(message, /Мої записи/);
+    }
+});
+
+test('own booking explanation takes priority over full, blocked or finished states', () => {
+    const mine = { ...first, isBookedByMe: true, remaining: 0, isFull: true, isBlocked: true, isTooSoon: true, isBookable: false };
+    assert.match(getSlotDisabledReason(mine, [], true, 'finished'), /Ви вже записані/);
+    assert.equal(canAddSlot(mine, []), false);
+    assert.equal(canAddSlot({ ...first, isBookedByMe: false }, []), true);
+});
 test('extends either end and unlocks the next adjacent slot', () => {
     assert.equal(canAddSlot(slot(3, '09:00', '10:00'), [first]), true);
     assert.equal(canAddSlot(next, [first]), true);

@@ -180,6 +180,8 @@ public sealed class AvailabilityService(
             .Where(b => currentPhone == null || b.Phone != currentPhone)
             .ToLookup(b => b.TimeSlotId);
         var bookedCounts = activeBookings.GroupBy(b => b.TimeSlotId).ToDictionary(g => g.Key, g => g.Count());
+        var mySlotIds = activeBookings.Where(b => currentPhone != null && b.Phone == currentPhone)
+            .Select(b => b.TimeSlotId).ToHashSet();
 
         var result = new List<SlotAvailabilityDto>(timeSlots.Count);
         foreach (var slot in timeSlots)
@@ -188,6 +190,7 @@ public sealed class AvailabilityService(
             var isTooSoon = IsSlotTooSoon(date, slot.StartTime);
             var booked = bookedCounts.GetValueOrDefault(slot.Id, 0);
             var remaining = Math.Max(0, slot.Capacity - booked);
+            var isBookedByMe = mySlotIds.Contains(slot.Id);
 
             result.Add(new SlotAvailabilityDto(
                 slot.Id,
@@ -199,9 +202,10 @@ public sealed class AvailabilityService(
                 IsFull: isBlocked || isTooSoon || remaining <= 0,
                 IsBlocked: isBlocked,
                 IsTooSoon: isTooSoon,
-                IsBookable: isDateBookable && location.IsActive && !isBlocked && !isTooSoon && remaining > 0,
+                IsBookable: isDateBookable && location.IsActive && !isBlocked && !isTooSoon && remaining > 0 && !isBookedByMe,
                 Participants: participantsBySlot[slot.Id]
-                    .Select(b => new ShiftParticipantDto(b.FirstName, b.LastName)).ToList()));
+                    .Select(b => new ShiftParticipantDto(b.FirstName, b.LastName)).ToList(),
+                IsBookedByMe: isBookedByMe));
         }
 
         return result;

@@ -91,11 +91,21 @@ try
         var slot = slots.Single(s => s.TimeSlotId == slotIds[4]);
         Check(slot.Booked == 1 && slot.Remaining == 2 && slot.Participants.Count == 1 && slot.Participants[0].FirstName == "Booked",
             "Only booked rows consume capacity or appear as participants; inactive history is ignored");
+        Check(!slot.IsBookedByMe && slot.IsBookable, "Another participant's booking does not mark the slot as mine or prevent selection");
         var booking = await Service(db).BookAsync(date, location.Id, slotIds[4], users[0].Id, default);
         Check(booking.IsBooked, "A booking is immediately booked without any pending or held state");
+        var ownSlots = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db))
+            .GetSlotsAsync(date, location.Id, default, users[0].Id);
+        var ownSlot = ownSlots.Single(s => s.TimeSlotId == slotIds[4]);
+        Check(ownSlot.IsBookedByMe && !ownSlot.IsBookable && ownSlot.Remaining == 1,
+            "Own booking is identified and cannot be selected again even when a place remains");
+        Check(ownSlots.Where(s => s.TimeSlotId != slotIds[4]).All(s => !s.IsBookedByMe),
+            "Own booking flag applies only to the booked slot");
         await Service(db).CancelAsync(Guid.Parse(booking.CancelToken), default);
         var afterCancel = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db)).GetSlotsAsync(date, location.Id, default, users[0].Id);
         Check(afterCancel.Single(s => s.TimeSlotId == slotIds[4]).Remaining == 2, "Cancellation frees the place immediately");
+        Check(!afterCancel.Single(s => s.TimeSlotId == slotIds[4]).IsBookedByMe && afterCancel.Single(s => s.TimeSlotId == slotIds[4]).IsBookable,
+            "Cancelled bookings no longer mark a slot as mine or prevent selection");
         var rebooked = await Service(db).BookAsync(date, location.Id, slotIds[4], users[0].Id, default);
         Check(rebooked.IsBooked && rebooked.CancelToken != booking.CancelToken, "The same participant can book again after cancellation");
         var admin = new Stand.Server.Controllers.Admin.AdminBookingsController(db);
