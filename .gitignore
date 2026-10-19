@@ -128,3 +128,6 @@ x86/
 
 # Built Visual Studio Code Extensions
 *.vsix
+Stand.Server/Properties/PublishProfiles
+Stand.Server/appsettings.Development.json
+Stand.Server/appsettings.Production.json
