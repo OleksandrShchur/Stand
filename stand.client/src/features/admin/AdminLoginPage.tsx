@@ -31,7 +31,7 @@ export default function AdminLoginPage() {
     return (
         <Box sx={{ minHeight: '100vh', '@supports (min-height: 100dvh)': { minHeight: '100dvh' }, display: 'flex', flexDirection: 'column', bgcolor: 'background.default' }}>
             <BrandHeader title="Вхід" showHome={false} />
-            <Container component={MainContent} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Container component={MainContent} focusHeading={false} className="content-enter" maxWidth="xs" sx={{ ...pagePadding, py: 2, flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                 <Card variant="outlined">
                     <CardContent>
                         <Box sx={{ textAlign: 'center', mb: 2 }}>
