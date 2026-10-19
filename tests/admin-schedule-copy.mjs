@@ -79,7 +79,7 @@ const addTarget = async date => {
     await choose('copy-date', date);
     await click(`document.querySelector('button[aria-label="Додати дату до копіювання"]')`);
 };
-const sourceText = 'document.querySelector("[data-testid=copy-source]").innerText';
+const sourceText = '(document.querySelector("[data-testid=copy-source]").innerText + " " + document.querySelector("input[name=copy-source-date]").value)';
 const previewButton = button('Переглянути зміни');
 const pretty = date => date.split('-').reverse().join('.');
 mkdirSync('artifacts/admin-schedule-copy', { recursive: true });

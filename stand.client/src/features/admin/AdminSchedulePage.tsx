@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import {
-    Accordion, AccordionDetails, AccordionSummary, Alert, Box, Button, Card, CardContent,
+    Accordion, AccordionDetails, AccordionSummary, Alert, AlertTitle, Box, Button, Card, CardContent,
     Chip, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel,
     IconButton, Snackbar, Stack, Switch, ToggleButton, ToggleButtonGroup, Typography, useMediaQuery, useTheme,
 } from '@mui/material';
@@ -10,6 +10,7 @@ import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import CloseIcon from '@mui/icons-material/Close';
 import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 import dayjs from 'dayjs';
 import { adminApi } from '../../api/adminApi';
@@ -259,49 +260,61 @@ export default function AdminSchedulePage() {
                 </Stack>
             </Box>
 
-            <Dialog open={copyOpen} onClose={() => { if (!busy) setCopyOpen(false); }} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby="copy-title">
-                <DialogTitle id="copy-title">Копіювати розклад дня</DialogTitle>
-                <DialogContent sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
-                    <Stack spacing={2} sx={{ pt: 1, minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
+            <Dialog open={copyOpen} onClose={() => { if (!busy) setCopyOpen(false); }} fullScreen={isMobile} fullWidth maxWidth="sm" aria-labelledby="copy-title"
+                slotProps={{ paper: { sx: { border: isMobile ? 0 : '1px solid', borderColor: 'divider', borderRadius: isMobile ? 0 : 1, ...(isMobile && { height: '100dvh', maxHeight: '100dvh' }) } } }}>
+                <DialogTitle component="div" sx={{ display: 'flex', alignItems: 'center', gap: 1.25, p: 2, bgcolor: 'background.default', color: 'primary.dark', flexShrink: 0 }}>
+                    <ContentCopyIcon color="primary" sx={{ display: { xs: 'none', sm: 'block' }, flexShrink: 0 }} />
+                    <Typography id="copy-title" component="h2" variant="h6" sx={{ flex: 1, minWidth: 0, fontWeight: 700 }}>Копіювати розклад дня</Typography>
+                    <IconButton aria-label="Закрити копіювання розкладу" disabled={busy} onClick={() => setCopyOpen(false)} sx={{ flexShrink: 0 }}><CloseIcon /></IconButton>
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 2, minWidth: 0, bgcolor: 'background.default', overflowWrap: 'anywhere', '& .MuiTypography-body2': { fontSize: '0.9375rem', lineHeight: 1.6 } }}>
+                    <Stack spacing={2} sx={{ minWidth: 0, '& .MuiTextField-root': { minWidth: 0 }, '& input': { minWidth: 0, fontSize: 16 } }}>
                         {copyMode === 'weekdays' && <Typography>Копіюється поточний розклад за {formatDate(date)}: стан дня, локації та всі інтервали з кількістю місць, включно з незбереженими змінами.</Typography>}
                         <ToggleButtonGroup aria-label="Спосіб копіювання розкладу" exclusive fullWidth disabled={busy} value={copyMode} onChange={(_, value) => value && setCopyMode(value)}>
-                            <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0 }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0 }}>За днями тижня</ToggleButton>
+                            <ToggleButton value="dates" sx={{ flex: 1, minWidth: 0, bgcolor: 'background.paper', whiteSpace: 'normal' }}>Окремі дати</ToggleButton><ToggleButton value="weekdays" sx={{ flex: 1, minWidth: 0, bgcolor: 'background.paper', whiteSpace: 'normal' }}>За днями тижня</ToggleButton>
                         </ToggleButtonGroup>
                         {copyMode === 'dates' ? <>
                             <Stack component="section" aria-labelledby="copy-source-heading" data-testid="copy-source" spacing={1.5}
-                                sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
+                                sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
                                 <Typography id="copy-source-heading" component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>1. Звідки копіюємо</Typography>
                                 <UkrainianDatePicker label="Базова дата розкладу" name="copy-source-date" value={copySourceDate} disabled={busy} confirmSelection
                                     activeDates={activeDates} onCalendarOpen={() => setCalendarMonth((copySourceDate || todayIso()).slice(0, 7))}
                                     onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} onChange={next => {
                                     setCopySourceDate(next); setCopySource(null); setCopySourceError(''); setError('');
                                 }} />
-                                <Typography variant="caption" color="text.secondary">Зеленим позначено дні, відкриті для запису.</Typography>
+                                <Stack direction="row" spacing={1} sx={{ alignItems: 'baseline' }}>
+                                    <Box aria-hidden="true" sx={{ width: 10, height: 10, flexShrink: 0, borderRadius: '50%', bgcolor: 'var(--state-available-bg)', border: '1px solid', borderColor: 'success.main' }} />
+                                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.875rem', lineHeight: 1.5 }}>Зеленим позначено відкриті дні.</Typography>
+                                </Stack>
                                 {calendarError && <Alert severity="warning" action={<Button disabled={busy} onClick={() => setCalendarRevision(n => n + 1)}>Повторити</Button>}>{calendarError}</Alert>}
                                 <Box aria-live="polite">
                                     {!copySourceDate && <Typography color="text.secondary" variant="body2">Оберіть дату, з якої потрібно взяти розклад.</Typography>}
                                     {copySourceDate && !copySchedule && !copySourceError && <LoadingState label="Завантажуємо базовий розклад…" />}
                                     {copySourceError && <Alert severity="error" action={<Button disabled={busy} onClick={() => { setCopySourceError(''); setCopySourceRetry(n => n + 1); }}>Повторити</Button>}>{copySourceError}</Alert>}
-                                    {copySourceDate && copySchedule && <Stack spacing={0.5}>
-                                        <Typography sx={{ fontWeight: 700 }}>{copyDateLabel(copySourceDate)}</Typography>
-                                        <Typography variant="body2">{copySchedule.isActive ? 'День відкритий для запису' : 'День закритий для запису'} · Локацій: {copySchedule.locations.length} · Інтервалів: {copySchedule.locations.reduce((n, l) => n + l.slots.length, 0)}</Typography>
+                                    {copySourceDate && copySchedule && <Stack spacing={1.5}>
+                                        <Chip label={copySchedule.isActive ? 'День відкритий для запису' : 'День закритий для запису'} color={copySchedule.isActive ? 'success' : 'default'} size="small" sx={{ alignSelf: 'flex-start', maxWidth: '100%' }} />
+                                        <Box component="dl" sx={{ m: 0, display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 2, py: 1, borderTop: '1px solid', borderBottom: '1px solid', borderColor: 'divider' }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}><Typography component="dt" variant="body2" color="text.secondary">Локацій</Typography><Typography component="dd" variant="h6" sx={{ m: 0, fontWeight: 700 }}>{copySchedule.locations.length}</Typography></Box>
+                                            <Box sx={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1 }}><Typography component="dt" variant="body2" color="text.secondary">Інтервалів</Typography><Typography component="dd" variant="h6" sx={{ m: 0, fontWeight: 700 }}>{copySchedule.locations.reduce((n, l) => n + l.slots.length, 0)}</Typography></Box>
+                                        </Box>
                                         <Typography variant="body2" color="text.secondary">{copySourceDate === date
                                             ? dirty ? 'Беремо розклад із редактора, включно з незбереженими змінами.' : 'Беремо поточний розклад із редактора.'
-                                            : 'Беремо збережений розклад цієї дати.'} Копіюються стан дня, локації, час і кількість місць.</Typography>
+                                            : 'Беремо збережений розклад цієї дати.'} Копіюються стан дня, локації, інтервали та кількість місць.</Typography>
                                     </Stack>}
                                 </Box>
                                 {copyValidation && <Alert severity="error">{copyValidation}</Alert>}
                             </Stack>
-                            <Stack component="section" aria-labelledby="copy-target-heading" data-testid="copy-targets" spacing={1.5}>
+                            <Stack component="section" aria-labelledby="copy-target-heading" data-testid="copy-targets" spacing={1.5}
+                                sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
                                 <Typography id="copy-target-heading" component="h3" variant="subtitle1" sx={{ fontWeight: 700 }}>2. На які дати застосовуємо</Typography>
-                                <Stack direction="row" spacing={1} sx={{ alignItems: 'start' }}>
-                                    <UkrainianDatePicker label="Дата для застосування" name="copy-date" value={extraDate} disabled={busy} onChange={setExtraDate} />
-                                    <IconButton aria-label="Додати дату до копіювання" disabled={busy || !extraDate || extraDate === copySourceDate || copyDates.includes(extraDate) || copyDates.length >= 366} onClick={() => { setCopyDates([...copyDates, extraDate]); setExtraDate(''); }} sx={{ mt: 0.5, minWidth: 44, minHeight: 44 }}><AddIcon /></IconButton>
+                                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: 'stretch' }}>
+                                    <UkrainianDatePicker label="Цільова дата" name="copy-date" value={extraDate} disabled={busy} onChange={setExtraDate} />
+                                    <Button variant="outlined" startIcon={<AddIcon />} aria-label="Додати дату до копіювання" disabled={busy || !extraDate || extraDate === copySourceDate || copyDates.includes(extraDate) || copyDates.length >= 366} onClick={() => { setCopyDates([...copyDates, extraDate]); setExtraDate(''); }} sx={{ flexShrink: 0, px: 2 }}>Додати</Button>
                                 </Stack>
                                 {extraDate && extraDate === copySourceDate && <Typography variant="body2" color="error">Оберіть іншу дату: базову дату не потрібно додавати до цільових.</Typography>}
                                 <Typography variant="body2" role="status" sx={{ fontWeight: 700 }}>Обрано дат: {targetDates.length}</Typography>
                                 {targetDates.length ? <Stack direction="row" useFlexGap sx={{ flexWrap: 'wrap', gap: 1 }}>{targetDates.map(day => <Chip key={day} disabled={busy} sx={{ maxWidth: '100%' }} label={copyDateLabel(day)} onDelete={() => setCopyDates(copyDates.filter(d => d !== day))} />)}</Stack>
-                                    : <Typography variant="body2" color="text.secondary">Додайте дату та натисніть «+». Список нижче показуватиме всі дати, на які буде скопійовано розклад.</Typography>}
+                                    : <Typography variant="body2" color="text.secondary">Оберіть цільову дату й натисніть «Додати». Можна додати кілька дат.</Typography>}
                                 {copyTargetConflict && <Alert severity="error">Базова дата є серед цільових. Приберіть {copyDateLabel(copySourceDate)} зі списку або змініть базову дату.</Alert>}
                             </Stack>
                         </> : <>
@@ -312,12 +325,20 @@ export default function AdminSchedulePage() {
                             <Typography variant="body2" color="text.secondary">Оберіть дні тижня у періоді до одного року.</Typography>
                             <ToggleButtonGroup aria-label="Дні тижня для копіювання" value={weekdays} onChange={(_, value) => setWeekdays(value)} fullWidth>{WEEKDAYS.map(day => <ToggleButton key={day.value} value={day.value} sx={{ px: 0, minWidth: 24 }}>{day.label}</ToggleButton>)}</ToggleButtonGroup>
                         </>}
-                        <Alert severity="warning">Розклад на вибраних датах буде повністю замінено. Наявні записи залишаться чинними. Перед збереженням ви побачите кількість записів, яких торкнуться зміни.</Alert>
+                        <Alert severity="warning" variant="outlined" sx={{ bgcolor: 'background.paper', boxShadow: 'none', '& .MuiAlert-message': { minWidth: 0 } }}>
+                            <AlertTitle sx={{ fontWeight: 700, lineHeight: 1.5 }}>Розклад на цільових датах буде замінено</AlertTitle>
+                            <Stack spacing={1}>
+                                <Typography variant="body2">Зміни застосуються після перегляду та збереження розкладу.</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 600 }}>Наявні записи залишаться чинними.</Typography>
+                            </Stack>
+                        </Alert>
                         {copyMode === 'weekdays' && <Typography sx={{ fontWeight: 700 }}>Обрано дат: {targetDates.length}</Typography>}
                         {error && <Alert severity="error">{error}</Alert>}
                     </Stack>
                 </DialogContent>
-                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', flexWrap: 'wrap', gap: 1 }}><Button disabled={busy} onClick={() => setCopyOpen(false)}>Назад</Button>
+                <DialogActions sx={{ p: 2, pb: 'max(16px, env(safe-area-inset-bottom))', bgcolor: 'background.paper', flexShrink: 0,
+                    display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2fr)', gap: 1.5,
+                    '& > .MuiButton-root': { minWidth: 0, minHeight: 48, m: '0 !important', lineHeight: 1.4 } }}><Button variant="outlined" disabled={busy} onClick={() => setCopyOpen(false)}>Назад</Button>
                     <Button variant="contained" loading={busy} disabled={busy || !targetDates.length || (copyMode === 'dates' && (!copySchedule || !!copySourceError || !!copyValidation || copyTargetConflict))}
                         onClick={() => copyMode === 'dates' ? prepare(targetDates, copySchedule, copySourceDate) : prepare(targetDates)}>Переглянути зміни</Button></DialogActions>
             </Dialog>
