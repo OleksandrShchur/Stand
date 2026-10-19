@@ -6,6 +6,7 @@ import type {
     AvailableDateAdminDto,
     BookingAdminDto,
     BookingListResultDto,
+    FeedbackListResultDto,
     DashboardDto,
     DateTimeSlotExceptionAdminDto,
     LocationAdminDto,
@@ -39,6 +40,9 @@ function toQuery(params: object): string {
 }
 
 export const adminApi = {
+    listFeedback: (page: number, pageSize: number, signal?: AbortSignal) =>
+        api.get<FeedbackListResultDto>(`/api/admin/feedback${toQuery({ page, pageSize })}`, signal),
+
     getSchedule: (date: string) => api.get<DayScheduleDto>(`/api/admin/schedule${toQuery({ date })}`),
     previewSchedule: (dto: SaveScheduleDto) => api.post<ScheduleSaveResultDto>('/api/admin/schedule/preview', dto),
     saveSchedule: (dto: SaveScheduleDto) => api.put<ScheduleSaveResultDto>('/api/admin/schedule', dto),

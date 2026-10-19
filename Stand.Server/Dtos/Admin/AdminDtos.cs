@@ -63,6 +63,10 @@ public sealed record BookingAdminDto(
 
 public sealed record BookingListResultDto(List<BookingAdminDto> Items, int TotalCount, int Page, int PageSize);
 
+// ---- General feedback (read only) ----
+public sealed record FeedbackAdminDto(int Id, string FirstName, string LastName, string Phone, string Comment, string CreatedAtUtc);
+public sealed record FeedbackListResultDto(List<FeedbackAdminDto> Items, int TotalCount, int Page, int PageSize);
+
 // ---- Dashboard ----
 public sealed record LocationFillRateDto(
     int LocationId, string LocationName, int Capacity, int Booked, int FillRatePercent);

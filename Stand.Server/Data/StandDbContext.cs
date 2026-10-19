@@ -20,6 +20,8 @@ public partial class StandDbContext : DbContext
 
     public virtual DbSet<Booking> Bookings { get; set; }
 
+    public virtual DbSet<Feedback> Feedback { get; set; }
+
     public virtual DbSet<DateTimeSlotException> DateTimeSlotExceptions { get; set; }
 
     public virtual DbSet<Location> Locations { get; set; }
@@ -30,6 +32,15 @@ public partial class StandDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Feedback>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_Feedback");
+            entity.HasIndex(e => e.AuthorizedUserId, "IX_Feedback_AuthorizedUserId");
+            entity.Property(e => e.CreatedAtUtc).HasDefaultValueSql("(sysutcdatetime())", "DF_Feedback_CreatedAtUtc");
+            entity.HasOne<AuthorizedUser>().WithMany().HasForeignKey(e => e.AuthorizedUserId)
+                .OnDelete(DeleteBehavior.SetNull).HasConstraintName("FK_Feedback_AuthorizedUsers");
+        });
+
         modelBuilder.Entity<AdminUser>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__AdminUse__3214EC07A7E5D737");

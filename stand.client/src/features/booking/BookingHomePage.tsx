@@ -12,9 +12,11 @@ import { getClosestShifts } from './closestShifts';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
 import { surfaceShadow } from '../../surfaceStyles';
 
-export default function BookingHomePage({ onStart, bookedCount = 0 }: { onStart: () => void; bookedCount?: number }) {
+export default function BookingHomePage({ onStart, bookedCount = 0, feedbackSubmitted = false }: { onStart: () => void; bookedCount?: number; feedbackSubmitted?: boolean }) {
     const navigate = useNavigate();
-    const [successToastOpen, setSuccessToastOpen] = useState(bookedCount > 0);
+    const [successMessage, setSuccessMessage] = useState(() => feedbackSubmitted
+        ? 'Дякуємо! Ваш відгук надіслано.'
+        : bookedCount > 0 ? `Запис підтверджено. Кількість доданих записів: ${bookedCount}.` : null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shifts, setShifts] = useState<MyShiftDto[]>([]);
@@ -33,16 +35,16 @@ export default function BookingHomePage({ onStart, bookedCount = 0 }: { onStart:
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader />
+            <BrandHeader showFeedback />
             <Snackbar
-                open={successToastOpen}
+                open={Boolean(successMessage)}
                 autoHideDuration={10000}
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessToastOpen(false); }}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessMessage(null); }}
                 sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
             >
-                <Alert severity="success" variant="filled" onClose={() => setSuccessToastOpen(false)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
-                    Запис підтверджено. Кількість доданих записів: {bookedCount}.
+                <Alert severity="success" variant="filled" onClose={() => setSuccessMessage(null)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
+                    {successMessage}
                 </Alert>
             </Snackbar>
             <Container component={MainContent} focusHeading={false} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>

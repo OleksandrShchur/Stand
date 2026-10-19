@@ -7,6 +7,7 @@ import MyShiftsPage from './features/booking/MyShiftsPage';
 import { PublicAuthProvider } from './features/auth/PublicAuthContext';
 import ProtectedPublicRoute from './features/auth/ProtectedPublicRoute';
 import UserLoginPage from './features/auth/UserLoginPage';
+import FeedbackPage from './features/feedback/FeedbackPage';
 
 const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 
@@ -18,6 +19,16 @@ function App() {
         </a>
         <Suspense fallback={<CircularProgress aria-label="Завантаження…" sx={{ display: 'block', mx: 'auto', mt: 4 }} />}>
             <Routes>
+                <Route
+                    path="/feedback"
+                    element={
+                        <PublicAuthProvider>
+                            <ProtectedPublicRoute>
+                                <FeedbackPage />
+                            </ProtectedPublicRoute>
+                        </PublicAuthProvider>
+                    }
+                />
                 <Route
                     path="/"
                     element={

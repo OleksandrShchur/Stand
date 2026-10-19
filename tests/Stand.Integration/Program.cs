@@ -51,6 +51,7 @@ await setup.Database.ExecuteSqlInterpolatedAsync($"""
 var userIds = users.Select(u => u.Id).ToArray();
 try
 {
+    await FeedbackChecks.Run(connection);
     await BookingStateMigrationChecks.Run(connection);
     await ScheduleCapacityMigrationChecks.Run(connection);
     await ScheduleCapacityChecks.Run(connection);

@@ -25,6 +25,7 @@ import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
 import GroupOutlinedIcon from '@mui/icons-material/GroupOutlined';
 import PersonAddAltOutlinedIcon from '@mui/icons-material/PersonAddAltOutlined';
 import LogoutIcon from '@mui/icons-material/Logout';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import { useAdminAuth } from './AdminAuthContext';
 import { LoadingState } from '../../components/StateMessage';
 import { pagePadding } from '../../layoutSpacing';
@@ -42,6 +43,7 @@ const PRIMARY_NAV_ITEMS = [
 ];
 
 const SIDE_NAV_ITEMS = [
+    { to: '/admin/feedback', label: 'Відгуки', icon: <RateReviewOutlinedIcon /> },
     { to: '/admin/users', label: 'Адміністратори', icon: <GroupOutlinedIcon /> },
 ];
 
@@ -69,6 +71,7 @@ export default function AdminLayout() {
         : location.pathname === '/admin/bookings' ? 'Записи'
         : location.pathname === '/admin/locations' ? 'Локації'
         : location.pathname === '/admin/authorized-users' ? 'Користувачі сайту'
+        : location.pathname === '/admin/feedback' ? 'Відгуки'
         : location.pathname === '/admin' ? 'Огляд' : 'Адмін-панель';
     const sideNavItems = hasSideNav ? [...PRIMARY_NAV_ITEMS, ...SIDE_NAV_ITEMS] : SIDE_NAV_ITEMS;
 

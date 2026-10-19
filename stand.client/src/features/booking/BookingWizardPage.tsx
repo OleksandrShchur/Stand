@@ -18,8 +18,9 @@ export default function BookingWizardPage() {
     const location = useLocation();
     const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
     const startBooking = Boolean((location.state as { startBooking?: boolean } | null)?.startBooking);
-    const [showHome, setShowHome] = useState(() => !startBooking && loadWizardState().step === 'date' && !loadWizardState().date);
-    const [state, setState] = useState<WizardState>(() => startBooking ? initialWizardState : loadWizardState());
+    const feedbackSubmitted = Boolean((location.state as { feedbackSubmitted?: boolean } | null)?.feedbackSubmitted);
+    const [showHome, setShowHome] = useState(() => feedbackSubmitted || (!startBooking && loadWizardState().step === 'date' && !loadWizardState().date));
+    const [state, setState] = useState<WizardState>(() => startBooking || feedbackSubmitted ? initialWizardState : loadWizardState());
     const [conflictMessage, setConflictMessage] = useState<string | null>(null);
     const [bookedCount, setBookedCount] = useState(0);
 
@@ -28,10 +29,10 @@ export default function BookingWizardPage() {
     }, [state]);
 
     useEffect(() => {
-        if (startBooking) {
+        if (startBooking || feedbackSubmitted) {
             navigate(location.pathname, { replace: true, state: null });
         }
-    }, [startBooking, location.pathname, navigate]);
+    }, [startBooking, feedbackSubmitted, location.pathname, navigate]);
 
     const start = () => {
         setBookedCount(0);
@@ -112,7 +113,7 @@ export default function BookingWizardPage() {
         if (step === 'time' && state.date && state.locationId) backToTime();
     };
 
-    if (showHome) return <BookingHomePage onStart={start} bookedCount={bookedCount} />;
+    if (showHome) return <BookingHomePage onStart={start} bookedCount={bookedCount} feedbackSubmitted={feedbackSubmitted} />;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>

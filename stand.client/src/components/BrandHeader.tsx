@@ -4,10 +4,11 @@ import { AppBar, Box, Button, IconButton, Link, Stack, Toolbar, Typography } fro
 import AppDialog from './AppDialog';
 import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import HelpOutlineOutlinedIcon from '@mui/icons-material/HelpOutlineOutlined';
+import RateReviewOutlinedIcon from '@mui/icons-material/RateReviewOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import { formatUaPhone } from '../utils/phone';
 
-export default function BrandHeader({ onHome, title = 'Головна', showHome = true }: { onHome?: () => void; title?: string; showHome?: boolean }) {
+export default function BrandHeader({ onHome, title = 'Головна', showHome = true, showFeedback = false }: { onHome?: () => void; title?: string; showHome?: boolean; showFeedback?: boolean }) {
     const [supportOpen, setSupportOpen] = useState(false);
 
     return (
@@ -33,16 +34,21 @@ export default function BrandHeader({ onHome, title = 'Головна', showHome
                     <Typography variant="h6" component="div" sx={{ fontWeight: 700, textAlign: 'center' }}>
                         {title}
                     </Typography>
-                    <Button
-                        color="inherit"
-                        aria-label="Технічна підтримка"
-                        aria-haspopup="dialog"
-                        onClick={() => setSupportOpen(true)}
-                        sx={{ ml: 'auto', p: 0.5, minWidth: 44, minHeight: 44, lineHeight: 1, gap: { xs: 0, sm: 1 } }}
-                    >
-                        <HelpOutlineOutlinedIcon sx={{ fontSize: 30 }} />
-                        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Підтримка</Box>
-                    </Button>
+                    <Stack direction="row" spacing={0.5} sx={{ ml: 'auto', alignItems: 'center' }}>
+                        {showFeedback && <IconButton component={RouterLink} to="/feedback" color="inherit" aria-label="Залишити відгук">
+                            <RateReviewOutlinedIcon sx={{ fontSize: 30 }} />
+                        </IconButton>}
+                        <Button
+                            color="inherit"
+                            aria-label="Технічна підтримка"
+                            aria-haspopup="dialog"
+                            onClick={() => setSupportOpen(true)}
+                            sx={{ p: 0.5, minWidth: 44, minHeight: 44, lineHeight: 1, gap: { xs: 0, sm: 1 } }}
+                        >
+                            <HelpOutlineOutlinedIcon sx={{ fontSize: 30 }} />
+                            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>Підтримка</Box>
+                        </Button>
+                    </Stack>
                 </Toolbar>
             </AppBar>
             <AppDialog

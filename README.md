@@ -492,3 +492,52 @@ time and location, with guidance to choose another time or cancel the old bookin
 Integration checks cover partial overlaps, cancellation, atomic batches and
 concurrent requests; `node tests/booking-overlap.mjs` checks the toast against an
 isolated API fixture on mobile and desktop after building the client.
+
+## 15. General feedback
+
+The home header has a feedback shortcut immediately left of Support. The
+authenticated `/feedback` page accepts a general comment of 1–500 characters
+(whitespace-only comments are rejected). Both the client and server enforce the
+limit. Feedback is independent of bookings and saves the authenticated user's
+ID, name and phone with the text and UTC timestamp. Identity comes from the
+server session, not the request body; name and phone snapshots remain intact if
+the account is later edited or deleted.
+
+`POST /api/feedback` returns 204 after saving. There is no public endpoint or UI
+for reading feedback, including the sender's own history. The form explains this
+before submission, redirects home with a success banner after submission, and
+retains its draft after an error. The banner does not replay on reload.
+
+Before deploying, apply `db/scripts/0017_CreateFeedbackTable.sql` using
+`Stand.DbMigrator` with the intended database connection, then deploy the
+matching server and client builds. The integration suite applies the script
+only to the disposable `StandPerfTest` database and verifies validation,
+attribution, migration reapplication and identity retention.
+
+After building the client, run `node tests/feedback.mjs` against an isolated
+headless Chrome debugging endpoint at port 9248 (or set `FEEDBACK_CHROME_URL`).
+It uses mocked APIs without application data and checks the home-only shortcut,
+privacy message, equal-width bottom buttons, validation, error recovery,
+duplicate-submit prevention and absence of comment history at mobile widths
+320, 393 and 414 pixels. Screenshots are saved under `artifacts/feedback/`.
+
+Administrators can read feedback at `/admin/feedback`, linked from the side menu
+on mobile and desktop. Desktop uses a table and smaller screens use cards, with
+three-line comment previews. Each three-dot menu opens the shared details modal
+with the full original name, surname, phone, comment and submission date in Kyiv
+time. This page provides no edit or delete actions.
+
+`GET /api/admin/feedback?page=1&pageSize=10` requires the admin cookie scheme and
+returns `items`, `totalCount`, `page` and `pageSize`. Pagination runs on the
+server, sorting by submission time and then ID, newest first. The UI offers 10,
+25 or 50 items per page; the API caps page size at 100 and normalizes page bounds.
+No additional schema migration is required beyond `0017`.
+
+`node tests/admin-feedback.mjs` checks the admin menu, table/card breakpoints,
+full details, long names and comments, paging, page-size changes, error recovery,
+empty state and read-only behavior at widths 320, 393, 414, 1024 and 1440. It uses
+mocked APIs and an isolated Chrome debugging endpoint at port 9249 (or set
+`ADMIN_CHROME_URL`); screenshots go to `artifacts/admin-feedback/`. The SQL
+integration suite also verifies stable pagination, original identities after
+account deletion, UTC timestamps, admin authorization and the absence of write
+endpoints.

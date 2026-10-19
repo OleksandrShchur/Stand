@@ -10,6 +10,7 @@ const AdminSchedulePage = lazy(() => import('./AdminSchedulePage'));
 const AdminBookingsPage = lazy(() => import('./AdminBookingsPage'));
 const AdminUsersPage = lazy(() => import('./AdminUsersPage'));
 const AdminAuthorizedUsersPage = lazy(() => import('./AdminAuthorizedUsersPage'));
+const AdminFeedbackPage = lazy(() => import('./AdminFeedbackPage'));
 
 export default function AdminRoutes() {
     return (
@@ -19,6 +20,7 @@ export default function AdminRoutes() {
                 <Route path="" element={<AdminLayout />}>
                     <Route index element={<AdminDashboardPage />} />
                     <Route path="bookings" element={<AdminBookingsPage />} />
+                    <Route path="feedback" element={<AdminFeedbackPage />} />
                     <Route path="locations" element={<AdminLocationsPage />} />
                     <Route path="schedule" element={<AdminSchedulePage />} />
                     <Route path="timeslots" element={<Navigate to="/admin/schedule" replace />} />
