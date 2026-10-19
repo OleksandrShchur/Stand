@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Stand.Server.Common;
 using Stand.Server.Controllers.Public;
+using Stand.Server.Controllers.Admin;
+using Stand.Server.Dtos.Admin;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Stand.Server.Data;
 using Stand.Server.Data.Entities;
 using Stand.Server.Services;
@@ -83,6 +87,39 @@ internal static class FeedbackChecks
             var retained = await setup.Feedback.AsNoTracking().SingleAsync(f => f.Id == saved.Id);
             Check(retained.AuthorizedUserId is null && retained.Phone == saved.Phone && retained.FirstName == saved.FirstName,
                 "Account deletion remains possible and feedback retains its original author identity");
+
+            // Use tied timestamps later than ordinary feedback to verify deterministic page boundaries.
+            var testDate = new DateTime(2099, 1, 2, 12, 30, 0, DateTimeKind.Utc);
+            await setup.Feedback.Where(f => phones.Contains(f.Phone)).ExecuteUpdateAsync(s => s.SetProperty(f => f.CreatedAtUtc, testDate));
+            await using (var db = new StandDbContext(options))
+            {
+                var admin = new AdminFeedbackController(db);
+                async Task<FeedbackListResultDto> List(int page, int size) =>
+                    (FeedbackListResultDto)((OkObjectResult)await admin.List(page, size)).Value!;
+                var firstPage = await List(1, 2);
+                var secondPage = await List(2, 2);
+                Check(firstPage.Items.Count == 2 && firstPage.TotalCount >= 3 && firstPage.Page == 1 && firstPage.PageSize == 2 &&
+                    firstPage.Items[0].Id > firstPage.Items[1].Id &&
+                    firstPage.Items.All(f => phones.Contains(f.Phone)) && secondPage.Items[0].Id == saved.Id,
+                    "Admin feedback uses server pagination with newest-first ordering and stable ID ordering for tied dates");
+                Check(firstPage.Items.All(a => secondPage.Items.All(b => a.Id != b.Id)), "Adjacent feedback pages do not repeat records");
+                var original = secondPage.Items[0];
+                Check(original.FirstName == saved.FirstName && original.LastName == saved.LastName && original.Phone == saved.Phone &&
+                    original.Comment == saved.Comment && original.CreatedAtUtc.EndsWith('Z') && DateTimeOffset.Parse(original.CreatedAtUtc).UtcDateTime == testDate,
+                    "Admin feedback includes the complete original identity, multiline comment and explicit UTC date after account deletion");
+                var lowerBounds = await List(0, 0);
+                var upperBounds = await List(int.MaxValue, int.MaxValue);
+                Check(lowerBounds.Page == 1 && lowerBounds.PageSize == 1 && upperBounds.PageSize == 100 &&
+                    upperBounds.Page == Math.Max(1, (int)Math.Ceiling(upperBounds.TotalCount / 100d)),
+                    "Feedback pagination normalizes invalid values and caps the page size without integer overflow");
+                var auth = (AuthorizeAttribute)Attribute.GetCustomAttribute(typeof(AdminFeedbackController), typeof(AuthorizeAttribute))!;
+                Check(auth.AuthenticationSchemes == CookieAuthenticationDefaults.AuthenticationScheme,
+                    "Reading feedback requires the admin authentication scheme rather than a public-user session");
+                var endpoints = typeof(AdminFeedbackController).GetMethods().SelectMany(method => method.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute), true))
+                    .Cast<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().ToArray();
+                Check(endpoints.Length == 1 && endpoints[0].HttpMethods.SequenceEqual(new[] { "GET" }),
+                    "The admin feedback API exposes reading only, with no delete or update action");
+            }
         }
         finally
         {

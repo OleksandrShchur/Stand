@@ -189,6 +189,22 @@ export interface BookingListResultDto {
     pageSize: number;
 }
 
+export interface FeedbackAdminDto {
+    id: number;
+    firstName: string;
+    lastName: string;
+    phone: string;
+    comment: string;
+    createdAtUtc: string;
+}
+
+export interface FeedbackListResultDto {
+    items: FeedbackAdminDto[];
+    totalCount: number;
+    page: number;
+    pageSize: number;
+}
+
 export interface LocationFillRateDto {
     locationId: number;
     locationName: string;

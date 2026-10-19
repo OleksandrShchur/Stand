@@ -520,3 +520,24 @@ It uses mocked APIs without application data and checks the home-only shortcut,
 privacy message, equal-width bottom buttons, validation, error recovery,
 duplicate-submit prevention and absence of comment history at mobile widths
 320, 393 and 414 pixels. Screenshots are saved under `artifacts/feedback/`.
+
+Administrators can read feedback at `/admin/feedback`, linked from the side menu
+on mobile and desktop. Desktop uses a table and smaller screens use cards, with
+three-line comment previews. Each three-dot menu opens the shared details modal
+with the full original name, surname, phone, comment and submission date in Kyiv
+time. This page provides no edit or delete actions.
+
+`GET /api/admin/feedback?page=1&pageSize=10` requires the admin cookie scheme and
+returns `items`, `totalCount`, `page` and `pageSize`. Pagination runs on the
+server, sorting by submission time and then ID, newest first. The UI offers 10,
+25 or 50 items per page; the API caps page size at 100 and normalizes page bounds.
+No additional schema migration is required beyond `0017`.
+
+`node tests/admin-feedback.mjs` checks the admin menu, table/card breakpoints,
+full details, long names and comments, paging, page-size changes, error recovery,
+empty state and read-only behavior at widths 320, 393, 414, 1024 and 1440. It uses
+mocked APIs and an isolated Chrome debugging endpoint at port 9249 (or set
+`ADMIN_CHROME_URL`); screenshots go to `artifacts/admin-feedback/`. The SQL
+integration suite also verifies stable pagination, original identities after
+account deletion, UTC timestamps, admin authorization and the absence of write
+endpoints.
