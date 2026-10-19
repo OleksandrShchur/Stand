@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar,
+    Alert,
     BottomNavigation,
     BottomNavigationAction,
     Box,
+    Button,
     Drawer,
     IconButton,
     List,
@@ -31,6 +33,8 @@ import { LoadingState } from '../../components/StateMessage';
 import { pagePadding } from '../../layoutSpacing';
 import MainContent from '../../components/MainContent';
 import { surfaceShadow } from '../../surfaceStyles';
+import AppDialog from '../../components/AppDialog';
+import { ApiError } from '../../api/client';
 
 const DRAWER_WIDTH = 248;
 
@@ -54,6 +58,10 @@ export default function AdminLayout() {
     const theme = useTheme();
     const hasSideNav = useMediaQuery(theme.breakpoints.up('sm'));
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [logoutOpen, setLogoutOpen] = useState(false);
+    const [loggingOut, setLoggingOut] = useState(false);
+    const [logoutError, setLogoutError] = useState<string | null>(null);
+    const logoutPending = useRef(false);
 
     if (loading) {
         return <LoadingState fullScreen label="Перевіряємо сесію…" />;
@@ -63,8 +71,21 @@ export default function AdminLayout() {
         return <Navigate to="/admin/login" state={{ from: location }} replace />;
     }
 
-    const handleLogout = () => {
-        logout().then(() => navigate('/admin/login', { replace: true }));
+    const closeLogout = () => { if (!logoutPending.current) setLogoutOpen(false); };
+    const handleLogout = async () => {
+        if (logoutPending.current) return;
+        logoutPending.current = true;
+        setLoggingOut(true);
+        setLogoutError(null);
+        try {
+            await logout();
+            navigate('/admin/login', { replace: true });
+        } catch (error) {
+            setLogoutError(error instanceof ApiError ? error.message : 'Не вдалося вийти. Спробуйте ще раз.');
+        } finally {
+            logoutPending.current = false;
+            setLoggingOut(false);
+        }
     };
     const selectedNavIndex = PRIMARY_NAV_ITEMS.findIndex(item => item.to === location.pathname);
     const headerTitle = location.pathname === '/admin/schedule' ? 'Розклад'
@@ -105,7 +126,7 @@ export default function AdminLayout() {
                 ))}
             </List>
             <List component="div">
-                <ListItemButton component="button" onClick={handleLogout} sx={{ mx: 1, mb: 1, borderRadius: 1, width: 'calc(100% - 16px)', textAlign: 'left' }}>
+                <ListItemButton component="button" disabled={loggingOut} onClick={() => { setLogoutError(null); setLogoutOpen(true); }} sx={{ mx: 1, mb: 1, borderRadius: 1, width: 'calc(100% - 16px)', textAlign: 'left' }}>
                     <ListItemIcon sx={{ minWidth: 40 }}><LogoutIcon /></ListItemIcon>
                     <ListItemText primary={`Вийти (${user.login})`} />
                 </ListItemButton>
@@ -116,6 +137,20 @@ export default function AdminLayout() {
     return (
         <Box sx={{ '--admin-navigation-clearance': { xs: 'calc(92px + env(safe-area-inset-bottom))', sm: '12px' },
             '--admin-sidebar-width': `${DRAWER_WIDTH}px`, display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
+            <AppDialog
+                open={logoutOpen}
+                onClose={closeLogout}
+                title="Вийти з адмін-панелі?"
+                icon={<LogoutIcon color="primary" />}
+                aria-describedby="admin-logout-description"
+                actions={<>
+                    <Button variant="outlined" fullWidth autoFocus disabled={loggingOut} onClick={closeLogout}>Скасувати</Button>
+                    <Button variant="contained" fullWidth loading={loggingOut} disabled={loggingOut} onClick={handleLogout}>Вийти</Button>
+                </>}
+            >
+                <Typography id="admin-logout-description">Ви ввійшли як {user.login}. Після виходу для доступу до адмін-панелі потрібно буде ввійти знову.</Typography>
+                {logoutError && <Alert severity="error" sx={{ mt: 2 }}>{logoutError}</Alert>}
+            </AppDialog>
             {hasSideNav ? (
                 <Drawer
                     variant="permanent"
