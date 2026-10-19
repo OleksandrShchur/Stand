@@ -105,10 +105,15 @@ try {
         assert.equal(submissions.at(-1).comment.length, 500);
         hold = false; reply();
         await wait('document.querySelector("[role=alert]")?.innerText.includes("Дякуємо")');
-        assert.equal(await evaluate(`${input}.value`), '', 'Success clears the comment');
+        assert.equal(await evaluate('location.pathname'), '/', 'Success redirects home');
+        await wait(`${feedbackIcon} !== null`);
+        assert.equal(await evaluate(`${input}`), null, 'Home shows no submitted comment');
         await send('Page.reload');
+        await wait(`${feedbackIcon} !== null`);
+        assert.equal(await evaluate('document.querySelector("[role=alert]")?.innerText.includes("Дякуємо") ?? false'), false, 'Success banner is consumed and does not replay on reload');
+        await evaluate(`${feedbackIcon}.click()`);
         await wait(`${input} !== null`);
-        assert.equal(await evaluate(`${input}.value`), '', 'Submitted comments are not restored on reload');
+        assert.equal(await evaluate(`${input}.value`), '', 'Reopening feedback starts with an empty form');
         await evaluate(`${button('Назад')}.click()`);
         await wait(`${feedbackIcon} !== null`);
         await evaluate(`${button('Записатись на стенд')}.click()`);

@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Container, Snackbar, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Box, Button, Container, Stack, TextField, Typography } from '@mui/material';
 import BrandHeader from '../../components/BrandHeader';
 import MainContent from '../../components/MainContent';
 import { publicApi } from '../../api/publicApi';
@@ -17,7 +17,6 @@ export default function FeedbackPage() {
     const [validationError, setValidationError] = useState<string | null>(null);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitting, setSubmitting] = useState(false);
-    const [successOpen, setSuccessOpen] = useState(false);
 
     const back = () => { if (!submittingRef.current) navigate('/'); };
     const submit = async (event: FormEvent) => {
@@ -32,11 +31,9 @@ export default function FeedbackPage() {
         submittingRef.current = true;
         setSubmitting(true);
         setSubmitError(null);
-        setSuccessOpen(false);
         try {
             await publicApi.submitFeedback(comment);
-            setComment('');
-            setSuccessOpen(true);
+            navigate('/', { replace: true, state: { feedbackSubmitted: true } });
         } catch (error) {
             setSubmitError(error instanceof ApiError ? error.message : 'Не вдалося надіслати відгук. Спробуйте ще раз.');
         } finally {
@@ -78,15 +75,6 @@ export default function FeedbackPage() {
                     {submitError && <Alert severity="error">{submitError}</Alert>}
                 </Stack>
             </Container>
-            <Snackbar
-                open={successOpen}
-                autoHideDuration={10000}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessOpen(false); }}
-                sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
-            >
-                <Alert severity="success" variant="filled" onClose={() => setSuccessOpen(false)} sx={{ width: '100%', maxWidth: 568 }}>Дякуємо! Ваш відгук надіслано.</Alert>
-            </Snackbar>
             <Box sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: (theme) => theme.zIndex.appBar, bgcolor: 'background.default', borderTop: '1px solid', borderColor: 'divider', boxShadow: surfaceShadow, borderRadius: '16px 16px 0 0', pb: 'env(safe-area-inset-bottom, 0px)' }}>
                 <Container maxWidth="sm" sx={{ ...pagePadding, py: 2 }}>
                     <Stack direction="row" spacing={1}>

@@ -505,7 +505,8 @@ the account is later edited or deleted.
 
 `POST /api/feedback` returns 204 after saving. There is no public endpoint or UI
 for reading feedback, including the sender's own history. The form explains this
-before submission, clears on success, and retains its draft after an error.
+before submission, redirects home with a success banner after submission, and
+retains its draft after an error. The banner does not replay on reload.
 
 Before deploying, apply `db/scripts/0017_CreateFeedbackTable.sql` using
 `Stand.DbMigrator` with the intended database connection, then deploy the
