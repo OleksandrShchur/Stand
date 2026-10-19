@@ -16,7 +16,7 @@ import MainContent from '../../components/MainContent';
 import { pagePadding } from '../../layoutSpacing';
 import { LoadingState } from '../../components/StateMessage';
 import { ApiError } from '../../api/client';
-import { digitsOnly, formatUaPhoneDigits, toUaPhone, uaPhoneValidationError } from '../../utils/phone';
+import { digitsOnly, toUaPhone, uaPhoneValidationError } from '../../utils/phone';
 import { usePublicAuth } from './PublicAuthContext';
 
 export default function UserLoginPage() {
@@ -72,8 +72,9 @@ export default function UserLoginPage() {
                         <Box component="form" onSubmit={handleSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <TextField
                                 inputRef={phoneRef}
+                                type="tel"
                                 label="Номер телефону"
-                                value={formatUaPhoneDigits(digits)}
+                                value={digits}
                                 onChange={(e) => {
                                     setDigits(digitsOnly(e.target.value));
                                     setError(null);

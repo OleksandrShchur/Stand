@@ -1,7 +1,7 @@
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Box, Button, Card, CardContent, Container, Divider, Stack, Typography } from '@mui/material';
+import { Alert, Box, Button, Card, CardContent, Container, Divider, Snackbar, Stack, Typography } from '@mui/material';
 import BrandHeader from '../../components/BrandHeader';
 import MainContent from '../../components/MainContent';
 import { ErrorState, SkeletonList } from '../../components/StateMessage';
@@ -12,8 +12,9 @@ import { getClosestShifts } from './closestShifts';
 import { pagePadding, sectionGap } from '../../layoutSpacing';
 import { surfaceShadow } from '../../surfaceStyles';
 
-export default function BookingHomePage({ onStart }: { onStart: () => void }) {
+export default function BookingHomePage({ onStart, bookedCount = 0 }: { onStart: () => void; bookedCount?: number }) {
     const navigate = useNavigate();
+    const [successToastOpen, setSuccessToastOpen] = useState(bookedCount > 0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shifts, setShifts] = useState<MyShiftDto[]>([]);
@@ -33,6 +34,17 @@ export default function BookingHomePage({ onStart }: { onStart: () => void }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader />
+            <Snackbar
+                open={successToastOpen}
+                autoHideDuration={10000}
+                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessToastOpen(false); }}
+                sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
+            >
+                <Alert severity="success" variant="filled" onClose={() => setSuccessToastOpen(false)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
+                    Запис підтверджено. Кількість доданих записів: {bookedCount}.
+                </Alert>
+            </Snackbar>
             <Container component={MainContent} focusHeading={false} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack spacing={sectionGap}>
                     <Card variant="outlined">

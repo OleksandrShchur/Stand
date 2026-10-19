@@ -21,6 +21,7 @@ export default function BookingWizardPage() {
     const [showHome, setShowHome] = useState(() => !startBooking && loadWizardState().step === 'date' && !loadWizardState().date);
     const [state, setState] = useState<WizardState>(() => startBooking ? initialWizardState : loadWizardState());
     const [conflictMessage, setConflictMessage] = useState<string | null>(null);
+    const [bookedCount, setBookedCount] = useState(0);
 
     useEffect(() => {
         saveWizardState(state);
@@ -33,6 +34,7 @@ export default function BookingWizardPage() {
     }, [startBooking, location.pathname, navigate]);
 
     const start = () => {
+        setBookedCount(0);
         setConflictMessage(null);
         setState(initialWizardState);
         setShowHome(false);
@@ -100,8 +102,8 @@ export default function BookingWizardPage() {
     };
 
     const onConfirmed = (summaries: { cancelToken: string }[]) => {
-        clearWizardState();
-        navigate('/my-shifts', { state: { justBookedCount: summaries.length } });
+        returnHome();
+        setBookedCount(summaries.length);
     };
 
     const goToStep = (step: WizardStep) => {
@@ -110,7 +112,7 @@ export default function BookingWizardPage() {
         if (step === 'time' && state.date && state.locationId) backToTime();
     };
 
-    if (showHome) return <BookingHomePage onStart={start} />;
+    if (showHome) return <BookingHomePage onStart={start} bookedCount={bookedCount} />;
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
