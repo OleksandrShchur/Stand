@@ -206,8 +206,8 @@ export default function AdminSchedulePage() {
             <Box sx={{ display: 'grid', minWidth: 0, gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '300px minmax(0, 1fr)' }, gap: 2, alignItems: 'start', '& > *': { minWidth: 0 } }}>
                 <Card variant="outlined" sx={{ minWidth: 0 }}>
                     <CardContent>
-                        <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} onChange={chooseDate}
-                            activeDates={activeDates} onCalendarOpen={() => setCalendarMonth(date.slice(0, 7))}
+                        <UkrainianDatePicker label="Дата розкладу" name="schedule-date" value={date} disabled={busy} confirmSelection onChange={chooseDate}
+                            activeDates={activeDates} onCalendarOpen={next => setCalendarMonth((next || date).slice(0, 7))}
                             onCalendarMonthChange={month => setCalendarMonth(month.slice(0, 7))} />
                         {calendarError && <Alert severity="warning" sx={{ mt: 1 }} action={<Button onClick={() => setCalendarRevision(n => n + 1)}>Повторити</Button>}>{calendarError}</Alert>}
                         <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, mt: 1 }}>
