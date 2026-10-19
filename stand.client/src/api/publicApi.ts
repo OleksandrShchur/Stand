@@ -9,6 +9,8 @@ import type {
 } from './types';
 
 export const publicApi = {
+    submitFeedback: (comment: string) => api.post<void>('/api/feedback', { comment }),
+
     login: (phone: string) => api.post<PublicUserMeDto>('/api/auth/login', { phone }),
 
     logout: () => api.post<void>('/api/auth/logout'),

@@ -33,7 +33,7 @@ export default function BookingHomePage({ onStart, bookedCount = 0 }: { onStart:
 
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-            <BrandHeader />
+            <BrandHeader showFeedback />
             <Snackbar
                 open={successToastOpen}
                 autoHideDuration={10000}

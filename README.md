@@ -492,3 +492,30 @@ time and location, with guidance to choose another time or cancel the old bookin
 Integration checks cover partial overlaps, cancellation, atomic batches and
 concurrent requests; `node tests/booking-overlap.mjs` checks the toast against an
 isolated API fixture on mobile and desktop after building the client.
+
+## 15. General feedback
+
+The home header has a feedback shortcut immediately left of Support. The
+authenticated `/feedback` page accepts a general comment of 1–500 characters
+(whitespace-only comments are rejected). Both the client and server enforce the
+limit. Feedback is independent of bookings and saves the authenticated user's
+ID, name and phone with the text and UTC timestamp. Identity comes from the
+server session, not the request body; name and phone snapshots remain intact if
+the account is later edited or deleted.
+
+`POST /api/feedback` returns 204 after saving. There is no public endpoint or UI
+for reading feedback, including the sender's own history. The form explains this
+before submission, clears on success, and retains its draft after an error.
+
+Before deploying, apply `db/scripts/0017_CreateFeedbackTable.sql` using
+`Stand.DbMigrator` with the intended database connection, then deploy the
+matching server and client builds. The integration suite applies the script
+only to the disposable `StandPerfTest` database and verifies validation,
+attribution, migration reapplication and identity retention.
+
+After building the client, run `node tests/feedback.mjs` against an isolated
+headless Chrome debugging endpoint at port 9248 (or set `FEEDBACK_CHROME_URL`).
+It uses mocked APIs without application data and checks the home-only shortcut,
+privacy message, equal-width bottom buttons, validation, error recovery,
+duplicate-submit prevention and absence of comment history at mobile widths
+320, 393 and 414 pixels. Screenshots are saved under `artifacts/feedback/`.
