@@ -6,7 +6,7 @@ export function sortSlots(slots: SlotAvailabilityDto[]): SlotAvailabilityDto[] {
 }
 
 export function isSlotBookable(slot: SlotAvailabilityDto): boolean {
-    return slot.isBookable && slot.remaining > 0 && !slot.isFull && !slot.isBlocked && !slot.isTooSoon && slot.startTime < slot.endTime;
+    return !slot.isBookedByMe && slot.isBookable && slot.remaining > 0 && !slot.isFull && !slot.isBlocked && !slot.isTooSoon && slot.startTime < slot.endTime;
 }
 
 export function isContinuousSelection(slots: SlotAvailabilityDto[]): boolean {
@@ -21,6 +21,7 @@ export function canAddSlot(slot: SlotAvailabilityDto, selected: SlotAvailability
 }
 
 export function getSlotDisabledReason(slot: SlotAvailabilityDto, selected: SlotAvailabilityDto[], readOnly = false, timeStatus: SlotTimeStatus = 'upcoming'): string | null {
+    if (slot.isBookedByMe) return `Ви вже записані на ${slot.startTime}–${slot.endTime} у цій локації цього дня. Повторно обрати цей час неможливо. Переглянути або скасувати запис можна в розділі «Мої записи».`;
     // Selected slots must remain removable even when availability changes.
     if (selected.some((item) => item.timeSlotId === slot.timeSlotId)) return null;
     if (timeStatus === 'finished') return 'Цей запис вже завершено. Оберіть майбутній час для запису.';

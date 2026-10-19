@@ -23,7 +23,8 @@ public sealed record SlotAvailabilityDto(
     /// <summary>True when the slot starts sooner than the configured min lead time from now.</summary>
     bool IsTooSoon,
     bool IsBookable,
-    List<ShiftParticipantDto> Participants);
+    List<ShiftParticipantDto> Participants,
+    bool IsBookedByMe = false);
 
 public sealed record CalendarDto(
     List<string> BookableDates, // yyyy-MM-dd, within today..+horizon and admin-enabled

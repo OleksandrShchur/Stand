@@ -29,7 +29,7 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
         conflictMessage ? { message: `${conflictMessage}. ${bookingCopy.conflictHint}`, key: 0, severity: 'warning' } : null);
     const [now, setNow] = useState(() => new Date());
     const readOnly = date < getKyivDateTime(now).date;
-    const selectedSlots = sortSlots(slots.filter((slot) => selectedIds.includes(slot.timeSlotId)));
+    const selectedSlots = sortSlots(slots.filter((slot) => !slot.isBookedByMe && selectedIds.includes(slot.timeSlotId)));
     const canContinue = selectedSlots.length === selectedIds.length && isContinuousSelection(selectedSlots) &&
         selectedSlots.every((slot) => getSlotTimeStatus(date, slot, now) === 'upcoming');
 
@@ -75,7 +75,8 @@ export default function TimeStep({ date, locationId, locationName, selectedSlotI
                                 key={slot.timeSlotId}
                                 slot={slot}
                                 timeStatus={timeStatus}
-                                selected={selectedIds.includes(slot.timeSlotId)}
+                                selected={!slot.isBookedByMe && selectedIds.includes(slot.timeSlotId)}
+                                mine={slot.isBookedByMe}
                                 disabled={Boolean(disabledReason)}
                                 onDisabledClick={() => {
                                     if (disabledReason) setHint({ message: disabledReason, key: Date.now(), severity: 'info' });

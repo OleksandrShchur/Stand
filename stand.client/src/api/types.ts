@@ -39,6 +39,7 @@ export interface MyShiftDto {
 
 export interface SlotAvailabilityDto {
     timeSlotId: number;
+    isBookedByMe: boolean;
     startTime: string;
     endTime: string;
     capacity: number;
