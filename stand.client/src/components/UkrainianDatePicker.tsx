@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useMemo, useState } from 'react';
 import { Button, DialogActions } from '@mui/material';
 import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/uk';
@@ -55,6 +55,8 @@ interface Props {
 }
 
 export default function UkrainianDatePicker({ label, name, value, disabled, size = 'medium', clearable = false, confirmSelection = false, activeDates, onCalendarOpen, onCalendarMonthChange, onChange }: Props) {
+    // Calendar navigation must survive rerenders that refresh active-day highlights.
+    const selectedDate = useMemo(() => value ? dayjs(value) : null, [value]);
     const [draft, setDraft] = useState<Dayjs | null>(() => value ? dayjs(value) : null);
     const [previousValue, setPreviousValue] = useState(value);
     const [open, setOpen] = useState(false);
@@ -73,7 +75,7 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
         <DatePicker
             label={label}
             name={name}
-            value={confirmSelection ? draft : value ? dayjs(value) : null}
+            value={confirmSelection ? draft : selectedDate}
             format={DATE_PICKER_FORMAT}
             disabled={disabled}
             open={confirmSelection ? open : undefined}
