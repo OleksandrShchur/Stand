@@ -2,8 +2,8 @@ import ParticipantList from './components/ParticipantList';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, MenuItem, Snackbar, Stack, TextField, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, Card, CardContent, Container, DialogContentText, Divider, MenuItem, Stack, TextField, Typography } from '@mui/material';
 import CancelOutlinedIcon from '@mui/icons-material/CancelOutlined';
 import AppDialog from '../../components/AppDialog';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -27,10 +27,6 @@ import { DATE_PICKER_FORMAT } from '../../utils/date';
 
 export default function MyShiftsPage() {
     const navigate = useNavigate();
-    const location = useLocation();
-    const [bookedCount] = useState(() =>
-        (location.state as { justBookedCount?: number } | null)?.justBookedCount ?? 0);
-    const [successToastOpen, setSuccessToastOpen] = useState(bookedCount > 0);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [shifts, setShifts] = useState<MyShiftDto[]>([]);
@@ -92,17 +88,6 @@ export default function MyShiftsPage() {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <BrandHeader title={`${bookingCopy.myShiftsButton}${!loading && !error ? ` (${shifts.length})` : ''}`} />
-            <Snackbar
-                open={successToastOpen}
-                autoHideDuration={10000}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                onClose={(_, reason) => { if (reason !== 'clickaway') setSuccessToastOpen(false); }}
-                sx={{ top: 'max(16px, env(safe-area-inset-top, 0px)) !important' }}
-            >
-                <Alert severity="success" variant="filled" onClose={() => setSuccessToastOpen(false)} sx={{ width: '100%', maxWidth: 568, boxShadow: 3 }}>
-                    Запис підтверджено. Кількість доданих записів: {bookedCount}.
-                </Alert>
-            </Snackbar>
             <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(104px + env(safe-area-inset-bottom, 0px))' }}>
                 <Typography component="h1" variant="h5" sx={{
                     position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
