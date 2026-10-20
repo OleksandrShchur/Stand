@@ -48,8 +48,7 @@ export default function FeedbackPage() {
             <Container component={MainContent} className="content-enter" maxWidth="sm" sx={{ ...pagePadding, pt: 3, pb: 'calc(120px + env(safe-area-inset-bottom, 0px))' }}>
                 <Stack component="form" id="feedback-form" noValidate onSubmit={submit} spacing={sectionGap}>
                     <Typography component="h1" variant="h5">Поділіться враженнями</Typography>
-                    <Typography color="text.secondary">Напишіть, що вам сподобалося або що варто покращити. Цей відгук не пов’язаний із вашими записами.</Typography>
-                    <Typography id="feedback-privacy" variant="body2" color="text.secondary">Відгук не анонімний: він зберігається з вашим ім’ям і номером телефону. Інші користувачі його не побачать. Після надсилання ви не зможете переглянути відгук на сайті.</Typography>
+                    <Typography color="text.secondary">Напишіть, що вам сподобалося або що варто покращити.</Typography>
                     <TextField
                         id="feedback-comment"
                         inputRef={inputRef}
