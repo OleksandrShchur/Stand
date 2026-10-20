@@ -11,6 +11,9 @@ using Stand.Server.Data.Entities;
 using Stand.Server.Options;
 using Stand.Server.Services;
 
+await ScheduleArchiveChecks.Run();
+if (args.Contains("--schedule-archive")) return;
+
 // Intentionally fixed to the disposable database. Never uses appsettings credentials.
 const string connection = "Server=(localdb)\\MSSQLLocalDB;Database=StandPerfTest;Trusted_Connection=True;TrustServerCertificate=True";
 var clock = new KyivClock(new ConfigurationBuilder().Build());

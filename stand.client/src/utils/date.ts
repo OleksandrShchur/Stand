@@ -40,7 +40,8 @@ export function dateRangeIso(startIso: string, endIso: string): string[] {
     return result;
 }
 
-export function todayIso(): string {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+/** Today's civil date in Kyiv, regardless of the device's time zone. */
+export function todayIso(now = new Date()): string {
+    const parts = Object.fromEntries(dateTimeFormatter.formatToParts(now).map(({ type, value }) => [type, value]));
+    return `${parts.year}-${parts.month}-${parts.day}`;
 }

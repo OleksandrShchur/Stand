@@ -1,5 +1,5 @@
 import { createContext, useContext, useMemo, useState } from 'react';
-import { Button, DialogActions } from '@mui/material';
+import { Alert, Button, DialogActions, Portal, Snackbar } from '@mui/material';
 import dayjs, { type Dayjs } from 'dayjs';
 import 'dayjs/locale/uk';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -11,6 +11,7 @@ import { usePickerActionsContext, usePickerTranslations } from '@mui/x-date-pick
 import type { PickersActionBarProps } from '@mui/x-date-pickers/PickersActionBar';
 import { DATE_PICKER_FORMAT } from '../utils/date';
 
+interface SelectionIssue { message: string; severity?: 'info' | 'warning' | 'error' }
 const ConfirmationContext = createContext<{ commit: () => void; invalid: boolean } | null>(null);
 const ActiveDatesContext = createContext<readonly string[]>([]);
 
@@ -33,7 +34,7 @@ function ConfirmationActions({ className, sx }: PickersActionBarProps) {
     return <DialogActions className={className} sx={sx}>
         <Button onClick={cancelValueChanges}>{translations.cancelButtonLabel}</Button>
         <Button disabled={confirmation.invalid} onClick={() => {
-            // MUI also accepts on dismissal; only this explicit action commits a filter.
+            // MUI also accepts on dismissal; only this explicit action commits a date.
             confirmation.commit();
             acceptValueChanges();
         }}>{translations.okButtonLabel}</Button>
@@ -45,29 +46,35 @@ interface Props {
     name: string;
     value: string;
     disabled?: boolean;
+    minDate?: string;
     size?: 'small' | 'medium';
     clearable?: boolean;
     confirmSelection?: boolean;
+    getSelectionIssue?: (isoDate: string) => SelectionIssue | null;
     activeDates?: readonly string[];
-    onCalendarOpen?: () => void;
+    onCalendarOpen?: (isoDate?: string) => void;
     onCalendarMonthChange?: (month: string) => void;
     onChange: (isoDate: string) => void;
 }
 
-export default function UkrainianDatePicker({ label, name, value, disabled, size = 'medium', clearable = false, confirmSelection = false, activeDates, onCalendarOpen, onCalendarMonthChange, onChange }: Props) {
+export default function UkrainianDatePicker({ label, name, value, disabled, minDate, size = 'medium', clearable = false, confirmSelection = false, getSelectionIssue, activeDates, onCalendarOpen, onCalendarMonthChange, onChange }: Props) {
     // Calendar navigation must survive rerenders that refresh active-day highlights.
     const selectedDate = useMemo(() => value ? dayjs(value) : null, [value]);
     const [draft, setDraft] = useState<Dayjs | null>(() => value ? dayjs(value) : null);
     const [previousValue, setPreviousValue] = useState(value);
     const [open, setOpen] = useState(false);
     const [invalid, setInvalid] = useState(false);
+    const [dismissedIssue, setDismissedIssue] = useState<string | null>(null);
+    const selectionIssue = draft?.isValid() ? getSelectionIssue?.(draft.format('YYYY-MM-DD')) : null;
+    const selectionIssueKey = selectionIssue ? `${draft?.format('YYYY-MM-DD')}:${selectionIssue.message}` : null;
 
     if (previousValue !== value) {
         setPreviousValue(value);
         setDraft(value ? dayjs(value) : null);
     }
 
-    return <ActiveDatesContext.Provider value={activeDates ?? []}><ConfirmationContext.Provider value={{ invalid, commit: () => {
+    return <ActiveDatesContext.Provider value={activeDates ?? []}><ConfirmationContext.Provider value={{ invalid: invalid || !!selectionIssue, commit: () => {
+        if (invalid || selectionIssue) return;
         const next = draft?.format('YYYY-MM-DD') ?? '';
         if (next !== value) onChange(next);
     } }}>
@@ -78,8 +85,9 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
             value={confirmSelection ? draft : selectedDate}
             format={DATE_PICKER_FORMAT}
             disabled={disabled}
+            minDate={minDate ? dayjs(minDate) : undefined}
             open={confirmSelection ? open : undefined}
-            onOpen={() => { if (confirmSelection) setOpen(true); onCalendarOpen?.(); }}
+            onOpen={() => { if (confirmSelection) setOpen(true); setDismissedIssue(null); onCalendarOpen?.((confirmSelection ? draft : selectedDate)?.format('YYYY-MM-DD')); }}
             onMonthChange={month => onCalendarMonthChange?.(month.format('YYYY-MM-DD'))}
             onClose={confirmSelection ? () => {
                 setOpen(false);
@@ -89,7 +97,11 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
             slots={{ ...(confirmSelection ? { actionBar: ConfirmationActions } : {}), ...(activeDates ? { day: ScheduleDay } : {}) }}
             onError={confirmSelection ? (error) => setInvalid(error !== null) : undefined}
             onChange={(date, context) => {
-                if (confirmSelection) setDraft(date);
+                if (confirmSelection) {
+                    setDraft(date);
+                    setDismissedIssue(null);
+                    if (getSelectionIssue && date?.isValid()) onCalendarMonthChange?.(date.format('YYYY-MM-DD'));
+                }
                 else if (context.validationError === null) onChange(date?.format('YYYY-MM-DD') ?? '');
             }}
             localeText={{
@@ -106,6 +118,16 @@ export default function UkrainianDatePicker({ label, name, value, disabled, size
                 textField: { fullWidth: true, size, sx: { minWidth: 0, '& .MuiPickersInputBase-sectionsContainer': { minWidth: 0, fontSize: 16 } } },
             }}
         />
+        <Portal>
+            <Snackbar key={selectionIssueKey} open={open && !!selectionIssue && dismissedIssue !== selectionIssueKey}
+                autoHideDuration={10000} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                onClose={(_, reason) => { if (reason !== 'clickaway') setDismissedIssue(selectionIssueKey); }}
+                onClick={event => event.stopPropagation()}
+                sx={{ top: 'max(16px, env(safe-area-inset-top)) !important', zIndex: theme => Math.max(theme.zIndex.snackbar, theme.zIndex.modal + 2), maxWidth: 560 }}>
+                <Alert severity={selectionIssue?.severity ?? 'warning'} variant="filled" data-testid="date-selection-warning"
+                    sx={{ width: '100%', '& .MuiAlert-message': { minWidth: 0, fontSize: '0.875rem', lineHeight: 1.5 } }}>{selectionIssue?.message}</Alert>
+            </Snackbar>
+        </Portal>
     </LocalizationProvider>
     </ConfirmationContext.Provider></ActiveDatesContext.Provider>;
 }

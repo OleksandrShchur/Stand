@@ -39,7 +39,7 @@ internal static class ScheduleChecks
         async Task<ScheduleSaveResultDto> Write(SaveScheduleDto dto, bool preview = false)
         {
             await using var db = new StandDbContext(dbOptions);
-            var controller = new AdminScheduleController(db, options);
+            var controller = new AdminScheduleController(db, options, clock);
             var result = preview ? await controller.Preview(dto, default) : await controller.Save(dto, default);
             return (ScheduleSaveResultDto)((OkObjectResult)result).Value!;
         }
