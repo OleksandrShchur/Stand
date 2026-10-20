@@ -16,7 +16,9 @@ export default function BrandHeader({ onHome, title = 'Головна', showHome
             <AppBar position="sticky" elevation={0}>
                 <Toolbar sx={{ py: 1, display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        {showHome && <IconButton
+                        {showFeedback ? <IconButton component={RouterLink} to="/feedback" color="inherit" aria-label="Залишити відгук">
+                            <RateReviewOutlinedIcon sx={{ fontSize: 30 }} />
+                        </IconButton> : showHome && <IconButton
                             component={RouterLink}
                             to="/"
                             color="inherit"
@@ -35,9 +37,6 @@ export default function BrandHeader({ onHome, title = 'Головна', showHome
                         {title}
                     </Typography>
                     <Stack direction="row" spacing={0.5} sx={{ ml: 'auto', alignItems: 'center' }}>
-                        {showFeedback && <IconButton component={RouterLink} to="/feedback" color="inherit" aria-label="Залишити відгук">
-                            <RateReviewOutlinedIcon sx={{ fontSize: 30 }} />
-                        </IconButton>}
                         <Button
                             color="inherit"
                             aria-label="Технічна підтримка"
