@@ -62,7 +62,7 @@ test('rejects breaks, overlaps, duplicate slots and invalid durations', () => {
     assert.equal(canAddSlot(first, [first]), false);
     assert.equal(canAddSlot(slot(3, '11:00', '11:00'), [first]), false);
 });
-test('full, blocked, too-soon and otherwise unavailable slots cannot extend the range', () => {
+test('full, blocked, started and otherwise unavailable slots cannot extend the range', () => {
     for (const overrides of [{ remaining: 0 }, { isFull: true }, { isBlocked: true }, { isTooSoon: true }, { isBookable: false }]) {
         assert.equal(canAddSlot({ ...next, ...overrides }, [first]), false);
     }
@@ -96,7 +96,7 @@ test('unavailable hints identify the actual availability restriction before adja
     const distant = slot(3, '14:00', '15:00');
     assert.match(getSlotDisabledReason({ ...distant, remaining: 0 }, [first]), /немає вільних місць/);
     assert.match(getSlotDisabledReason({ ...distant, isBlocked: true, isFull: true }, [first]), /заблоковано/);
-    assert.match(getSlotDisabledReason({ ...distant, isTooSoon: true, isFull: true }, [first]), /замало часу/);
+    assert.match(getSlotDisabledReason({ ...distant, isTooSoon: true, isFull: true }, [first]), /вже розпочався/);
     assert.match(getSlotDisabledReason({ ...distant, isBookable: false }, [first]), /Запис на цей час недоступний/);
     assert.match(getSlotDisabledReason(first, [], true), /минулі дати/);
 });
@@ -140,7 +140,7 @@ test('Kyiv date boundaries work independently of the browser timezone', () => {
     assert.equal(getSlotTimeStatus('2026-12-15', shift, new Date('2026-12-14T22:30:00Z')), 'in-progress');
 });
 
-test('finished and running hints take priority over capacity and lead-time flags', () => {
+test('finished and running hints take priority over capacity and server time flags', () => {
     const unavailable = { ...first, isBookable: false, isTooSoon: true, isFull: true, remaining: 0 };
     assert.match(getSlotDisabledReason(unavailable, [], false, 'finished'), /вже завершено/);
     assert.match(getSlotDisabledReason(unavailable, [], false, 'in-progress'), /вже триває/);

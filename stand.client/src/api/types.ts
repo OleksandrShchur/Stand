@@ -47,7 +47,7 @@ export interface SlotAvailabilityDto {
     remaining: number;
     isFull: boolean;
     isBlocked: boolean;
-    /** Slot starts sooner than the configured min lead time (e.g. +1 hour). */
+    /** Slot has already started (including finished slots). */
     isTooSoon: boolean;
     isBookable: boolean;
     participants: ShiftParticipantDto[];

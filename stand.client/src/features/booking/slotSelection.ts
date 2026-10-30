@@ -28,7 +28,7 @@ export function getSlotDisabledReason(slot: SlotAvailabilityDto, selected: SlotA
     if (timeStatus === 'in-progress') return 'Цей запис вже триває. Запис після початку запису недоступний. Оберіть майбутній час.';
     if (readOnly) return 'Запис на минулі дати недоступний. Оберіть іншу дату.';
     if (slot.isBlocked) return 'Цей запис заблоковано для запису. Оберіть інший час.';
-    if (slot.isTooSoon) return 'До початку цього запису залишилося замало часу для запису. Оберіть пізніший час.';
+    if (slot.isTooSoon) return 'Цей запис вже розпочався. Оберіть майбутній час для запису.';
     if (slot.remaining <= 0) return 'На цей запис немає вільних місць. Додати його до обраного часу неможливо.';
     if (!isSlotBookable(slot)) return 'Запис на цей час недоступний. Оберіть інший час.';
     if (!selected.length || canAddSlot(slot, selected)) return null;

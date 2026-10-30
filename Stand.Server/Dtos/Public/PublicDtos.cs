@@ -20,7 +20,7 @@ public sealed record SlotAvailabilityDto(
     int Remaining,
     bool IsFull,
     bool IsBlocked,
-    /// <summary>True when the slot starts sooner than the configured min lead time from now.</summary>
+    /// <summary>True when the slot has already started (including finished slots).</summary>
     bool IsTooSoon,
     bool IsBookable,
     List<ShiftParticipantDto> Participants,

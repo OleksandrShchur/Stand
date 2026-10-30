@@ -286,7 +286,7 @@ export default function AdminSchedulePage() {
                         <Accordion disableGutters variant="outlined">
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}><Typography variant="body2" color="text.secondary">Правила запису</Typography></AccordionSummary>
                             <AccordionDetails>
-                                <Typography variant="body2" color="text.secondary">Користувачі бачать дати на {source.horizonDays} днів уперед. Запис закривається за {source.minLeadTimeMinutes} хв до початку. Розклад можна готувати заздалегідь.</Typography>
+                                <Typography variant="body2" color="text.secondary">Користувачі бачать дати на {source.horizonDays} днів уперед. Запис доступний до початку обраного часу. Розклад можна готувати заздалегідь.</Typography>
                                 {!source.isCustom && source.locations.length > 0 && <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>Цей день має спільний розклад. Після збереження ви керуватимете ним окремо.</Typography>}
                             </AccordionDetails>
                         </Accordion>
