@@ -1,4 +1,5 @@
 import ParticipantList from './components/ParticipantList';
+import AdjacentShifts from './components/AdjacentShifts';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useRef, useState } from 'react';
@@ -198,6 +199,7 @@ export default function MyShiftsPage() {
                                             <ShiftDetailsTable shift={shift} />
                                             <Divider sx={{ mt: 1.5 }} />
                                             <ParticipantList participants={shift.participants} dashed />
+                                            <AdjacentShifts shift={shift} />
                                         </Box>
                                         <Divider sx={{ my: 1 }} />
                                         <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>

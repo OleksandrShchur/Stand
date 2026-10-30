@@ -33,9 +33,10 @@ public sealed class BookingService(
         var now = clock.NowLocal;
         var today = DateOnly.FromDateTime(now);
         var time = TimeOnly.FromDateTime(now);
-        var shifts = await db.Bookings.AsNoTracking()
+        var upcoming = db.Bookings.AsNoTracking()
             .Where(b => b.Phone == phone && b.IsBooked &&
-                (b.Date > today || (b.Date == today && b.TimeSlot.EndTime > time)))
+                (b.Date > today || (b.Date == today && b.TimeSlot.EndTime > time)));
+        var shifts = await upcoming
             .OrderBy(b => b.Date)
             .ThenBy(b => b.TimeSlot.StartTime)
             .ThenBy(b => b.Id)
@@ -43,6 +44,7 @@ public sealed class BookingService(
             {
                 b.Id,
                 b.Date,
+                b.LocationId,
                 LocationName = b.Location.Name,
                 LocationAddress = b.Location.Address,
                 b.TimeSlot.StartTime,
@@ -56,6 +58,40 @@ public sealed class BookingService(
             })
             .ToListAsync(ct);
 
+        if (shifts.Count == 0) return [];
+
+        // Fetch both sides for all cards together, including a finished previous shift
+        // when the user's own shift is still in progress. Adjacency uses actual times,
+        // so custom and archived schedule intervals keep their booked participants.
+        var adjacent = await db.Bookings.AsNoTracking()
+            .Where(other => other.IsBooked && (other.Phone == null || other.Phone != phone) &&
+                upcoming.Any(mine => mine.Date == other.Date && mine.LocationId == other.LocationId &&
+                    (other.TimeSlot.EndTime == mine.TimeSlot.StartTime ||
+                     other.TimeSlot.StartTime == mine.TimeSlot.EndTime)))
+            .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+            .Select(other => new
+            {
+                other.Date,
+                other.LocationId,
+                other.TimeSlot.StartTime,
+                other.TimeSlot.EndTime,
+                Participant = new ShiftParticipantDto(other.FirstName, other.LastName),
+            })
+            .ToListAsync(ct);
+        var neighbors = adjacent
+            .GroupBy(b => (b.Date, b.LocationId, b.StartTime, b.EndTime))
+            .Select(group => new
+            {
+                group.Key.Date,
+                group.Key.LocationId,
+                group.Key.StartTime,
+                group.Key.EndTime,
+                Shift = new AdjacentShiftDto(group.Key.StartTime.ToString("HH:mm"),
+                    group.Key.EndTime.ToString("HH:mm"), group.Select(b => b.Participant).ToList()),
+            }).ToList();
+        var previous = neighbors.ToLookup(b => (b.Date, b.LocationId, b.EndTime));
+        var next = neighbors.ToLookup(b => (b.Date, b.LocationId, b.StartTime));
+
         return shifts.Select(b => new MyShiftDto(
             b.Id,
             b.Date.ToString("yyyy-MM-dd"),
@@ -64,7 +100,9 @@ public sealed class BookingService(
             b.StartTime.ToString("HH:mm"),
             b.EndTime.ToString("HH:mm"),
             b.CancelToken.ToString(),
-            b.Participants)).ToList();
+            b.Participants,
+            previous[(b.Date, b.LocationId, b.StartTime)].OrderBy(n => n.StartTime).Select(n => n.Shift).ToList(),
+            next[(b.Date, b.LocationId, b.EndTime)].OrderBy(n => n.EndTime).Select(n => n.Shift).ToList())).ToList();
     }
 
     public async Task<BookingSummaryDto> BookAsync(

@@ -26,6 +26,12 @@ export interface ShiftParticipantDto {
     lastName: string | null;
 }
 
+export interface AdjacentShiftDto {
+    startTime: string;
+    endTime: string;
+    participants: ShiftParticipantDto[];
+}
+
 export interface MyShiftDto {
     id: number;
     date: string;
@@ -35,6 +41,8 @@ export interface MyShiftDto {
     endTime: string;
     cancelToken: string;
     participants: ShiftParticipantDto[];
+    previousShifts: AdjacentShiftDto[];
+    nextShifts: AdjacentShiftDto[];
 }
 
 export interface SlotAvailabilityDto {
