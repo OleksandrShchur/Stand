@@ -8,7 +8,7 @@ public interface IAvailabilityService
     (DateOnly MinDate, DateOnly MaxDate) GetBookableWindow();
 
     /// <summary>
-    /// True when the slot's local start (date + start time) is earlier than now + MinLeadTimeMinutes.
+    /// True when the slot's local start (date + start time) has been reached or passed.
     /// </summary>
     bool IsSlotTooSoon(DateOnly date, TimeOnly startTime);
 

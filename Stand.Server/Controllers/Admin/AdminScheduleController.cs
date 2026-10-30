@@ -47,7 +47,7 @@ public sealed class AdminScheduleController(StandDbContext db, IOptions<BookingO
         return new DayScheduleDto(date, entry?.IsActive == true, custom, locations,
             bookings.Select(b => new ScheduleBookingDto(b.Id, b.LocationId, b.Name,
                 b.StartTime.ToString("HH:mm"), b.EndTime.ToString("HH:mm"))).ToList(),
-            options.Value.HorizonDays, options.Value.MinLeadTimeMinutes);
+            options.Value.HorizonDays, MinLeadTimeMinutes: 0);
     }
 
     [HttpPut]

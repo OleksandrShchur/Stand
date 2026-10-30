@@ -11,11 +11,15 @@ using Stand.Server.Data.Entities;
 using Stand.Server.Options;
 using Stand.Server.Services;
 
+BookingStartChecks.RunBoundaries();
+if (args.Contains("--booking-start-boundaries")) return;
 await ScheduleArchiveChecks.Run();
 if (args.Contains("--schedule-archive")) return;
 
 // Intentionally fixed to the disposable database. Never uses appsettings credentials.
 const string connection = "Server=(localdb)\\MSSQLLocalDB;Database=StandPerfTest;Trusted_Connection=True;TrustServerCertificate=True";
+await BookingStartChecks.Run(connection);
+if (args.Contains("--booking-start")) return;
 var clock = new KyivClock(new ConfigurationBuilder().Build());
 var date = clock.TodayLocal.AddDays(1);
 var options = Options.Create(new BookingOptions());
@@ -27,7 +31,7 @@ DbContextOptions<StandDbContext> DbOptions(CommandCounter? interceptor = null)
     return builder.Options;
 }
 BookingService Service(StandDbContext db) => new(db, clock,
-    new AvailabilityService(db, clock, options, new CurrentPublicUser(db)), options,
+    new AvailabilityService(db, clock, options, new CurrentPublicUser(db)),
     NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
 void Check(bool condition, string message)
 {
@@ -71,7 +75,7 @@ try
         Check(counter.Reads == 5, "Authenticated slots request uses five SQL reads (previously eight)");
         Check(slots.Count >= 5 && slots.All(s => s.Remaining == 3), "Empty-slot capacity is preserved");
         Check(counter.UserReads == 1, "Validated user is loaded only once in the request");
-        var bookings = new BookingService(db, clock, availability, options, NullLogger<BookingService>.Instance, current);
+        var bookings = new BookingService(db, clock, availability, NullLogger<BookingService>.Instance, current);
         await bookings.GetMyUpcomingShiftsAsync(users[0].Id, default);
         Check(counter.UserReads == 1, "Upcoming shifts reuse the validated profile");
         await setup.AuthorizedUsers.Where(u => u.Id == users[0].Id).ExecuteUpdateAsync(s => s.SetProperty(u => u.IsActive, false));

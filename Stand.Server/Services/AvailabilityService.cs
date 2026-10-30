@@ -25,8 +25,7 @@ public sealed class AvailabilityService(
     public bool IsSlotTooSoon(DateOnly date, TimeOnly startTime)
     {
         var slotStartLocal = date.ToDateTime(startTime);
-        var earliestAllowed = clock.NowLocal.AddMinutes(_options.MinLeadTimeMinutes);
-        return slotStartLocal < earliestAllowed;
+        return slotStartLocal <= clock.NowLocal;
     }
 
     public async Task<CalendarDto> GetCalendarAsync(CancellationToken ct)
@@ -94,9 +93,6 @@ public sealed class AvailabilityService(
     {
         var (min, max) = GetBookableWindow();
         var nowLocal = clock.NowLocal;
-        var earliestStart = nowLocal.AddMinutes(_options.MinLeadTimeMinutes);
-        var earliestDate = DateOnly.FromDateTime(earliestStart);
-        var earliestTime = TimeOnly.FromDateTime(earliestStart);
         var currentTime = TimeOnly.FromDateTime(nowLocal);
 
         return db.Locations.Where(location => location.IsActive && date >= min && date <= max &&
@@ -106,7 +102,7 @@ public sealed class AvailabilityService(
                     ? db.ScheduleSlots.Any(s => s.Date == date && s.LocationId == location.Id && s.TimeSlotId == slot.Id)
                     : slot.IsActive && !slot.IsScheduleOnly && !db.DateTimeSlotExceptions.Any(exception =>
                         exception.Date == date && exception.TimeSlotId == slot.Id && exception.IsBlocked)) &&
-                (date > earliestDate || (date == earliestDate && slot.StartTime >= earliestTime)) &&
+                (date > min || slot.StartTime > currentTime) &&
                 (date > min || slot.EndTime > currentTime) &&
                 db.Bookings.Count(booking => booking.Date == date && booking.TimeSlotId == slot.Id &&
                     booking.LocationId == location.Id &&

@@ -34,7 +34,9 @@ public sealed record SaveScheduleDto(List<string> Dates, bool IsActive, List<Sch
 public sealed record ScheduleBookingDto(int Id, int LocationId, string LocationName, string StartTime, string EndTime);
 public sealed record ScheduleLocationDto(int LocationId, List<ScheduleRangeDto> Slots);
 public sealed record DayScheduleDto(string Date, bool IsActive, bool IsCustom, List<ScheduleLocationDto> Locations,
-    List<ScheduleBookingDto> Bookings, int HorizonDays, int MinLeadTimeMinutes);
+    List<ScheduleBookingDto> Bookings, int HorizonDays,
+    // Retained for API compatibility; always zero now that advance notice is not required.
+    int MinLeadTimeMinutes);
 public sealed record ScheduleSaveResultDto(int UpdatedDates, int PreservedBookings);
 
 // ---- Per-date time exceptions ----

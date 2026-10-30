@@ -4,12 +4,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 using Stand.Server.Common;
 using Stand.Server.Data;
 using Stand.Server.Data.Entities;
 using Stand.Server.Dtos.Public;
-using Stand.Server.Options;
 
 namespace Stand.Server.Services;
 
@@ -17,14 +15,12 @@ public sealed class BookingService(
     StandDbContext db,
     IKyivClock clock,
     IAvailabilityService availability,
-    IOptions<BookingOptions> options,
     ILogger<BookingService> logger,
     CurrentPublicUser currentUser) : IBookingService
 {
     private const int UniqueConstraintViolationSqlError = 2601;
     private const int UniqueIndexViolationSqlError = 2627;
 
-    private readonly BookingOptions _options = options.Value;
     private static readonly JsonSerializerOptions ReplayJson = new(JsonSerializerDefaults.Web);
 
     public async Task<List<MyShiftDto>> GetMyUpcomingShiftsAsync(int authorizedUserId, CancellationToken ct)
@@ -182,7 +178,7 @@ public sealed class BookingService(
             if (availability.IsSlotTooSoon(date, timeSlot.StartTime))
             {
                 throw new ValidationAppException(
-                    $"Запис можливий лише не раніше ніж за {_options.MinLeadTimeMinutes} хв до початку чергування.",
+                    "Цей запис вже розпочався. Оберіть майбутній час для запису.",
                     ErrorCodes.SlotTooSoon);
             }
 

@@ -177,10 +177,10 @@ rate-limited to 5 attempts/minute per IP.
 
 - **Window:** earliest bookable day is **today**, horizon is **14 days**
   ahead, and a date is only offered at all if an admin has explicitly enabled
-  it (`AvailableDates` table / `/admin/dates`). Same-day (and any) slots are
-  only bookable if their **start time is at least 1 hour** from now
-  (`Booking:MinLeadTimeMinutes`, default 60); earlier slots show as
+  it (`AvailableDates` table / `/admin/dates`). Slots are bookable **until their
+  start time**, with no minimum advance notice. Started slots show as
   «Недоступно» and are rejected on booking with `SLOT_TOO_SOON`.
+  The former `Booking:MinLeadTimeMinutes` setting is ignored.
 - **Capacity:** configurable per date/location/interval in the admin schedule.
   New locations default to **2**; new intervals start with the location's default.
   Existing location settings and schedule capacities are preserved on upgrade.
@@ -294,7 +294,7 @@ doesn't lose the selected shift. No reservation expires while reviewing the shif
 ```json
 {
   "ConnectionStrings": { "Default": "Server=(localdb)\\MSSQLLocalDB;Database=StandDb;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true" },
-  "Booking": { "HorizonDays": 14, "MinLeadTimeMinutes": 60, "TimeZoneId": "Europe/Kyiv" },
+  "Booking": { "HorizonDays": 14, "TimeZoneId": "Europe/Kyiv" },
   "AdminAuth": { "SlidingExpirationHours": 12, "AbsoluteExpirationDays": 7 }
 }
 ```
@@ -312,7 +312,7 @@ environment via `appsettings.{Environment}.json` or environment variables
 | 1 | No visitor registration/login; Ukrainian-only UI | ✅ |
 | 2 | Mobile-first, works well on desktop too; calm green civic theme (not purple/AI-generic) | ✅ `theme.ts` |
 | 3 | Flow: calendar → location → time slots (with "Вільно x/y" / "Зайнято") → contact form → confirmation + cancel link | ✅ |
-| 4 | Booking only possible on admin-enabled dates, within today…+14 days; same-day slots only if start ≥ now+1h | ✅ enforced server-side in `AvailabilityService`/`BookingService` (`MinLeadTimeMinutes`) |
+| 4 | Booking only possible on admin-enabled dates, within today…+14 days, until the slot starts; no minimum advance notice | ✅ enforced server-side in `AvailabilityService`/`BookingService` |
 | 5 | Capacity enforced correctly under parallel/concurrent requests | ✅ `WITH (UPDLOCK, HOLDLOCK)` transaction; verified with 10 parallel requests → exactly capacity succeed |
 | 6 | Immediate booking with no countdown; unavailable shifts have a read-only final screen | ✅ Capacity is checked on final confirmation |
 | 7 | UA phone validation + normalization | ✅ `PhoneNormalizer` → canonical `+380XXXXXXXXX` |
@@ -389,7 +389,7 @@ this convention is recorded in `AGENTS.md` for future UI changes.
   identifies the participant, date, location and time and explains the effects.
   No automatic notification is sent. Admins cannot create or move bookings.
 - A schedule can be prepared beyond the public booking horizon; the existing
-  configured horizon and minimum lead time still apply to public booking.
+  configured horizon and slot start time still apply to public booking.
 - Locations, site users and administrators have mobile card layouts. Site
   users have name/phone search and pagination. Booking filters can be expanded
   when needed, with CSV export and booking detail dialogs retained.

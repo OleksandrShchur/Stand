@@ -43,7 +43,7 @@ internal static class ScheduleCapacityChecks
             Console.WriteLine("PASS " + description);
         }
         AvailabilityService Availability(StandDbContext db) => new(db, clock, options, new CurrentPublicUser(db));
-        BookingService Bookings(StandDbContext db) => new(db, clock, Availability(db), options, NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
+        BookingService Bookings(StandDbContext db) => new(db, clock, Availability(db), NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
         SaveScheduleDto Plan(List<string> dates, int middleCapacity = 3) => new(dates, true,
             [new(place.Id, [new("09:00", "10:00", 1), new("10:00", "11:00", middleCapacity), new("11:00", "12:00", 4)]),
              new(other.Id, [new("09:00", "10:00")])], true);
