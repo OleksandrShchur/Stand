@@ -44,7 +44,7 @@ internal static class ScheduleChecks
             return (ScheduleSaveResultDto)((OkObjectResult)result).Value!;
         }
         AvailabilityService Availability(StandDbContext db) => new(db, clock, options, new CurrentPublicUser(db));
-        BookingService Bookings(StandDbContext db) => new(db, clock, Availability(db), options, NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
+        BookingService Bookings(StandDbContext db) => new(db, clock, Availability(db), NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
         SaveScheduleDto Plan(List<string> days, bool active = true, bool acknowledge = false) => new(days, active,
             [new(place.Id, [new("09:00", "12:00"), new("12:00", "13:00"), new("14:00", "17:00")]), new(other.Id, [new("10:15", "11:45")])], acknowledge);
         try

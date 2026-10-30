@@ -29,7 +29,7 @@ internal static class BookingOverlapChecks
         var createdSlotIds = new List<int>();
         var slots = new Dictionary<string, int>();
         BookingService Service(StandDbContext db) => new(db, clock, new AvailabilityService(db, clock, options, new CurrentPublicUser(db)),
-            options, NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
+            NullLogger<BookingService>.Instance, new CurrentPublicUser(db));
         void Check(bool condition, string message)
         {
             if (!condition) throw new Exception(message);
