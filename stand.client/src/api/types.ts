@@ -43,6 +43,8 @@ export interface MyShiftDto {
     participants: ShiftParticipantDto[];
     previousShifts: AdjacentShiftDto[];
     nextShifts: AdjacentShiftDto[];
+    isFirstShift: boolean;
+    isLastShift: boolean;
 }
 
 export interface SlotAvailabilityDto {

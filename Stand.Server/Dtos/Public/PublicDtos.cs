@@ -74,4 +74,6 @@ public sealed record MyShiftDto(
     string CancelToken,
     List<ShiftParticipantDto> Participants,
     List<AdjacentShiftDto> PreviousShifts,
-    List<AdjacentShiftDto> NextShifts);
+    List<AdjacentShiftDto> NextShifts,
+    bool IsFirstShift,
+    bool IsLastShift);

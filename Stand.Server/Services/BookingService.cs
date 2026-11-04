@@ -50,6 +50,20 @@ public sealed class BookingService(
                 b.TimeSlot.StartTime,
                 b.TimeSlot.EndTime,
                 b.CancelToken,
+                // Empty intervals still define the day's boundaries. Include
+                // preserved bookings when an interval has been removed from the schedule.
+                IsFirstShift = !db.TimeSlots.Any(slot => slot.StartTime < b.TimeSlot.StartTime &&
+                    ((db.AvailableDates.Any(day => day.Date == b.Date && day.UseCustomSchedule)
+                        ? db.ScheduleSlots.Any(s => s.Date == b.Date && s.LocationId == b.LocationId && s.TimeSlotId == slot.Id)
+                        : slot.IsActive && !slot.IsScheduleOnly && !db.DateTimeSlotExceptions.Any(e =>
+                            e.Date == b.Date && e.TimeSlotId == slot.Id && e.IsBlocked)) ||
+                     slot.Bookings.Any(other => other.Date == b.Date && other.LocationId == b.LocationId && other.IsBooked))),
+                IsLastShift = !db.TimeSlots.Any(slot => slot.EndTime > b.TimeSlot.EndTime &&
+                    ((db.AvailableDates.Any(day => day.Date == b.Date && day.UseCustomSchedule)
+                        ? db.ScheduleSlots.Any(s => s.Date == b.Date && s.LocationId == b.LocationId && s.TimeSlotId == slot.Id)
+                        : slot.IsActive && !slot.IsScheduleOnly && !db.DateTimeSlotExceptions.Any(e =>
+                            e.Date == b.Date && e.TimeSlotId == slot.Id && e.IsBlocked)) ||
+                     slot.Bookings.Any(other => other.Date == b.Date && other.LocationId == b.LocationId && other.IsBooked))),
                 Participants = db.Bookings
                     .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
                         other.TimeSlotId == b.TimeSlotId && other.IsBooked && other.Phone != phone)
@@ -102,7 +116,9 @@ public sealed class BookingService(
             b.CancelToken.ToString(),
             b.Participants,
             previous[(b.Date, b.LocationId, b.StartTime)].OrderBy(n => n.StartTime).Select(n => n.Shift).ToList(),
-            next[(b.Date, b.LocationId, b.EndTime)].OrderBy(n => n.EndTime).Select(n => n.Shift).ToList())).ToList();
+            next[(b.Date, b.LocationId, b.EndTime)].OrderBy(n => n.EndTime).Select(n => n.Shift).ToList(),
+            b.IsFirstShift,
+            b.IsLastShift)).ToList();
     }
 
     public async Task<BookingSummaryDto> BookAsync(
