@@ -64,14 +64,16 @@ static class AdjacentShiftChecks
         var service = new BookingService(db, clock,
             new AvailabilityService(db, clock, Options.Create(new BookingOptions()), current),
             NullLogger<BookingService>.Instance, current);
-        async Task<Stand.Server.Dtos.Public.MyShiftDto> Read() =>
-            (await service.GetMyUpcomingShiftsAsync(user.Id, default)).Single(s => s.Id == mine.Id);
+        async Task<Stand.Server.Dtos.Public.MyShiftDto> Read(Booking? booking = null) =>
+            (await service.GetMyUpcomingShiftsAsync(user.Id, default)).Single(s => s.Id == (booking ?? mine).Id);
         void Check(bool condition, string message)
         {
             if (!condition) throw new Exception(message);
             Console.WriteLine("PASS " + message);
         }
         var shift = await Read();
+        Check(!shift.IsFirstShift, "The user's first upcoming card is not the day's first shift when earlier bookings exist");
+        Check(!shift.IsLastShift, "The user's card is not the day's last shift when later bookings exist");
         Check(shift.Participants.Single().FirstName == "Same", "Partners in the user's own slot remain separate");
         Check(shift.PreviousShifts.Count == 1 && shift.PreviousShifts[0].StartTime == "10:00" &&
             shift.PreviousShifts[0].EndTime == "11:00" &&
@@ -92,6 +94,89 @@ static class AdjacentShiftChecks
         await db.SaveChangesAsync();
         shift = await Read();
         Check(shift.PreviousShifts.Count == 0 && shift.NextShifts.Count == 0, "Both empty sides are omitted independently");
+
+        var customDate = date.AddDays(2);
+        var day = await db.AvailableDates.SingleOrDefaultAsync(d => d.Date == customDate);
+        if (day is null) db.Add(day = new AvailableDate { Date = customDate, IsActive = true });
+        day.UseCustomSchedule = true;
+        var first = await Add("09:00", "10:00", user.FirstName, user.LastName, phone: user.Phone, on: customDate);
+        var later = await Add("10:00", "11:00", user.FirstName, user.LastName, phone: user.Phone, on: customDate);
+        var earlierCancelled = await Add("07:00", "08:00", "Cancelled", "Earlier", booked: false, on: customDate);
+        var elsewhere = await Add("08:00", "09:00", "Elsewhere", "Earlier", at: foreign, on: customDate);
+        var laterCancelled = await Add("18:00", "19:00", "Cancelled", "Later", booked: false, on: customDate);
+        var elsewhereLater = await Add("20:00", "21:00", "Elsewhere", "Later", at: foreign, on: customDate);
+        db.AddRange(
+            new ScheduleSlot { Date = customDate, LocationId = location.Id, TimeSlotId = first.TimeSlotId, Capacity = 10 },
+            new ScheduleSlot { Date = customDate, LocationId = location.Id, TimeSlotId = later.TimeSlotId, Capacity = 10 },
+            new ScheduleSlot { Date = customDate, LocationId = foreign.Id, TimeSlotId = elsewhere.TimeSlotId, Capacity = 10 },
+            new ScheduleSlot { Date = customDate, LocationId = foreign.Id, TimeSlotId = elsewhereLater.TimeSlotId, Capacity = 10 });
+        await db.SaveChangesAsync();
+        Check((await Read(first)).IsFirstShift && !(await Read(later)).IsFirstShift,
+            "The first custom interval is labelled by date and location, ignoring other locations, dates and cancelled history");
+        Check(!(await Read(first)).IsLastShift && (await Read(later)).IsLastShift,
+            "The last custom interval ignores later slots at other locations, dates and cancelled history");
+        var emptyEarlier = new ScheduleSlot { Date = customDate, LocationId = location.Id, TimeSlotId = elsewhere.TimeSlotId, Capacity = 10 };
+        db.Add(emptyEarlier);
+        await db.SaveChangesAsync();
+        shift = await Read(first);
+        Check(!shift.IsFirstShift && shift.PreviousShifts.Count == 0,
+            "An empty scheduled interval before the user prevents a false first-shift label");
+        db.Remove(emptyEarlier);
+        earlierCancelled.IsBooked = true;
+        await db.SaveChangesAsync();
+        Check(!(await Read(first)).IsFirstShift, "A preserved active booking before a custom schedule still counts as an earlier shift");
+        earlierCancelled.IsBooked = false;
+        await db.SaveChangesAsync();
+        Check((await Read(first)).IsFirstShift, "Removing the empty interval and cancelling earlier bookings restores the first-shift label");
+
+        var emptyLater = new ScheduleSlot { Date = customDate, LocationId = location.Id, TimeSlotId = laterCancelled.TimeSlotId, Capacity = 10 };
+        db.Add(emptyLater);
+        await db.SaveChangesAsync();
+        shift = await Read(later);
+        Check(!shift.IsLastShift && shift.NextShifts.Count == 0,
+            "An empty later scheduled interval prevents a false last-shift label even across a gap");
+        db.Remove(emptyLater);
+        laterCancelled.IsBooked = true;
+        await db.SaveChangesAsync();
+        Check(!(await Read(later)).IsLastShift, "Preserved active bookings after a custom schedule still count as later shifts");
+        laterCancelled.IsBooked = false;
+        await db.SaveChangesAsync();
+        Check((await Read(later)).IsLastShift, "Removing the empty interval and cancelling later bookings restores the last-shift label");
+
+        var singleDate = date.AddDays(4);
+        var singleDay = await db.AvailableDates.SingleOrDefaultAsync(d => d.Date == singleDate);
+        if (singleDay is null) db.Add(singleDay = new AvailableDate { Date = singleDate, IsActive = true });
+        singleDay.UseCustomSchedule = true;
+        var single = await Add("09:00", "10:00", user.FirstName, user.LastName, phone: user.Phone, on: singleDate);
+        db.Add(new ScheduleSlot { Date = singleDate, LocationId = location.Id, TimeSlotId = single.TimeSlotId, Capacity = 10 });
+        await db.SaveChangesAsync();
+        shift = await Read(single);
+        Check(shift.IsFirstShift && shift.IsLastShift, "A location's only stand of the day is both first and last");
+
+        var legacyDate = date.AddDays(3);
+        var defaultSlots = await db.TimeSlots.Where(s => s.IsActive && !s.IsScheduleOnly).OrderBy(s => s.StartTime).ToListAsync();
+        var secondTime = defaultSlots.Select(s => s.StartTime).Distinct().Skip(1).First();
+        var secondSlot = defaultSlots.First(s => s.StartTime == secondTime);
+        var legacy = await Add(secondSlot.StartTime.ToString("HH:mm"), secondSlot.EndTime.ToString("HH:mm"),
+            user.FirstName, user.LastName, phone: user.Phone, on: legacyDate);
+        Check(!(await Read(legacy)).IsFirstShift, "Empty earlier default intervals also prevent a first-shift label");
+        Check(!(await Read(legacy)).IsLastShift, "Empty later default intervals also prevent a last-shift label");
+        foreach (var slot in defaultSlots.Where(s => s.StartTime < secondTime))
+        {
+            var exception = await db.DateTimeSlotExceptions.SingleOrDefaultAsync(e => e.Date == legacyDate && e.TimeSlotId == slot.Id);
+            if (exception is null) db.Add(exception = new DateTimeSlotException { Date = legacyDate, TimeSlotId = slot.Id });
+            exception.IsBlocked = true;
+        }
+        await db.SaveChangesAsync();
+        Check((await Read(legacy)).IsFirstShift, "Blocked default intervals without active bookings do not count as earlier shifts");
+        foreach (var slot in defaultSlots.Where(s => s.EndTime > secondSlot.EndTime))
+        {
+            var exception = await db.DateTimeSlotExceptions.SingleOrDefaultAsync(e => e.Date == legacyDate && e.TimeSlotId == slot.Id);
+            if (exception is null) db.Add(exception = new DateTimeSlotException { Date = legacyDate, TimeSlotId = slot.Id });
+            exception.IsBlocked = true;
+        }
+        await db.SaveChangesAsync();
+        Check((await Read(legacy)).IsLastShift, "Blocked default intervals without active bookings do not count as later shifts");
         await transaction.RollbackAsync();
     }
 
