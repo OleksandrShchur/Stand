@@ -9,7 +9,7 @@ const slots = [1, 2, 3].map((id, index) => ({ id, timeSlotId: id, startTime: `${
 const booking = { id: 1, publicNumber: 'TEST-1', date: fixtureDate, locationId: 1, locationName: locations[0].name, locationAddress: locations[0].address, timeSlotId: 1, startTime: '10:00', endTime: '11:00', firstName: 'Олена', lastName: 'Тестова', phone: '+380670000001', isBooked: true, cancelToken: 'fixture-token', createdAtUtc: new Date().toISOString(), participants: slots[0].participants };
 const root = resolve('stand.client/dist');
 
-export async function startFixture(port = 5198, { bookings, adminUsers, bookingCreate, feedbackCreate, adminFeedback, adminLogout, adminSchedule, adminDates } = {}) {
+export async function startFixture(port = 5198, { bookings, myShifts, adminUsers, bookingCreate, feedbackCreate, adminFeedback, adminLogout, adminSchedule, adminDates } = {}) {
     const server = http.createServer(async (request, response) => {
         const url = new URL(request.url, 'http://localhost');
         if (url.pathname.startsWith('/api/')) {
@@ -38,7 +38,7 @@ export async function startFixture(port = 5198, { bookings, adminUsers, bookingC
             if (path === '/api/calendar') return send({ bookableDates: [fixtureDate], readOnlyDates: [], earliestBookableDate: fixtureDate, latestBookableDate: fixtureDate });
             if (path === '/api/locations' || path === '/api/admin/locations') return send(locations);
             if (path === '/api/slots' || path === '/api/admin/timeslots') return send(slots);
-            if (path === '/api/bookings/mine') return send([booking]);
+            if (path === '/api/bookings/mine') return myShifts ? myShifts(url, response) : send([booking]);
             if (path === '/api/bookings/fixture-token') return send(booking);
             if (path === '/api/admin/bookings') {
                 if (bookings) return bookings(url, response);

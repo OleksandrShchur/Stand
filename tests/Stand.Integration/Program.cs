@@ -18,6 +18,11 @@ if (args.Contains("--schedule-archive")) return;
 
 // Intentionally fixed to the disposable database. Never uses appsettings credentials.
 const string connection = "Server=(localdb)\\MSSQLLocalDB;Database=StandPerfTest;Trusted_Connection=True;TrustServerCertificate=True";
+if (args.Contains("--adjacent-shifts"))
+{
+    await AdjacentShiftChecks.Run(connection);
+    return;
+}
 await BookingStartChecks.Run(connection);
 if (args.Contains("--booking-start")) return;
 var clock = new KyivClock(new ConfigurationBuilder().Build());
@@ -63,6 +68,7 @@ try
     await ScheduleCapacityMigrationChecks.Run(connection);
     await ScheduleCapacityChecks.Run(connection);
     await BookingSearchChecks.Run(connection);
+    await AdjacentShiftChecks.Run(connection);
     await BookingTimeRangeChecks.Run(connection);
     await AdminUserChecks.Run(connection);
     await BookingOverlapChecks.Run(connection);

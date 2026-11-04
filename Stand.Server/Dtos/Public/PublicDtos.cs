@@ -10,6 +10,11 @@ public sealed record TimeSlotDto(int Id, string StartTime, string EndTime);
 
 public sealed record ShiftParticipantDto(string? FirstName, string? LastName);
 
+public sealed record AdjacentShiftDto(
+    string StartTime,
+    string EndTime,
+    List<ShiftParticipantDto> Participants);
+
 /// <summary>A time slot's availability for a specific date + location.</summary>
 public sealed record SlotAvailabilityDto(
     int TimeSlotId,
@@ -67,4 +72,8 @@ public sealed record MyShiftDto(
     string StartTime,
     string EndTime,
     string CancelToken,
-    List<ShiftParticipantDto> Participants);
+    List<ShiftParticipantDto> Participants,
+    List<AdjacentShiftDto> PreviousShifts,
+    List<AdjacentShiftDto> NextShifts,
+    bool IsFirstShift,
+    bool IsLastShift);

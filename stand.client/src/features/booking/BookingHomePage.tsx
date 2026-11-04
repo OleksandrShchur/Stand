@@ -1,4 +1,5 @@
 import ShiftDetailsTable from './components/ShiftDetailsTable';
+import AdjacentShifts from './components/AdjacentShifts';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Card, CardContent, Container, Divider, Snackbar, Stack, Typography } from '@mui/material';
@@ -63,6 +64,7 @@ export default function BookingHomePage({ onStart, bookedCount = 0, feedbackSubm
                                         return (
                                             <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
                                                 <ShiftDetailsTable shift={shift} />
+                                                <AdjacentShifts shift={shift} />
                                             </Box>
                                         );
                                     })}
