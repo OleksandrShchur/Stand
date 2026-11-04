@@ -546,13 +546,19 @@ endpoints.
 
 `/my-shifts` and the home preview show compact «До вас» / «Після вас» rows
 with times and participant names for immediately adjoining slots at the same
-location on the same date. Empty sides are hidden; gaps are not skipped.
+location on the same date. Empty sides say «Інших учасників немає»; gaps are
+not skipped. The first shift at that location has a «Перший стенд дня» label and
+hides «До вас»; the last has an «Останній стенд дня» label and hides «Після вас».
+A single shift shows both labels and neither neighboring row. These boundaries
+come from the day's schedule and preserved active bookings, including scheduled
+intervals without participants.
 Cancelled bookings and the signed-in user's own name are excluded. A previous
 slot remains visible while the user's shift is in progress, even after that
 previous slot has finished or its schedule interval has been deactivated.
 
 `GET /api/bookings/mine` includes `previousShifts` and `nextShifts` arrays of
-`{ startTime, endTime, participants }`; no database migration is needed.
+`{ startTime, endTime, participants }`, plus `isFirstShift` and `isLastShift`;
+no database migration is needed.
 Run `dotnet run --project tests/Stand.Integration -- --adjacent-shifts` against
 the disposable `StandPerfTest` database. After building the client, run
 `node tests/adjacent-shifts.mjs` with isolated Chrome on port 9241 (or set
