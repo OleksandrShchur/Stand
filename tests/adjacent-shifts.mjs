@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { startFixture, fixtureDate } from './accessibility-fixture.mjs';
 
 const browser = process.env.A11Y_CHROME_URL || 'http://127.0.0.1:9241';
+const self = { firstName: 'Олена', lastName: 'Тестова' };
 const previous = { startTime: '09:00', endTime: '10:00', participants: [
     { firstName: 'Олександра-Марія', lastName: 'Довгопрізвищенська' },
     { firstName: 'Андрій', lastName: 'Коваль' },
@@ -13,7 +14,7 @@ let neighbors = { previousShifts: [previous], nextShifts: [next], isFirstShift: 
 const server = await startFixture(5197, { myShifts: (_, response) => response.end(JSON.stringify([{
     id: 1, date: fixtureDate, locationName: 'Центральна локація', locationAddress: 'вул. Тестова, 1',
     startTime: '10:00', endTime: '11:00', cancelToken: 'fixture-token',
-    participants: [{ firstName: 'Олена', lastName: 'Партнерка' }], ...neighbors,
+    participants: [self, { firstName: 'Олена', lastName: 'Партнерка' }], ...neighbors,
 }])) });
 const target = await (await fetch(`${browser}/json/new?about:blank`, { method: 'PUT' })).json();
 const socket = new WebSocket(target.webSocketDebuggerUrl);
@@ -54,6 +55,8 @@ try {
         neighbors = { previousShifts: [previous], nextShifts: [next], isFirstShift: false, isLastShift: false };
         for (const path of ['/my-shifts', '/']) {
             await open(path);
+            assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.innerText)`),
+                ['Олена Тестова', 'Олена Партнерка'], 'Home and My Shifts cards show self first, then partners');
             const text = await evaluate(`${section}.innerText`);
             for (const value of ['До вас', '09:00–10:00', 'Олександра-Марія Довгопрізвищенська', 'Андрій Коваль', 'Після вас', '11:00–12:00', 'Ірина Мельник']) assert.ok(text.includes(value), value);
             assert.equal(text.includes('Перший стенд дня'), false, 'Later shifts have no first-shift label');
@@ -63,6 +66,12 @@ try {
         }
         await open('/my-shifts');
         assert.ok(await evaluate(`document.querySelector('main').innerText.includes('Олена Партнерка')`), 'Current partners are still visible');
+        await evaluate(`document.querySelector('button[aria-label^="Скасувати запис:"]').click()`);
+        for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('[role="dialog"] ul')`); i++) await pause(50);
+        assert.deepEqual(await evaluate(`Array.from(document.querySelector('[role="dialog"] ul').children).map(e => e.innerText)`),
+            ['Олена Тестова', 'Олена Партнерка'], 'Cancellation preview includes self first');
+        await evaluate(`Array.from(document.querySelectorAll('[role="dialog"] button')).find(b => b.innerText === 'Ні, залишити').click()`);
+        for (let i = 0; i < 100 && await evaluate(`!!document.querySelector('[role="dialog"]')`); i++) await pause(50);
         if (width === 390) {
             await pause(350); // Let the page entrance animation finish before capturing.
             await mkdir('artifacts', { recursive: true });
@@ -73,7 +82,7 @@ try {
             neighbors = { previousShifts: before, nextShifts: after, isFirstShift: false, isLastShift: false };
             for (const path of ['/my-shifts', '/']) {
                 await open(path);
-                const labels = await evaluate(`Array.from(document.querySelectorAll('section dt')).map(e => e.innerText)`);
+                const labels = await evaluate(`Array.from(${section}.querySelectorAll('dt')).map(e => e.innerText)`);
                 assert.deepEqual(labels, ['До вас', 'Після вас'], 'Both sides remain visible');
                 const rows = await evaluate(`Array.from(${section}.querySelectorAll('dd')).map(e => e.innerText)`);
                 assert.equal(rows[0].includes('Інших учасників немає'), !before.some(slot => slot.participants.length));
@@ -112,7 +121,24 @@ try {
         neighbors = {};
         await open('/my-shifts');
         assert.equal(await evaluate(`!!${section}`), false, 'Older responses without neighbors remain readable');
+        await send('Page.navigate', { url: 'http://127.0.0.1:5197/booking/fixture-token' });
+        for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('main ul[aria-label="Учасники"]')`); i++) await pause(50);
+        assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.innerText)`),
+            ['Олена Тестова'], 'Booking status shows the user even when booked alone');
+        for (const step of ['time', 'details']) {
+            await evaluate(`sessionStorage.setItem('stand.booking.wizard.v2', JSON.stringify(${JSON.stringify({
+                step, date: fixtureDate, locationId: 1, locationName: 'Локація 1', timeSlotId: 1,
+            })}))`);
+            await send('Page.navigate', { url: 'http://127.0.0.1:5197/' });
+            for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('main ul[aria-label="Учасники"]')`); i++) await pause(50);
+            const lists = await evaluate(`Array.from(document.querySelectorAll('main ul[aria-label="Учасники"]')).map(ul => Array.from(ul.children).map(li => li.innerText))`);
+            assert.equal(lists.length, step === 'time' ? 3 : 1, 'All expected slot and detail cards display participants');
+            assert.ok(lists.every(names => names[0] === 'Олена Тестова'), `${step} cards preserve the first participant`);
+            assert.equal(await evaluate(`document.documentElement.scrollWidth > window.innerWidth`), false, 'Participant lists fit the screen');
+        }
+        await evaluate(`sessionStorage.removeItem('stand.booking.wizard.v2')`);
         console.log(`PASS ${width}px: times and names, wrapping, home preview, partners, interior empty sides, first/last/only stand boundaries and older responses`);
+        console.log(`PASS ${width}px: self first on home, My Shifts and cancellation cards; own name on booking status, time slots and details`);
     }
     assert.deepEqual(errors, [], 'No browser exceptions');
 } finally {

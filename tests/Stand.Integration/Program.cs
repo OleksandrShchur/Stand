@@ -108,14 +108,26 @@ try
         Check(!slot.IsBookedByMe && slot.IsBookable, "Another participant's booking does not mark the slot as mine or prevent selection");
         var booking = await Service(db).BookAsync(date, location.Id, slotIds[4], users[0].Id, default);
         Check(booking.IsBooked, "A booking is immediately booked without any pending or held state");
+        Check(booking.Participants.Select(p => p.LastName).SequenceEqual([users[0].LastName, "Participant"]),
+            "A newly created booking shows the user's name first even when their partner sorts earlier alphabetically");
+        var summary = await Service(db).GetByCancelTokenAsync(Guid.Parse(booking.CancelToken), default, users[0].Id);
+        Check(summary.Participants.SequenceEqual(booking.Participants), "Booking details preserve the complete participant list with self first");
+        var partnerSummary = await Service(db).GetByCancelTokenAsync(Guid.Parse(booking.CancelToken), default, users[3].Id);
+        Check(partnerSummary.Participants.Select(p => p.LastName).SequenceEqual(["Participant", users[0].LastName]),
+            "Shared booking links put the signed-in viewer first rather than the token owner");
+        var otherSummary = await Service(db).GetByCancelTokenAsync(Guid.Parse(booking.CancelToken), default, users[1].Id);
+        Check(otherSummary.Participants.SequenceEqual(partnerSummary.Participants),
+            "A viewer who is not booked sees all actual participants without being added to the list");
         var ownSlots = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db))
             .GetSlotsAsync(date, location.Id, default, users[0].Id);
         var ownSlot = ownSlots.Single(s => s.TimeSlotId == slotIds[4]);
         Check(ownSlot.IsBookedByMe && !ownSlot.IsBookable && ownSlot.Remaining == 1,
             "Own booking is identified and cannot be selected again even when a place remains");
+        Check(ownSlot.Participants.SequenceEqual(booking.Participants), "Slot cards include the user's name first without duplication");
         Check(ownSlots.Where(s => s.TimeSlotId != slotIds[4]).All(s => !s.IsBookedByMe),
             "Own booking flag applies only to the booked slot");
-        await Service(db).CancelAsync(Guid.Parse(booking.CancelToken), default);
+        var cancelled = await Service(db).CancelAsync(Guid.Parse(booking.CancelToken), default, users[0].Id);
+        Check(cancelled.Participants.Single().FirstName == "Booked", "Cancellation immediately removes the user from the returned participant list");
         var afterCancel = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db)).GetSlotsAsync(date, location.Id, default, users[0].Id);
         Check(afterCancel.Single(s => s.TimeSlotId == slotIds[4]).Remaining == 2, "Cancellation frees the place immediately");
         Check(!afterCancel.Single(s => s.TimeSlotId == slotIds[4]).IsBookedByMe && afterCancel.Single(s => s.TimeSlotId == slotIds[4]).IsBookable,
@@ -149,10 +161,13 @@ try
     var repeated = await Task.WhenAll(BookBatch(users[0].Id, pair, key), BookBatch(users[0].Id, pair.Reverse().ToArray(), key));
     Check(repeated[0].Select(b => b.CancelToken).SequenceEqual(repeated[1].Select(b => b.CancelToken)),
         "Concurrent identical request keys return the same batch tokens");
+    Check(repeated.SelectMany(batch => batch).All(b => b.Participants.Single().LastName == users[0].LastName),
+        "Batch creation and concurrent replay both include the user when they are the only participant");
     Check(await setup.Bookings.CountAsync(b => b.LocationId == location.Id && pair.Contains(b.TimeSlotId)) == 2,
         "Idempotent retries insert a batch only once");
     var replay = await BookBatch(users[0].Id, pair, key);
     Check(replay.Select(b => b.CancelToken).SequenceEqual(repeated[0].Select(b => b.CancelToken)), "Committed responses replay across request scopes");
+    Check(replay.All(b => b.Participants.Single().LastName == users[0].LastName), "Replayed booking details include the user's name");
     var binaryJson = "\"isBooked\":true";
     var legacyJson = "\"status\":\"Confirmed\"";
     await setup.Database.ExecuteSqlInterpolatedAsync($"UPDATE dbo.BookingRequests SET ResponseJson = REPLACE(ResponseJson, {binaryJson}, {legacyJson}) WHERE AuthorizedUserId = {users[0].Id} AND RequestId = {key}");
@@ -165,8 +180,8 @@ try
     await using (var db = new StandDbContext(DbOptions()))
     {
         var slots = await new AvailabilityService(db, clock, options, new CurrentPublicUser(db)).GetSlotsAsync(date, location.Id, default, users[0].Id);
-        Check(slots.Single(s => s.TimeSlotId == pair[0]).Participants.Count == 0,
-            "Own bookings count toward capacity while own names remain excluded");
+        Check(slots.Single(s => s.TimeSlotId == pair[0]).Participants.Single().LastName == users[0].LastName,
+            "Own bookings count toward capacity and show the user's name even without partners");
         var token = Guid.Parse(replay[0].CancelToken);
         var first = await Service(db).CancelAsync(token, default);
         var second = await Service(db).CancelAsync(token, default);

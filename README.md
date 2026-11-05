@@ -552,7 +552,11 @@ hides «До вас»; the last has an «Останній стенд дня» la
 A single shift shows both labels and neither neighboring row. These boundaries
 come from the day's schedule and preserved active bookings, including scheduled
 intervals without participants.
-Cancelled bookings and the signed-in user's own name are excluded. A previous
+All participant lists include the signed-in user's name first when they are
+booked in that slot, followed by the other participants in name order. This
+applies to the home preview, My Shifts, slot cards, booking details, cancellation
+preview, booking confirmations and adjoining slots. Cancelled bookings are
+excluded; a user booked alone still sees their own name. A previous
 slot remains visible while the user's shift is in progress, even after that
 previous slot has finished or its schedule interval has been deactivated.
 
