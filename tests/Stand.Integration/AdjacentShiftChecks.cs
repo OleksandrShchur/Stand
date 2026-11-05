@@ -50,8 +50,8 @@ static class AdjacentShiftChecks
         var next = await Add("12:00", "13:00", "Iryna", "C");
         await Add("10:00", "11:00", "Cancelled", "Previous", booked: false);
         await Add("12:00", "13:00", "Cancelled", "Next", booked: false);
-        await Add("10:00", "11:00", user.FirstName, user.LastName, phone: user.Phone);
-        await Add("12:00", "13:00", user.FirstName, user.LastName, phone: user.Phone);
+        var ownPrevious = await Add("10:00", "11:00", user.FirstName, user.LastName, phone: user.Phone);
+        var ownNext = await Add("12:00", "13:00", user.FirstName, user.LastName, phone: user.Phone);
         await Add("08:00", "09:00", "Gap", "Before");
         await Add("14:00", "15:00", "Gap", "After");
         await Add("10:30", "11:30", "Overlap", "Before");
@@ -74,23 +74,30 @@ static class AdjacentShiftChecks
         var shift = await Read();
         Check(!shift.IsFirstShift, "The user's first upcoming card is not the day's first shift when earlier bookings exist");
         Check(!shift.IsLastShift, "The user's card is not the day's last shift when later bookings exist");
-        Check(shift.Participants.Single().FirstName == "Same", "Partners in the user's own slot remain separate");
+        Check(shift.Participants.Select(p => p.FirstName).SequenceEqual(["Current", "Same"]),
+            "The user's own slot includes their name first, followed by their partners");
         Check(shift.PreviousShifts.Count == 1 && shift.PreviousShifts[0].StartTime == "10:00" &&
             shift.PreviousShifts[0].EndTime == "11:00" &&
-            shift.PreviousShifts[0].Participants.Select(p => p.FirstName).SequenceEqual(["Andrii", "Olena"]),
-            "A finished adjoining shift shows all other active participants in name order");
+            shift.PreviousShifts[0].Participants.Select(p => p.FirstName).SequenceEqual(["Current", "Andrii", "Olena"]),
+            "A finished adjoining shift includes the user first and other active participants in name order");
         Check(shift.NextShifts.Count == 1 && shift.NextShifts[0].StartTime == "12:00" &&
-            shift.NextShifts[0].EndTime == "13:00" && shift.NextShifts[0].Participants.Single().FirstName == "Iryna",
-            "The next adjoining shift excludes self, cancelled, overlapping, gap, other-location and other-day bookings");
+            shift.NextShifts[0].EndTime == "13:00" &&
+            shift.NextShifts[0].Participants.Select(p => p.FirstName).SequenceEqual(["Current", "Iryna"]),
+            "The next adjoining shift includes self but excludes cancelled, overlapping, gap, other-location and other-day bookings");
         var json = JsonSerializer.Serialize(shift.PreviousShifts, new JsonSerializerOptions(JsonSerializerDefaults.Web));
         Check(!json.Contains("phone", StringComparison.OrdinalIgnoreCase) &&
             !json.Contains("cancelToken", StringComparison.OrdinalIgnoreCase), "Adjacent shifts expose only times and participant names");
         previous.IsBooked = previousFirst.IsBooked = false;
         await db.SaveChangesAsync();
         shift = await Read();
+        Check(shift.PreviousShifts.Single().Participants.Single().FirstName == "Current",
+            "An adjoining shift with only the user still displays their name");
+        ownPrevious.IsBooked = false;
+        await db.SaveChangesAsync();
+        shift = await Read();
         Check(shift.PreviousShifts.Count == 0 && shift.NextShifts.Count == 1,
-            "A side with only self or cancelled bookings is empty without skipping to a distant occupied slot");
-        next.IsBooked = false;
+            "A side with only cancelled bookings is empty without skipping to a distant occupied slot");
+        next.IsBooked = ownNext.IsBooked = false;
         await db.SaveChangesAsync();
         shift = await Read();
         Check(shift.PreviousShifts.Count == 0 && shift.NextShifts.Count == 0, "Both empty sides are omitted independently");
@@ -152,6 +159,7 @@ static class AdjacentShiftChecks
         await db.SaveChangesAsync();
         shift = await Read(single);
         Check(shift.IsFirstShift && shift.IsLastShift, "A location's only stand of the day is both first and last");
+        Check(shift.Participants.Single().FirstName == "Current", "A stand with no partners still shows the user's own name");
 
         var legacyDate = date.AddDays(3);
         var defaultSlots = await db.TimeSlots.Where(s => s.IsActive && !s.IsScheduleOnly).OrderBy(s => s.StartTime).ToListAsync();

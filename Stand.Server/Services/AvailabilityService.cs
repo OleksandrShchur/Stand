@@ -169,12 +169,11 @@ public sealed class AvailabilityService(
         var activeBookings = await db.Bookings
             .Where(b => b.Date == date && b.LocationId == locationId &&
                 b.IsBooked)
-            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
+            .OrderBy(b => currentPhone != null && b.Phone == currentPhone ? 0 : 1)
+            .ThenBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
             .Select(b => new { b.TimeSlotId, b.Phone, b.FirstName, b.LastName })
             .ToListAsync(ct);
-        var participantsBySlot = activeBookings
-            .Where(b => currentPhone == null || b.Phone != currentPhone)
-            .ToLookup(b => b.TimeSlotId);
+        var participantsBySlot = activeBookings.ToLookup(b => b.TimeSlotId);
         var bookedCounts = activeBookings.GroupBy(b => b.TimeSlotId).ToDictionary(g => g.Key, g => g.Count());
         var mySlotIds = activeBookings.Where(b => currentPhone != null && b.Phone == currentPhone)
             .Select(b => b.TimeSlotId).ToHashSet();
