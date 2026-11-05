@@ -55,8 +55,12 @@ try {
         neighbors = { previousShifts: [previous], nextShifts: [next], isFirstShift: false, isLastShift: false };
         for (const path of ['/my-shifts', '/']) {
             await open(path);
-            assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.innerText)`),
+            assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.textContent.trim().replace(/,$/, ''))`),
                 ['Олена Тестова', 'Олена Партнерка'], 'Home and My Shifts cards show self first, then partners');
+            assert.equal(await evaluate(`document.querySelector('main ul[aria-label="Учасники"]').textContent`),
+                'Олена Тестова, Олена Партнерка', 'Participant names are separated by a comma and a space');
+            if (width === 1280) assert.equal(await evaluate(`new Set(Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.getBoundingClientRect().top)).size`),
+                1, 'Participant names share one line when space allows');
             const text = await evaluate(`${section}.innerText`);
             for (const value of ['До вас', '09:00–10:00', 'Олександра-Марія Довгопрізвищенська', 'Андрій Коваль', 'Після вас', '11:00–12:00', 'Ірина Мельник']) assert.ok(text.includes(value), value);
             assert.equal(text.includes('Перший стенд дня'), false, 'Later shifts have no first-shift label');
@@ -68,7 +72,7 @@ try {
         assert.ok(await evaluate(`document.querySelector('main').innerText.includes('Олена Партнерка')`), 'Current partners are still visible');
         await evaluate(`document.querySelector('button[aria-label^="Скасувати запис:"]').click()`);
         for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('[role="dialog"] ul')`); i++) await pause(50);
-        assert.deepEqual(await evaluate(`Array.from(document.querySelector('[role="dialog"] ul').children).map(e => e.innerText)`),
+        assert.deepEqual(await evaluate(`Array.from(document.querySelector('[role="dialog"] ul').children).map(e => e.textContent.trim().replace(/,$/, ''))`),
             ['Олена Тестова', 'Олена Партнерка'], 'Cancellation preview includes self first');
         await evaluate(`Array.from(document.querySelectorAll('[role="dialog"] button')).find(b => b.innerText === 'Ні, залишити').click()`);
         for (let i = 0; i < 100 && await evaluate(`!!document.querySelector('[role="dialog"]')`); i++) await pause(50);
@@ -123,7 +127,7 @@ try {
         assert.equal(await evaluate(`!!${section}`), false, 'Older responses without neighbors remain readable');
         await send('Page.navigate', { url: 'http://127.0.0.1:5197/booking/fixture-token' });
         for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('main ul[aria-label="Учасники"]')`); i++) await pause(50);
-        assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.innerText)`),
+        assert.deepEqual(await evaluate(`Array.from(document.querySelector('main ul[aria-label="Учасники"]').children).map(e => e.textContent.trim().replace(/,$/, ''))`),
             ['Олена Тестова'], 'Booking status shows the user even when booked alone');
         for (const step of ['time', 'details']) {
             await evaluate(`sessionStorage.setItem('stand.booking.wizard.v2', JSON.stringify(${JSON.stringify({
@@ -131,7 +135,7 @@ try {
             })}))`);
             await send('Page.navigate', { url: 'http://127.0.0.1:5197/' });
             for (let i = 0; i < 100 && !await evaluate(`!!document.querySelector('main ul[aria-label="Учасники"]')`); i++) await pause(50);
-            const lists = await evaluate(`Array.from(document.querySelectorAll('main ul[aria-label="Учасники"]')).map(ul => Array.from(ul.children).map(li => li.innerText))`);
+            const lists = await evaluate(`Array.from(document.querySelectorAll('main ul[aria-label="Учасники"]')).map(ul => Array.from(ul.children).map(li => li.textContent.trim().replace(/,$/, '')))`);
             assert.equal(lists.length, step === 'time' ? 3 : 1, 'All expected slot and detail cards display participants');
             assert.ok(lists.every(names => names[0] === 'Олена Тестова'), `${step} cards preserve the first participant`);
             assert.equal(await evaluate(`document.documentElement.scrollWidth > window.innerWidth`), false, 'Participant lists fit the screen');

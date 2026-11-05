@@ -246,7 +246,7 @@ export default function MyShiftsPage() {
                     <Box sx={{ mt: 2, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                         <ShiftDetailsTable shift={shiftToCancel} />
                         <Divider sx={{ mt: 1.5 }} />
-                        <ParticipantList participants={shiftToCancel.participants} dashed />
+                        <ParticipantList participants={shiftToCancel.participants} />
                     </Box>
                 )}
                 {cancelError && <Alert severity="error" sx={{ mt: 2 }}>{cancelError}</Alert>}
