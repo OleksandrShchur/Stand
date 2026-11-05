@@ -14,7 +14,7 @@ public interface IBookingService
         DateOnly date, int locationId, IReadOnlyList<int> timeSlotIds,
         int authorizedUserId, CancellationToken ct, Guid? requestId = null);
 
-    Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct);
+    Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct, int? authorizedUserId = null);
 
-    Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct);
+    Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct, int? authorizedUserId = null);
 }

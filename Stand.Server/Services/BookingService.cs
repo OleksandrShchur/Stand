@@ -66,8 +66,9 @@ public sealed class BookingService(
                      slot.Bookings.Any(other => other.Date == b.Date && other.LocationId == b.LocationId && other.IsBooked))),
                 Participants = db.Bookings
                     .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
-                        other.TimeSlotId == b.TimeSlotId && other.IsBooked && other.Phone != phone)
-                    .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+                        other.TimeSlotId == b.TimeSlotId && other.IsBooked)
+                    .OrderBy(other => other.Phone == phone ? 0 : 1)
+                    .ThenBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
                     .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName)).ToList(),
             })
             .ToListAsync(ct);
@@ -78,11 +79,12 @@ public sealed class BookingService(
         // when the user's own shift is still in progress. Adjacency uses actual times,
         // so custom and archived schedule intervals keep their booked participants.
         var adjacent = await db.Bookings.AsNoTracking()
-            .Where(other => other.IsBooked && (other.Phone == null || other.Phone != phone) &&
+            .Where(other => other.IsBooked &&
                 upcoming.Any(mine => mine.Date == other.Date && mine.LocationId == other.LocationId &&
                     (other.TimeSlot.EndTime == mine.TimeSlot.StartTime ||
                      other.TimeSlot.StartTime == mine.TimeSlot.EndTime)))
-            .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+            .OrderBy(other => other.Phone == phone ? 0 : 1)
+            .ThenBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
             .Select(other => new
             {
                 other.Date,
@@ -165,7 +167,7 @@ public sealed class BookingService(
                 // read the current binary state so a cancelled booking stays inactive.
                 var current = new List<BookingSummaryDto>(response.Count);
                 foreach (var saved in response)
-                    current.Add(await GetByCancelTokenAsync(Guid.Parse(saved.CancelToken), ct));
+                    current.Add(await GetByCancelTokenAsync(Guid.Parse(saved.CancelToken), ct, authorizedUserId));
                 await tx.CommitAsync(ct);
                 return current;
             }
@@ -305,8 +307,9 @@ public sealed class BookingService(
         // A failed response query can no longer leave a committed booking behind.
         var participants = await db.Bookings
             .Where(b => b.Date == date && b.LocationId == locationId && timeSlotIds.Contains(b.TimeSlotId) &&
-                b.IsBooked && b.Phone != phone)
-            .OrderBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
+                b.IsBooked)
+            .OrderBy(b => b.Phone == phone ? 0 : 1)
+            .ThenBy(b => b.LastName).ThenBy(b => b.FirstName).ThenBy(b => b.Id)
             .Select(b => new { b.TimeSlotId, b.FirstName, b.LastName }).ToListAsync(ct);
         var summaries = created.Select(booking => ToSummary(booking, participants
             .Where(p => p.TimeSlotId == booking.TimeSlotId)
@@ -323,7 +326,7 @@ public sealed class BookingService(
         return summaries;
     }
 
-    public async Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct)
+    public async Task<BookingSummaryDto> GetByCancelTokenAsync(Guid cancelToken, CancellationToken ct, int? authorizedUserId = null)
     {
         var booking = await db.Bookings.AsNoTracking()
             .Include(b => b.Location)
@@ -331,13 +334,13 @@ public sealed class BookingService(
             .FirstOrDefaultAsync(b => b.CancelToken == cancelToken, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
-        return await ToSummaryAsync(booking, ct);
+        return await ToSummaryAsync(booking, ct, authorizedUserId);
     }
 
-    public Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct)
-        => RetryDeadlocksAsync(() => CancelCoreAsync(cancelToken, ct), ct);
+    public Task<BookingSummaryDto> CancelAsync(Guid cancelToken, CancellationToken ct, int? authorizedUserId = null)
+        => RetryDeadlocksAsync(() => CancelCoreAsync(cancelToken, ct, authorizedUserId), ct);
 
-    private async Task<BookingSummaryDto> CancelCoreAsync(Guid cancelToken, CancellationToken ct)
+    private async Task<BookingSummaryDto> CancelCoreAsync(Guid cancelToken, CancellationToken ct, int? authorizedUserId)
     {
         var booking = await db.Bookings
             .Include(b => b.Location)
@@ -345,14 +348,13 @@ public sealed class BookingService(
             .FirstOrDefaultAsync(b => b.CancelToken == cancelToken, ct)
             ?? throw new NotFoundAppException(ErrorCodes.NotFound, "Запис не знайдено.");
 
-        var summary = await ToSummaryAsync(booking, ct);
-        if (!booking.IsBooked) return summary;
+        if (!booking.IsBooked) return await ToSummaryAsync(booking, ct, authorizedUserId);
 
         booking.IsBooked = false;
         booking.CancelledAtUtc = clock.UtcNow;
         await db.SaveChangesAsync(ct);
 
-        return summary with { IsBooked = booking.IsBooked, CancelledAtUtc = booking.CancelledAtUtc?.ToString("O") };
+        return await ToSummaryAsync(booking, ct, authorizedUserId);
     }
 
     private async Task<int> CountActiveWithLockAsync(DateOnly date, int locationId, int timeSlotId, CancellationToken ct)
@@ -379,13 +381,23 @@ public sealed class BookingService(
         ex.InnerException is SqlException sqlEx &&
         (sqlEx.Number == UniqueConstraintViolationSqlError || sqlEx.Number == UniqueIndexViolationSqlError);
 
-    private async Task<BookingSummaryDto> ToSummaryAsync(Booking b, CancellationToken ct)
+    private async Task<BookingSummaryDto> ToSummaryAsync(Booking b, CancellationToken ct, int? authorizedUserId)
     {
+        // Token links may be opened by another participant. Prefer the signed-in
+        // viewer's name; internal callers without a viewer retain owner-first order.
+        var phone = b.Phone;
+        if (authorizedUserId is int viewerId)
+        {
+            var viewer = await currentUser.GetAsync(viewerId, ct)
+                ?? throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+            phone = PhoneNormalizer.TryNormalize(viewer.Phone);
+        }
         var participants = await db.Bookings.AsNoTracking()
             .Where(other => other.Date == b.Date && other.LocationId == b.LocationId &&
-                other.TimeSlotId == b.TimeSlotId && other.IsBooked &&
-                other.Id != b.Id && (b.Phone == null || other.Phone != b.Phone))
-            .OrderBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
+                other.TimeSlotId == b.TimeSlotId && other.IsBooked)
+            .OrderBy(other => (authorizedUserId == null && other.Id == b.Id) ||
+                (phone != null && other.Phone == phone) ? 0 : 1)
+            .ThenBy(other => other.LastName).ThenBy(other => other.FirstName).ThenBy(other => other.Id)
             .Select(other => new ShiftParticipantDto(other.FirstName, other.LastName))
             .ToListAsync(ct);
 

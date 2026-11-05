@@ -8,12 +8,12 @@ export default function ParticipantList({ participants, selected = false, dashed
     dashed?: boolean;
     prominent?: boolean;
 }) {
-    const label = bookingCopy.partners(participants.length);
+    const label = bookingCopy.participants;
 
     return (
         <Box sx={{ mt: 1.5, color: selected ? 'rgba(255,255,255,0.82)' : 'text.secondary' }}>
             {participants.length === 0 ? (
-                <Typography variant={prominent ? 'body1' : 'body2'}>{bookingCopy.noPartners}</Typography>
+                <Typography variant={prominent ? 'body1' : 'body2'}>{bookingCopy.noParticipants}</Typography>
             ) : (
                 <>
                     <Typography variant="body2" sx={{ fontWeight: prominent ? 400 : 600 }}>{label}</Typography>

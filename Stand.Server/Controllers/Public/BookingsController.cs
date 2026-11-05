@@ -56,7 +56,7 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
     [HttpGet("{cancelToken:guid}")]
     public async Task<IActionResult> GetByToken(Guid cancelToken, CancellationToken ct)
     {
-        var result = await bookings.GetByCancelTokenAsync(cancelToken, ct);
+        var result = await bookings.GetByCancelTokenAsync(cancelToken, ct, GetCurrentUserId());
         return Ok(result);
     }
 
@@ -69,8 +69,15 @@ public sealed class BookingsController(IBookingService bookings) : ControllerBas
             throw new ValidationAppException("Некоректний код скасування.");
         }
 
-        var result = await bookings.CancelAsync(token, ct);
+        var result = await bookings.CancelAsync(token, ct, GetCurrentUserId());
         return Ok(result);
+    }
+
+    private int GetCurrentUserId()
+    {
+        if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var userId))
+            throw new UnauthorizedAppException(ErrorCodes.InvalidCredentials, "Увійдіть у систему.");
+        return userId;
     }
 
     private Guid? ReadRequestId()
