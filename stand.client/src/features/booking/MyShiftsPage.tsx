@@ -1,6 +1,7 @@
 import ParticipantList from './components/ParticipantList';
 import AdjacentShifts from './components/AdjacentShifts';
 import ShiftDetailsTable from './components/ShiftDetailsTable';
+import ShiftSummary from './components/ShiftSummary';
 import ClosableDatePickerToolbar from './components/ClosableDatePickerToolbar';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -193,13 +194,11 @@ export default function MyShiftsPage() {
                     {!loading && !error && cardGroups.map((group) => (
                         <BookingCardGroup key={group[0].id}>
                             {group.map((shift) => (
-                                <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.default' }}>
+                                <Card key={shift.id} variant="outlined" sx={{ bgcolor: 'background.paper' }}>
                                     <CardContent sx={{ '&:last-child': { pb: 1 } }}>
                                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                                            <ShiftDetailsTable shift={shift} />
-                                            <Divider sx={{ mt: 1.5 }} />
-                                            <ParticipantList participants={shift.participants} dashed />
-                                            <AdjacentShifts shift={shift} />
+                                            <ShiftSummary shift={shift} />
+                                            <AdjacentShifts shift={shift} subdued />
                                         </Box>
                                         <Divider sx={{ my: 1 }} />
                                         <Stack direction="row" sx={{ gap: 0.5, '& > .MuiButton-root': { flex: '1 1 0', minWidth: 0 } }}>

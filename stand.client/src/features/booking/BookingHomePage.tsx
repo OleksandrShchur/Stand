@@ -1,4 +1,4 @@
-import ShiftDetailsTable from './components/ShiftDetailsTable';
+import ShiftSummary from './components/ShiftSummary';
 import AdjacentShifts from './components/AdjacentShifts';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -62,9 +62,9 @@ export default function BookingHomePage({ onStart, bookedCount = 0, feedbackSubm
                                 <Stack spacing={2}>
                                     {preview.map((shift) => {
                                         return (
-                                            <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.default' }}>
-                                                <ShiftDetailsTable shift={shift} />
-                                                <AdjacentShifts shift={shift} />
+                                            <Box key={shift.id} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
+                                                <ShiftSummary shift={shift} />
+                                                <AdjacentShifts shift={shift} subdued />
                                             </Box>
                                         );
                                     })}
