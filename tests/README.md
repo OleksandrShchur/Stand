@@ -52,3 +52,19 @@ npm run test:watch --prefix stand.client
 Standalone `dotnet test` runs tests without the combined coverage gate; use the runner for enforcement.
 
 Each run writes server TRX results, original collector JSON/Cobertura, merged `coverage.cobertura.xml` and per-file `summary.json` under `artifacts/tests/<timestamp>/`. `artifacts/tests/latest.txt` points to the latest run. Client reports are in `stand.client/coverage/` (`index.html`, `lcov.info`, and `coverage-summary.json`). CI uploads these reports even when a test fails. Generated reports are ignored by Git.
+
+## README badges
+
+The test-status badge shows the `Tests and coverage` workflow status for pushes to `master`. The two coverage badges show measured **line coverage** for the server and frontend non-UI logic, using the same scopes as the coverage gates above.
+
+After tests, coverage gates and the client build succeed, CI generates SVGs from that run's actual JSON reports using `node tests/coverage-badges.mjs`. Only successful pushes to `master` publish them to the separate `coverage-badges` branch. The publisher uses the built-in `GITHUB_TOKEN` with `contents: write`; test jobs retain read-only repository access. No third-party coverage service or additional secret is required. Badge updates do not modify `master` or trigger another test run.
+
+Coverage badges become available after the first successful `master` push containing this workflow change. Later failing runs update the test-status badge while coverage continues to show the last successful result. Publishing is serialized and ignores older run numbers so a slow older run cannot overwrite newer coverage. The published `coverage.json` records the source commit and CI run URL. GitHub may briefly cache badge images.
+
+To preview badges locally after a complete successful test run:
+
+```powershell
+node tests/coverage-badges.mjs
+```
+
+Generated SVGs and their metadata are written to `artifacts/badges/`.

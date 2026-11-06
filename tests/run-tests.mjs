@@ -34,7 +34,7 @@ function findReports(directory) {
 }
 
 try {
-    run(process.execPath, ['--test', 'tests/coverage.test.mjs']);
+    run(process.execPath, ['--test', 'tests/coverage.test.mjs', 'tests/coverage-badges.test.mjs']);
     if (!args.includes('--frontend')) {
         for (const [suite, project] of [['unit', 'Stand.UnitTests'], ['integration', 'Stand.Integration']]) {
             run('dotnet', ['test', `tests/${project}`, '--collect:XPlat Code Coverage', '--settings', 'tests/coverage.runsettings',
