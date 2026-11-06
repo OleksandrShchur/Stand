@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="227" height="20" role="img" aria-label="frontend logic coverage: 99.69%">
+  <title>frontend logic coverage: 99.69%</title>
+  <linearGradient id="s" x2="0" y2="100%"><stop offset="0" stop-color="#bbb" stop-opacity=".1"/><stop offset="1" stop-opacity=".1"/></linearGradient>
+  <clipPath id="r"><rect width="227" height="20" rx="3" fill="#fff"/></clipPath>
+  <g clip-path="url(#r)"><path fill="#555" d="M0 0h173v20H0z"/><path fill="#4c1" d="M173 0h54v20H173z"/><path fill="url(#s)" d="M0 0h227v20H0z"/></g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">
+    <text x="86.5" y="15" fill="#010101" fill-opacity=".3">frontend logic coverage</text><text x="86.5" y="14">frontend logic coverage</text>
+    <text x="200" y="15" fill="#010101" fill-opacity=".3">99.69%</text><text x="200" y="14">99.69%</text>
+  </g>
+</svg>

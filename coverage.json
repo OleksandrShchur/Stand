@@ -1,0 +1,19 @@
+{
+  "sourceSha": "66398f2f537de653c817d1c01a7fde16360b2523",
+  "runNumber": 5,
+  "runUrl": "https://github.com/OleksandrShchur/Stand/actions/runs/42215709120",
+  "coverage": {
+    "server": {
+      "covered": 1937,
+      "total": 2052,
+      "percent": 94.39571150097466,
+      "scope": "Entire Stand.Server assembly"
+    },
+    "frontend": {
+      "covered": 325,
+      "total": 326,
+      "percent": 99.69325153374233,
+      "scope": "Frontend non-UI TypeScript logic; excludes TSX pages/components"
+    }
+  }
+}
