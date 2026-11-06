@@ -136,6 +136,9 @@ export default function AdminLayout() {
 
     return (
         <Box sx={{ '--admin-navigation-clearance': { xs: 'calc(92px + env(safe-area-inset-bottom))', sm: '12px' },
+            // Match the mobile MUI toolbar; the desktop layout has no top bar.
+            '--admin-header-height': { xs: '56px', sm: '0px' },
+            '@media (max-width: 599.95px) and (orientation: landscape)': { '--admin-header-height': '48px' },
             '--admin-sidebar-width': `${DRAWER_WIDTH}px`, display: 'flex', width: '100%', minWidth: 0, minHeight: '100dvh', bgcolor: 'background.default' }}>
             <AppDialog
                 open={logoutOpen}

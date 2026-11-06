@@ -81,6 +81,27 @@ const choose = async (index, value) => {
     await click(`[...document.querySelectorAll('[role=option]')].find(e=>e.getAttribute('data-value')===${JSON.stringify(String(value))})`);
     await ready();
 };
+const scrollThroughTable = async distance => {
+    await evaluate(`(() => {
+        const details = document.querySelector('main details');
+        const topBar = document.querySelector('header.MuiAppBar-root');
+        const offset = topBar?.getBoundingClientRect().height ?? 0;
+        window.scrollTo(0, details.getBoundingClientRect().top + window.scrollY - offset + ${distance});
+    })()`);
+    await pause(100);
+    return evaluate(`(() => {
+        const summary = document.querySelector('main summary');
+        const bounds = summary.getBoundingClientRect();
+        return {
+            scrollY: window.scrollY,
+            topBarBottom: document.querySelector('header.MuiAppBar-root')?.getBoundingClientRect().bottom ?? 0,
+            summaryTop: bounds.top, summaryBottom: bounds.bottom,
+            headerTop: document.querySelector('main thead th').getBoundingClientRect().top,
+            rowTop: document.querySelector('main tbody tr').getBoundingClientRect().top,
+            toggleAccessible: document.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)?.closest('summary') === summary,
+        };
+    })()`);
+};
 const screenshot = async name => {
     await evaluate('Promise.all(document.getAnimations().filter(a=>a.effect.getTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})))');
     const result = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true });
@@ -90,8 +111,8 @@ mkdirSync('artifacts/admin-statistics', { recursive: true });
 try {
     await send('Page.enable'); await send('Runtime.enable');
     await send('Network.setCookie', { name: 'fixture-admin', value: 'true', url: base });
-    for (const width of [320, 393, 1280]) {
-        await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
+    for (const width of [320, 393, 568, 1280]) {
+        await send('Emulation.setDeviceMetricsOverride', { width, height: width === 568 ? 450 : 900, deviceScaleFactor: 1, mobile: width < 600 });
         await send('Page.navigate', { url: base + '/admin' }); await ready();
         assert.equal(requests.at(-1).month, '11', 'Defaults to the current month with data');
         await openSelect(0);
@@ -107,7 +128,33 @@ try {
         assert.equal(requests.at(-1).year, '2027'); assert.equal(requests.at(-1).month, undefined);
         await click('document.querySelector("main summary")');
         assert.equal(await evaluate('document.querySelectorAll("main tbody tr").length'), 12);
-        assert.ok(await evaluate(`document.documentElement.scrollWidth <= ${width}`), 'Location report fits the viewport');
+        assert.deepEqual(await evaluate('[...document.querySelectorAll("main thead th")].map(e=>e.textContent)'), ['Місяць', 'Записи']);
+        await click(button('Місяць')); await ready();
+        await click('document.querySelector("main summary")');
+        assert.equal(await evaluate('document.querySelectorAll("main tbody tr").length'), 28);
+        assert.deepEqual(await evaluate('[...document.querySelectorAll("main thead th")].map(e=>e.textContent)'), ['Дата', 'Записи']);
+        const first = await scrollThroughTable(100);
+        const second = await scrollThroughTable(180);
+        assert.ok(second.scrollY > first.scrollY && second.rowTop < first.rowTop, 'Rows move with page scrolling');
+        for (const frozen of [first, second]) {
+            assert.ok(Math.abs(frozen.summaryTop - frozen.topBarBottom) < 1, 'Chart toggle sticks below the top bar: ' + JSON.stringify(frozen));
+            assert.ok(Math.abs(frozen.headerTop - frozen.summaryBottom) < 1, 'Column headers stick directly below the chart toggle: ' + JSON.stringify(frozen));
+            assert.ok(frozen.toggleAccessible, 'The sticky chart toggle stays reachable');
+        }
+        await screenshot(`${width}-frozen-headers`);
+        await click('document.querySelector("main summary")');
+        await wait('!document.querySelector("main details").open');
+        assert.ok(await evaluate(`(() => {
+            const bounds = document.querySelector('main summary').getBoundingClientRect();
+            const top = document.querySelector('header.MuiAppBar-root')?.getBoundingClientRect().bottom ?? 0;
+            return bounds.top >= top && bounds.bottom <= window.innerHeight;
+        })()`), 'Collapsing the table while scrolled keeps its toggle visible');
+        await click('document.querySelector("main summary")');
+        await evaluate('window.scrollTo(0,0)'); await pause();
+        assert.ok(await evaluate(`document.documentElement.scrollWidth <= ${width}`), 'Location report fits the viewport: ' + JSON.stringify(await evaluate(`
+            [...document.querySelectorAll('main *')].map(e => ({ tag: e.tagName, className: e.className?.baseVal ?? e.className, right: e.getBoundingClientRect().right, width: e.getBoundingClientRect().width }))
+                .filter(e => e.right > ${width} + 1).slice(0, 12)
+        `)));
         await screenshot(`${width}-locations`);
         await click(button('За людиною'));
         const before = requests.filter(r => r.path.endsWith('/people')).length;
@@ -138,7 +185,7 @@ try {
         await input('067'); await wait('!!document.querySelector("[role=option]")');
         assert.equal(requests.at(-1).search, '067');
         await click('document.querySelector("[role=option]")'); await ready();
-        console.log(`PASS ${width}px: periods with data, all three modes, search threshold, name/phone results, stale response cancellation, clear, drill-down, chart table, layout and axe`);
+        console.log(`PASS ${width}px: page scrolling with sticky toggle and headers, collapse while scrolled, periods, search, clear, drill-down, layout and axe`);
     }
     empty = true;
     await send('Page.navigate', { url: base + '/admin' });

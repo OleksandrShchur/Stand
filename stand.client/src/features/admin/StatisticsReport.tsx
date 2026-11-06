@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
     Box, Button, Card, CardActionArea, CardContent, Grid, LinearProgress, Stack,
-    Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography,
+    Table, TableBody, TableCell, TableHead, TableRow, Typography,
 } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { adminApi } from '../../api/adminApi';
@@ -51,15 +51,13 @@ export default function StatisticsReport({ period, person }: { period: Statistic
         </Stack>
         <Grid container spacing={1.5}>
             <Metric label="Записи" value={formatNumber(summary.booked)} description="Без скасованих" />
-            <Metric label="Години чергувань" value={formatNumber(summary.bookedHours)} description="Сума тривалості записів" />
             {person
                 ? <Metric label="Локації" value={formatNumber(summary.locationCount)} description="Де є записи людини" />
                 : <Metric label="Заповненість" value={percent(summary.fillRatePercent)}
                     description={summary.scheduledPlaces ? `${formatNumber(summary.scheduledPlaces)} місць у розкладі` : 'Немає збереженого розкладу'} />}
-            <Metric label="Дні з записами" value={formatNumber(summary.activeDays)} description="Унікальні дати чергувань" />
         </Grid>
 
-        <Card variant="outlined"><CardContent>
+        <Card variant="outlined" sx={{ overflow: 'visible' }}><CardContent>
             <Stack spacing={2}>
                 <Box>
                     <Typography component="h2" variant="h6">Динаміка записів</Typography>
@@ -85,12 +83,11 @@ export default function StatisticsReport({ period, person }: { period: Statistic
                                 aria-label={`${location.locationName}: ${location.booked} записів. Переглянути записи`}>
                                 <CardContent>
                                     <Stack spacing={1.5}>
-                                        <Typography component="h3" variant="subtitle1" sx={{ fontWeight: 700, overflowWrap: 'anywhere' }}>{location.locationName}</Typography>
-                                        <Stack direction="row" spacing={3}>
-                                            <Box><Typography variant="h5" component="p">{formatNumber(location.booked)}</Typography>
-                                                <Typography variant="body2" color="text.secondary">Записи</Typography></Box>
-                                            <Box><Typography variant="h5" component="p">{formatNumber(location.bookedHours)}</Typography>
-                                                <Typography variant="body2" color="text.secondary">Години</Typography></Box>
+                                        <Stack direction="row" spacing={2} sx={{ alignItems: 'baseline', justifyContent: 'space-between' }}>
+                                            <Typography component="h3" variant="subtitle1" sx={{ flex: 1, minWidth: 0, fontWeight: 700, overflowWrap: 'anywhere' }}>{location.locationName}</Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                                                Записи: <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{formatNumber(location.booked)}</Box>
+                                            </Typography>
                                         </Stack>
                                         <Box>
                                             <Stack direction="row" spacing={1} sx={{ justifyContent: 'space-between', mb: 0.75 }}>
@@ -109,16 +106,12 @@ export default function StatisticsReport({ period, person }: { period: Statistic
                     </Grid>;
                 })}
             </Grid>
-            {!person && <Typography variant="caption" color="text.secondary">
-                Заповненість — частка записів від кількості місць у збереженому розкладі. «—» означає, що розкладу немає.
-                Якщо інтервали прибрали, а записи зберегли, значення може перевищувати 100%.
-            </Typography>}
         </Stack>
     </Stack>;
 }
 
 function Metric({ label, value, description }: { label: string; value: string; description: string }) {
-    return <Grid size={{ xs: 6, md: 3 }}>
+    return <Grid size={6}>
         <Card variant="outlined" sx={{ height: '100%' }}><CardContent sx={{ px: { xs: 1.5, sm: 2 }, height: '100%' }}>
             <Typography variant="body2" color="text.secondary">{label}</Typography>
             <Typography component="p" variant="h4" sx={{ color: 'primary.main', fontWeight: 700, my: 0.75, overflowWrap: 'anywhere' }}>{value}</Typography>
@@ -164,20 +157,31 @@ function TrendChart({ points, daily }: { points: StatisticsTrendDto[]; daily: bo
                 </Box>
             </Box>
         </Stack>
-        <Box component="details">
-            <Box component="summary" sx={{ cursor: 'pointer', color: 'primary.main', typography: 'body2', py: 1, minHeight: 44 }}>
+        <Box component="details" sx={{ '--chart-data-toggle-height': '44px' }}
+            onToggle={event => {
+                if (!event.currentTarget.open) event.currentTarget.querySelector('summary')?.scrollIntoView({ block: 'nearest' });
+            }}>
+            <Box component="summary" sx={{
+                position: 'sticky', top: 'var(--admin-header-height, 0px)', zIndex: 3,
+                height: 'var(--chart-data-toggle-height)', boxSizing: 'border-box', py: 1, typography: 'body2', lineHeight: '28px',
+                cursor: 'pointer', color: 'primary.main', bgcolor: 'background.paper',
+            }}>
                 Дані графіка
             </Box>
-            <TableContainer><Table size="small" aria-label="Дані динаміки записів">
+            <Table stickyHeader size="small" aria-label="Дані динаміки записів" sx={{
+                '& .MuiTableCell-stickyHeader': {
+                    top: 'calc(var(--admin-header-height, 0px) + var(--chart-data-toggle-height))',
+                    zIndex: 2, bgcolor: 'background.paper',
+                },
+            }}>
                 <TableHead><TableRow>
-                    <TableCell>{daily ? 'Дата' : 'Місяць'}</TableCell><TableCell align="right">Записи</TableCell><TableCell align="right">Години</TableCell>
+                    <TableCell>{daily ? 'Дата' : 'Місяць'}</TableCell><TableCell align="right">Записи</TableCell>
                 </TableRow></TableHead>
                 <TableBody>{points.map(point => <TableRow key={point.date}>
                     <TableCell component="th" scope="row">{label(point.date)}</TableCell>
                     <TableCell align="right">{formatNumber(point.booked)}</TableCell>
-                    <TableCell align="right">{formatNumber(point.bookedHours)}</TableCell>
                 </TableRow>)}</TableBody>
-            </Table></TableContainer>
+            </Table>
         </Box>
     </Stack>;
 }

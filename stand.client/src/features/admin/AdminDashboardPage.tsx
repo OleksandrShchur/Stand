@@ -23,13 +23,20 @@ export default function AdminDashboardPage() {
     return (
         <Stack spacing={2.5}>
             <Box>
-                <Typography component="h1" variant="h4">Статистика</Typography>
-                <Typography color="text.secondary" sx={{ mt: 0.75 }}>
-                    Записи та години чергувань за обраний період. Скасовані записи не враховуються.
-                </Typography>
-            </Box>
-            <Box>
-                <Tabs value={view} onChange={(_, value) => setView(value)} variant="fullWidth" aria-label="Тип статистики">
+                <Typography component="h1" sx={{
+                    position: 'absolute', width: '1px', height: '1px', p: 0, m: '-1px',
+                    overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0,
+                }}>Статистика</Typography>
+                <Tabs value={view} onChange={(_, value) => setView(value)} variant="fullWidth" aria-label="Тип статистики"
+                    slotProps={{ indicator: { sx: { display: 'none' } } }}
+                    sx={{
+                        minHeight: 44, border: '1px solid', borderColor: 'primary.main', borderRadius: 1,
+                        bgcolor: 'background.paper', overflow: 'hidden',
+                        '& .MuiTab-root': { minHeight: 44, px: 1, py: 0.75, fontSize: '0.875rem' },
+                        '& .MuiTab-root + .MuiTab-root': { borderLeft: '1px solid', borderColor: 'primary.main' },
+                        '& .MuiTab-root.Mui-selected': { bgcolor: 'action.selected' },
+                        '& .MuiTab-icon': { fontSize: 20, mr: 0.75 },
+                    }}>
                     <Tab value="locations" label="За локаціями" icon={<PlaceOutlinedIcon />} iconPosition="start"
                         id="statistics-locations-tab" aria-controls="statistics-panel" />
                     <Tab value="person" label="За людиною" icon={<PersonOutlineIcon />} iconPosition="start"
@@ -100,7 +107,6 @@ function PersonSearch({ person, onChange }: { person: StatisticsPersonDto | null
                     </Box>;
                 }}
                 renderInput={params => <TextField {...params} label="Людина" placeholder="Ім’я, прізвище або телефон"
-                    helperText="Пошук серед користувачів сайту від 3 символів. Уточніть запит, якщо збігів багато."
                     slotProps={{ ...params.slotProps, htmlInput: { ...params.slotProps.htmlInput, maxLength: 250 }, input: {
                         ...params.slotProps.input,
                         endAdornment: <>{loading && <CircularProgress size={18} aria-label="Пошук" />}{params.slotProps.input.endAdornment}</>,
@@ -163,7 +169,6 @@ function PeriodStatistics({ catalog, person }: { catalog: StatisticsPeriodsDto; 
                         </MenuItem>)}
                     </TextField>}
                 </Stack>
-                <Typography variant="caption" color="text.secondary">Доступні лише періоди з нескасованими записами{person ? ' цієї людини' : ''}.</Typography>
             </Stack>
         </CardContent></Card>
         <StatisticsReport key={periodKey(selected)} period={selected} person={person} />
