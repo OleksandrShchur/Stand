@@ -79,8 +79,9 @@ internal static class ScheduleChecks
             {
                 Check((await Availability(db).GetSlotsAsync(date, place.Id, default)).Single(s => s.TimeSlotId == firstId).Booked == 1,
                     "Saving an unchanged range preserves its slot ID and occupied capacity");
-                var dashboard = (Stand.Server.Dtos.Admin.DashboardDto)((OkObjectResult)await new AdminDashboardController(db, clock, options).Get(default)).Value!;
-                Check(dashboard.UpcomingByLocation.Single(l => l.LocationId == place.Id).FillRatePercent is > 0 and <= 8,
+                var dashboard = (StatisticsDto)((OkObjectResult)await new AdminDashboardController(db, clock)
+                    .Get("year", date.Year)).Value!;
+                Check(dashboard.ByLocation.Single(l => l.LocationId == place.Id).FillRatePercent is > 0 and <= 8,
                     "Dashboard capacity includes the actual configured slots across copied dates");
             }
             var changed = new SaveScheduleDto([dateText], true, [new(other.Id, [new("10:15", "11:45")])]);

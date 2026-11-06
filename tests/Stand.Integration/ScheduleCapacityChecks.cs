@@ -94,9 +94,9 @@ internal static class ScheduleCapacityChecks
                 var available = await Availability(db).GetSlotsAsync(date, place.Id, default);
                 Check(available[0].IsFull && available[1].IsFull && available[2].Remaining == 4,
                     "Availability and remaining places use each interval's capacity");
-                var dashboard = (DashboardDto)((OkObjectResult)await new AdminDashboardController(db, new ScheduleClock(clock, date),
-                    Options.Create(new BookingOptions { HorizonDays = 1 })).Get(default)).Value!;
-                Check(dashboard.UpcomingByLocation.Single(l => l.LocationId == place.Id).FillRatePercent == 25,
+                var dashboard = (StatisticsDto)((OkObjectResult)await new AdminDashboardController(db, new ScheduleClock(clock, date))
+                    .Get("year", date.Year)).Value!;
+                Check(dashboard.ByLocation.Single(l => l.LocationId == place.Id).FillRatePercent == 25,
                     "Dashboard sums interval capacities across dates instead of multiplying the location default");
                 var unbookedUser = users[Array.FindIndex(first, b => b is null)];
                 try

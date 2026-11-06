@@ -70,13 +70,13 @@ public sealed record FeedbackAdminDto(int Id, string FirstName, string LastName,
 public sealed record FeedbackListResultDto(List<FeedbackAdminDto> Items, int TotalCount, int Page, int PageSize);
 
 // ---- Dashboard ----
-public sealed record LocationFillRateDto(
-    int LocationId, string LocationName, int Capacity, int Booked, int FillRatePercent);
-
-public sealed record DashboardDto(
-    int TodayBookedCount,
-    int UpcomingBookedCount,
-    List<LocationFillRateDto> TodayByLocation,
-    List<LocationFillRateDto> UpcomingByLocation,
-    string Today,
-    string HorizonEnd);
+public sealed record StatisticsPersonDto(int Id, string FirstName, string LastName, string Phone);
+public sealed record StatisticsMonthDto(int Year, int Month);
+public sealed record StatisticsPeriodsDto(string Today, List<StatisticsMonthDto> Months);
+public sealed record StatisticsSummaryDto(int Booked, decimal BookedHours, int ActiveDays, int LocationCount,
+    int? ScheduledPlaces, int? FillRatePercent);
+public sealed record LocationStatisticsDto(int LocationId, string LocationName, int Booked, decimal BookedHours,
+    int? ScheduledPlaces, int? FillRatePercent);
+public sealed record StatisticsTrendDto(string Date, int Booked, decimal BookedHours);
+public sealed record StatisticsDto(string DateFrom, string DateTo, StatisticsSummaryDto Summary,
+    List<LocationStatisticsDto> ByLocation, List<StatisticsTrendDto> Trend);

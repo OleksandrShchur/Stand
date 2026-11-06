@@ -7,7 +7,7 @@ import type {
     BookingAdminDto,
     BookingListResultDto,
     FeedbackListResultDto,
-    DashboardDto,
+    StatisticsDto, StatisticsPeriodsDto, StatisticsPersonDto, StatisticsPeriodType,
     DateTimeSlotExceptionAdminDto,
     LocationAdminDto,
     TimeSlotAdminDto,
@@ -27,6 +27,14 @@ export interface BookingFilters {
     isBooked?: boolean;
     page?: number;
     pageSize?: number;
+}
+
+export interface StatisticsFilters {
+    period: StatisticsPeriodType;
+    year: number;
+    month?: number;
+    quarter?: number;
+    personId?: number;
 }
 
 function toQuery(params: object): string {
@@ -89,7 +97,12 @@ export const adminApi = {
     exportCsvUrl: (filters: BookingFilters) => `/api/admin/bookings/export.csv${toQuery(filters)}`,
 
     // Dashboard
-    getDashboard: () => api.get<DashboardDto>('/api/admin/dashboard'),
+    getStatistics: (filters: StatisticsFilters, signal?: AbortSignal) =>
+        api.get<StatisticsDto>(`/api/admin/dashboard${toQuery(filters)}`, signal),
+    getStatisticsPeriods: (personId?: number, signal?: AbortSignal) =>
+        api.get<StatisticsPeriodsDto>(`/api/admin/dashboard/periods${toQuery({ personId })}`, signal),
+    searchStatisticsPeople: (search: string, signal?: AbortSignal) =>
+        api.get<StatisticsPersonDto[]>(`/api/admin/dashboard/people${toQuery({ search })}`, signal),
 
     // Admin users
     listUsers: () => api.get<AdminUserDto[]>('/api/admin/users'),

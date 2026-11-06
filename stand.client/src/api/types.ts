@@ -215,21 +215,43 @@ export interface FeedbackListResultDto {
     pageSize: number;
 }
 
-export interface LocationFillRateDto {
-    locationId: number;
-    locationName: string;
-    capacity: number;
-    booked: number;
-    fillRatePercent: number;
+export type StatisticsPeriodType = 'month' | 'quarter' | 'year';
+
+export interface StatisticsPersonDto {
+    id: number;
+    firstName: string;
+    lastName: string;
+    phone: string;
 }
 
-export interface DashboardDto {
-    today: string;
-    horizonEnd: string;
-    todayBookedCount: number;
-    upcomingBookedCount: number;
-    todayByLocation: LocationFillRateDto[];
-    upcomingByLocation: LocationFillRateDto[];
+export interface StatisticsMonthDto { year: number; month: number }
+export interface StatisticsPeriodsDto { today: string; months: StatisticsMonthDto[] }
+
+export interface StatisticsSummaryDto {
+    booked: number;
+    bookedHours: number;
+    activeDays: number;
+    locationCount: number;
+    scheduledPlaces: number | null;
+    fillRatePercent: number | null;
+}
+
+export interface LocationStatisticsDto {
+    locationId: number;
+    locationName: string;
+    booked: number;
+    bookedHours: number;
+    scheduledPlaces: number | null;
+    fillRatePercent: number | null;
+}
+
+export interface StatisticsTrendDto { date: string; booked: number; bookedHours: number }
+export interface StatisticsDto {
+    dateFrom: string;
+    dateTo: string;
+    summary: StatisticsSummaryDto;
+    byLocation: LocationStatisticsDto[];
+    trend: StatisticsTrendDto[];
 }
 
 export interface ProblemDetailsResponse {

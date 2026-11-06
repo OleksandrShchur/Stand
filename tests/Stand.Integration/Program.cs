@@ -13,11 +13,18 @@ using Stand.Server.Services;
 
 BookingStartChecks.RunBoundaries();
 if (args.Contains("--booking-start-boundaries")) return;
+StatisticsChecks.RunBoundaries();
+if (args.Contains("--statistics-boundaries")) return;
 await ScheduleArchiveChecks.Run();
 if (args.Contains("--schedule-archive")) return;
 
 // Intentionally fixed to the disposable database. Never uses appsettings credentials.
 const string connection = "Server=(localdb)\\MSSQLLocalDB;Database=StandPerfTest;Trusted_Connection=True;TrustServerCertificate=True";
+if (args.Contains("--statistics"))
+{
+    await StatisticsChecks.Run(connection);
+    return;
+}
 if (args.Contains("--adjacent-shifts"))
 {
     await AdjacentShiftChecks.Run(connection);
@@ -63,6 +70,7 @@ await setup.Database.ExecuteSqlInterpolatedAsync($"""
 var userIds = users.Select(u => u.Id).ToArray();
 try
 {
+    await StatisticsChecks.Run(connection);
     await FeedbackChecks.Run(connection);
     await BookingStateMigrationChecks.Run(connection);
     await ScheduleCapacityMigrationChecks.Run(connection);
