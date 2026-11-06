@@ -7,7 +7,7 @@ npm ci --prefix stand.client
 node tests/run-tests.mjs
 ```
 
-Requires .NET 10 SDK, Node.js 22.12+ and SQL Server LocalDB on Windows. No application server, browser, application credentials or development database is needed. The GitHub Actions workflow runs the same command on Windows.
+Requires .NET 10 SDK, Node.js 22.12+ and SQL Server LocalDB on Windows. No application server, browser, application credentials or development database is needed. The GitHub Actions workflow runs the same command on Windows for pull requests, pushes to `master`, and manual dispatches. Feature-branch pushes use the pull-request trigger to avoid duplicate runs.
 
 ## Suites
 
