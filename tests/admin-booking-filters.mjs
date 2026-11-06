@@ -227,17 +227,16 @@ try {
     for (const width of [393, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: 852, deviceScaleFactor: 1, mobile: width < 600 });
         await send('Page.navigate', { url: 'http://127.0.0.1:5199/admin' });
-        await waitFor(() => evaluate('document.querySelectorAll("main a.MuiCardActionArea-root").length === 5'), 'dashboard links');
-        const dashboard = await evaluate('fetch("/api/admin/dashboard").then(response=>response.json())');
-        const links = await evaluate('[...document.querySelectorAll("main a.MuiCardActionArea-root")].map(a=>a.getAttribute("href"))');
-        assert.deepEqual(Object.fromEntries(new URL(links[0], 'http://localhost').searchParams), { date: dashboard.today });
-        assert.deepEqual(Object.fromEntries(new URL(links[1], 'http://localhost').searchParams), { date: dashboard.today, locationId: '1' });
-        assert.deepEqual(Object.fromEntries(new URL(links[3], 'http://localhost').searchParams), { dateFrom: dashboard.today, dateTo: dashboard.horizonEnd, locationId: '1' });
+        await waitFor(() => evaluate(`document.querySelectorAll('main a[href^="/admin/bookings?"]').length === 3`), 'dashboard links');
+        const dashboard = await evaluate('fetch("/api/admin/dashboard?period=month&year=2026&month=11").then(response=>response.json())');
+        const links = await evaluate(`[...document.querySelectorAll('main a[href^="/admin/bookings?"]')].map(a=>a.getAttribute('href'))`);
+        assert.deepEqual(Object.fromEntries(new URL(links[0], 'http://localhost').searchParams), { dateFrom: dashboard.dateFrom, dateTo: dashboard.dateTo, isBooked: 'true' });
+        assert.deepEqual(Object.fromEntries(new URL(links[1], 'http://localhost').searchParams), { dateFrom: dashboard.dateFrom, dateTo: dashboard.dateTo, isBooked: 'true', locationId: '1' });
         for (const href of links) {
             await send('Page.navigate', { url: 'http://127.0.0.1:5199/admin' });
-            await waitFor(() => evaluate('document.querySelectorAll("main a.MuiCardActionArea-root").length === 5'), 'dashboard reloaded');
+            await waitFor(() => evaluate(`document.querySelectorAll('main a[href^="/admin/bookings?"]').length === 3`), 'dashboard reloaded');
             const before = requests.length;
-            await click(`[...document.querySelectorAll('main a.MuiCardActionArea-root')].find(a=>a.getAttribute('href')===${JSON.stringify(href)})`);
+            await click(`[...document.querySelectorAll('main a[href^="/admin/bookings?"]')].find(a=>a.getAttribute('href')===${JSON.stringify(href)})`);
             await ready();
             assert.equal(await evaluate('location.pathname'), '/admin/bookings');
             const expected = Object.fromEntries(new URL(href, 'http://localhost').searchParams);
@@ -259,7 +258,7 @@ try {
         assert.equal(last().dateTo, undefined);
         assert.equal(last().locationId, '2', 'Clearing the date range retains the location');
         assert.equal(last().page, '1');
-        console.log(`PASS ${width}px: dashboard total, today's locations and overall locations open the exact booking filters; pagination retains scope; date range can be cleared`);
+        console.log(`PASS ${width}px: dashboard total and locations open the selected period's bookings; pagination retains scope; date range can be cleared`);
     }
     assert.deepEqual(errors, []);
     console.log('PASS mobile/desktop date and analog clock confirmation, cancellation and dismissal; optional From/To bounds, range validation, minute precision and clearing; phone and name search; pagination reset and request cancellation');
