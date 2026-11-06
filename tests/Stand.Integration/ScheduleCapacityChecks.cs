@@ -19,6 +19,7 @@ internal static class ScheduleCapacityChecks
         var options = Options.Create(new BookingOptions());
         var clock = new KyivClock(new ConfigurationBuilder().Build());
         var date = clock.TodayLocal.AddDays(4);
+        if (date.Year != date.AddDays(1).Year) date = date.AddDays(1);
         var next = date.AddDays(1);
         var days = new[] { date, next };
         var dateText = date.ToString("yyyy-MM-dd");
@@ -94,10 +95,18 @@ internal static class ScheduleCapacityChecks
                 var available = await Availability(db).GetSlotsAsync(date, place.Id, default);
                 Check(available[0].IsFull && available[1].IsFull && available[2].Remaining == 4,
                     "Availability and remaining places use each interval's capacity");
-                var dashboard = (StatisticsDto)((OkObjectResult)await new AdminDashboardController(db, new ScheduleClock(clock, date))
-                    .Get("year", date.Year)).Value!;
-                Check(dashboard.ByLocation.Single(l => l.LocationId == place.Id).FillRatePercent == 25,
-                    "Dashboard sums interval capacities across dates instead of multiplying the location default");
+                // Other scenarios may have enabled legacy dates in this shared disposable DB.
+                // Isolate the denominator to these two custom dates, then roll back the filter.
+                await using (var reportScope = await db.Database.BeginTransactionAsync())
+                {
+                    await db.AvailableDates.Where(d => d.Date != date && d.Date != next)
+                        .ExecuteUpdateAsync(s => s.SetProperty(d => d.IsActive, false));
+                    var dashboard = (StatisticsDto)((OkObjectResult)await new AdminDashboardController(db, new ScheduleClock(clock, date))
+                        .Get("year", date.Year)).Value!;
+                    Check(dashboard.ByLocation.Single(l => l.LocationId == place.Id).FillRatePercent == 25,
+                        "Dashboard sums interval capacities across dates instead of multiplying the location default");
+                    await reportScope.RollbackAsync();
+                }
                 var unbookedUser = users[Array.FindIndex(first, b => b is null)];
                 try
                 {

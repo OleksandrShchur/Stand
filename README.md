@@ -6,6 +6,8 @@ location, a time slot, leave your name and phone, and get a booking number
 with a cancel link. A small cookie-authenticated admin area manages locations,
 time slots, which calendar dates are bookable, and the resulting bookings.
 
+Automated unit/integration tests and the enforced 80% coverage command are documented in [tests/README.md](tests/README.md).
+
 Stack:
 
 - **Backend:** .NET 10, ASP.NET Core Web API (controllers), EF Core 10

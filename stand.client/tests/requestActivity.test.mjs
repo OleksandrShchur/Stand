@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/api/requestActivity.ts', import.meta.url), 'utf8');
-const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } });
-const { requestActivity, trackRequest } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString('base64')}`);
+import { test } from 'vitest';
+import { requestActivity, trackRequest } from '../src/api/requestActivity.ts';
 
 test('keeps progress active until all concurrent requests finish', async () => {
     let finishFirst;

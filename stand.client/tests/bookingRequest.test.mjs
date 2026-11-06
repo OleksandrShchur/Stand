@@ -1,11 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/features/booking/bookingRequest.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const moduleUrl = `data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`;
+import { test, vi } from 'vitest';
 
 test('booking retries and reloads preserve identity; changed selections and confirmed bookings get new keys', async () => {
     const previous = globalThis.sessionStorage;
@@ -16,10 +10,11 @@ test('booking retries and reloads preserve identity; changed selections and conf
         removeItem: key => storage.delete(key),
     };
     try {
-        const first = await import(moduleUrl);
+        const first = await import('../src/features/booking/bookingRequest');
         const key = first.bookingRequestKey('2026-10-17', 1, [2, 3]);
         assert.equal(first.bookingRequestKey('2026-10-17', 1, [3, 2]), key);
-        const reloaded = await import(moduleUrl + '#reload');
+        vi.resetModules();
+        const reloaded = await import('../src/features/booking/bookingRequest');
         assert.equal(reloaded.bookingRequestKey('2026-10-17', 1, [2, 3]), key);
         assert.notEqual(first.bookingRequestKey('2026-10-17', 2, [2, 3]), key);
         first.clearBookingRequest();

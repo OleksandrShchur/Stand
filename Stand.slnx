@@ -5,4 +5,8 @@
   </Project>
   <Project Path="Stand.DbMigrator/Stand.DbMigrator.csproj" />
   <Project Path="Stand.Server/Stand.Server.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Stand.UnitTests/Stand.UnitTests.csproj" />
+    <Project Path="tests/Stand.Integration/Stand.Integration.csproj" />
+  </Folder>
 </Solution>

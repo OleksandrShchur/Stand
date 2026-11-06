@@ -190,3 +190,6 @@ app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
 app.Run();
+
+// Allows the integration suite to host the real middleware and routes in memory.
+public partial class Program;

@@ -1,12 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/utils/phone.ts', import.meta.url), 'utf8');
-const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { digitsOnly, formatUaPhoneDigits, formatUaPhone, uaPhoneValidationError, toUaPhone } =
-    await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+import { test } from 'vitest';
+import { digitsOnly, formatUaPhoneDigits, formatUaPhone, uaPhoneValidationError, toUaPhone } from '../src/utils/phone.ts';
 
 test('phone input starts empty and retains the manually entered leading zero', () => {
     assert.equal(formatUaPhoneDigits(''), '');

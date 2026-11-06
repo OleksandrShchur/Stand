@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/utils/bookingCardGroups.ts', import.meta.url), 'utf8');
-const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { groupBookingCards, groupMyShiftCards } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+import { test } from 'vitest';
+import { groupBookingCards, groupMyShiftCards } from '../src/utils/bookingCardGroups.ts';
 
 const booking = (id, startTime, endTime, overrides = {}) => ({
     id, startTime, endTime, date: '2026-10-28', locationId: 1,

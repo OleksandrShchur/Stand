@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/features/admin/scheduleModel.ts', import.meta.url), 'utf8');
-const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { generateRanges, getRangeErrors, validateRanges, matchingDates } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+import { test } from 'vitest';
+import { generateRanges, getRangeErrors, validateRanges, matchingDates } from '../src/features/admin/scheduleModel.ts';
 const range = (startTime, endTime, capacity = 2) => ({ startTime, endTime, capacity });
 
 test('09:00 to 17:00 creates exactly eight hourly slots', () => {

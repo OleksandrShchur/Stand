@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
-import { getClosestShifts } from './closestShifts.ts';
+import { test } from 'vitest';
+import { getClosestShifts } from '../src/features/booking/closestShifts.ts';
 
 const shift = (id, date, startTime) => ({
     id, date, startTime, endTime: '18:00', locationName: 'Location', cancelToken: String(id),

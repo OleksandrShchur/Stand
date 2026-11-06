@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/features/feedback/feedbackValidation.ts', import.meta.url), 'utf8');
-const output = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { FEEDBACK_MAX_LENGTH, feedbackValidationError } = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
+import { test } from 'vitest';
+import { FEEDBACK_MAX_LENGTH, feedbackValidationError } from '../src/features/feedback/feedbackValidation.ts';
 
 test('feedback requires actual text and accepts multiline Ukrainian comments', () => {
     for (const blank of ['', ' ', '\n\t\r', '\u00a0']) assert.ok(feedbackValidationError(blank));
