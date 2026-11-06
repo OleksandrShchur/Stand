@@ -1,10 +1,16 @@
 # Стенди — Запис
 
+[![Tests and coverage](https://github.com/OleksandrShchur/Stand/actions/workflows/tests.yml/badge.svg?branch=master&event=push)](https://github.com/OleksandrShchur/Stand/actions/workflows/tests.yml?query=branch%3Amaster)
+[![Server line coverage](https://raw.githubusercontent.com/OleksandrShchur/Stand/coverage-badges/server-coverage.svg)](https://github.com/OleksandrShchur/Stand/blob/coverage-badges/coverage.json)
+[![Frontend logic line coverage](https://raw.githubusercontent.com/OleksandrShchur/Stand/coverage-badges/frontend-logic-coverage.svg)](tests/README.md#coverage-contract)
+
 Public web app for booking volunteer duty shifts ("чергування") at informational
 stands around Ternopil. No visitor registration or login — pick a day, a
 location, a time slot, leave your name and phone, and get a booking number
 with a cancel link. A small cookie-authenticated admin area manages locations,
 time slots, which calendar dates are bookable, and the resulting bookings.
+
+Automated unit/integration tests and the enforced 80% coverage command are documented in [tests/README.md](tests/README.md).
 
 Stack:
 

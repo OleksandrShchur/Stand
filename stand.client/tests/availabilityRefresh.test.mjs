@@ -1,11 +1,6 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import test from 'node:test';
-import ts from 'typescript';
-
-const source = readFileSync(new URL('../src/hooks/availabilityRefresh.ts', import.meta.url), 'utf8');
-const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext } }).outputText;
-const { startAvailabilityRefresh } = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`);
+import { test } from 'vitest';
+import { startAvailabilityRefresh } from '../src/hooks/availabilityRefresh.ts';
 
 test('availability refresh pauses hidden tabs, coalesces events, retries and aborts on disposal', async () => {
     const previous = { document: globalThis.document, window: globalThis.window, now: Date.now };

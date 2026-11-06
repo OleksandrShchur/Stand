@@ -1,0 +1,111 @@
+name: Tests and coverage
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: stand.client/package-lock.json
+      - name: Install client and test dependencies
+        run: npm ci
+        working-directory: stand.client
+      - name: Start disposable SQL Server instance
+        run: |
+          $instances = sqllocaldb info
+          if ($instances -notcontains 'MSSQLLocalDB') {
+            sqllocaldb create MSSQLLocalDB
+            if ($LASTEXITCODE -ne 0) { throw 'Could not create LocalDB instance' }
+          }
+          sqllocaldb start MSSQLLocalDB
+          if ($LASTEXITCODE -ne 0) { throw 'Could not start LocalDB instance' }
+      - name: Run tests and enforce 80% coverage
+        run: node tests/run-tests.mjs
+      - name: Build client
+        run: npm run build
+        working-directory: stand.client
+      - name: Generate coverage badges from this run
+        run: node tests/coverage-badges.mjs
+      - name: Upload coverage badges
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-badges
+          path: artifacts/badges/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Upload test results and coverage
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-and-coverage
+          path: |
+            artifacts/tests/
+            stand.client/coverage/
+          retention-days: 14
+
+  publish-badges:
+    name: Publish coverage badges
+    needs: tests
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    concurrency:
+      group: coverage-badges
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage-badges
+          path: ${{ runner.temp }}/coverage-badge-files
+      - name: Update badge branch
+        shell: bash
+        env:
+          BADGE_FILES: ${{ runner.temp }}/coverage-badge-files
+        run: |
+          set -euo pipefail
+          remote_ref=$(git ls-remote --heads origin refs/heads/coverage-badges)
+          if [[ -n "$remote_ref" ]]; then
+            git fetch --depth=1 origin refs/heads/coverage-badges
+            git switch --create coverage-badges FETCH_HEAD
+          else
+            git switch --orphan coverage-badges
+          fi
+
+          # A slower, older test run must not replace newer published coverage.
+          if [[ -f coverage.json ]]; then
+            previous_run=$(node -p 'JSON.parse(require("node:fs").readFileSync("coverage.json", "utf8")).runNumber || 0')
+            if (( previous_run > GITHUB_RUN_NUMBER )); then
+              echo "Newer coverage is already published; skipping this run."
+              exit 0
+            fi
+          fi
+
+          cp "$BADGE_FILES/server-coverage.svg" "$BADGE_FILES/frontend-logic-coverage.svg" "$BADGE_FILES/coverage.json" .
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- server-coverage.svg frontend-logic-coverage.svg coverage.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Update coverage badges'
+          git push origin HEAD:refs/heads/coverage-badges
