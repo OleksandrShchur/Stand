@@ -5,6 +5,7 @@ import { startFixture } from './accessibility-fixture.mjs';
 
 const requests = [], errors = [];
 let empty = false, fail = false;
+let periodsGate = null, reportGate = null, releasePeriods, releaseReport;
 const people = [
     { id: 1, firstName: 'Олена', lastName: 'Тестова', phone: '+380670000001' },
     { id: 2, firstName: 'Ірина', lastName: 'Інша', phone: '+380670000002' },
@@ -12,6 +13,8 @@ const people = [
 const server = await startFixture(5201, { dashboard: async (url, response) => {
     const query = Object.fromEntries(url.searchParams);
     requests.push({ path: url.pathname, ...query });
+    if (url.pathname.endsWith('/periods') && periodsGate) await periodsGate;
+    if (url.pathname === '/api/admin/dashboard' && reportGate) await reportGate;
     const send = data => response.end(JSON.stringify(data));
     if (fail) { fail = false; response.writeHead(503); return send({ title: 'Тестова помилка статистики' }); }
     if (url.pathname.endsWith('/people')) {
@@ -113,7 +116,23 @@ try {
     await send('Network.setCookie', { name: 'fixture-admin', value: 'true', url: base });
     for (const width of [320, 393, 568, 1280]) {
         await send('Emulation.setDeviceMetricsOverride', { width, height: width === 568 ? 450 : 900, deviceScaleFactor: 1, mobile: width < 600 });
-        await send('Page.navigate', { url: base + '/admin' }); await ready();
+        periodsGate = new Promise(resolve => { releasePeriods = resolve; });
+        reportGate = new Promise(resolve => { releaseReport = resolve; });
+        await send('Page.navigate', { url: base + '/admin' });
+        await wait('!!document.querySelector("main [role=status] .MuiSkeleton-root")');
+        assert.equal(await evaluate('document.querySelector("main [role=status]").getAttribute("aria-label")'), 'Завантажуємо статистику…');
+        assert.ok(await evaluate(`[...document.querySelectorAll('main .MuiSkeleton-root')].every(element => {
+            const bounds = element.getBoundingClientRect();
+            return bounds.width > 0 && bounds.height > 0;
+        })`), 'All loading placeholders stay visible in responsive layouts');
+        assert.ok(await evaluate(`document.documentElement.scrollWidth <= ${width}`), 'Loading skeleton fits the viewport');
+        await screenshot(`${width}-initial-loading`);
+        periodsGate = null; releasePeriods();
+        await wait('!!document.querySelector("main button[value=month]")');
+        assert.ok(await evaluate('!!document.querySelector("main .MuiSkeleton-root")'), 'Report skeleton remains while the period controls are ready');
+        assert.equal(await evaluate('!!document.querySelector("main svg[role=img]")'), false);
+        reportGate = null; releaseReport(); await ready();
+        assert.equal(await evaluate('document.querySelectorAll("main .MuiSkeleton-root").length'), 0);
         assert.equal(requests.at(-1).month, '11', 'Defaults to the current month with data');
         await openSelect(0);
         assert.deepEqual(await evaluate('[...document.querySelectorAll("[role=option]")].map(e=>e.textContent)'), ['2027', '2026']);
@@ -122,7 +141,11 @@ try {
         assert.deepEqual(await evaluate('[...document.querySelectorAll("[role=option]")].map(e=>e.textContent)'), ['Жовтень', 'Листопад']);
         await click('[...document.querySelectorAll("[role=option]")].find(e=>e.textContent==="Жовтень")'); await ready();
         assert.equal(requests.at(-1).month, '10');
-        await click(button('Квартал')); await ready(); assert.equal(requests.at(-1).quarter, '4');
+        reportGate = new Promise(resolve => { releaseReport = resolve; });
+        await click(button('Квартал'));
+        await wait('!!document.querySelector("main .MuiSkeleton-root")');
+        assert.ok(await evaluate('!!document.querySelector("main button[value=month]")'), 'Period controls remain available while changing periods');
+        reportGate = null; releaseReport(); await ready(); assert.equal(requests.at(-1).quarter, '4');
         await choose(0, 2027); assert.equal(requests.at(-1).quarter, '1');
         await click(button('Рік')); await ready(); assert.equal(requests.at(-1).period, 'year');
         assert.equal(requests.at(-1).year, '2027'); assert.equal(requests.at(-1).month, undefined);
@@ -165,7 +188,11 @@ try {
         assert.ok(await evaluate('document.querySelector("[role=option]").innerText.includes("Ірина")'), 'A slow old query cannot replace current search results');
         await input('Тестова'); await wait('document.querySelector("[role=option]")?.innerText.includes("Олена")');
         assert.ok(await evaluate('document.querySelector("[role=option]").innerText.includes("+38 067 000 00 01")'));
-        await click('document.querySelector("[role=option]")'); await ready();
+        periodsGate = new Promise(resolve => { releasePeriods = resolve; });
+        await click('document.querySelector("[role=option]")');
+        await wait('!!document.querySelector("main .MuiSkeleton-root")');
+        assert.ok(await evaluate('!!document.querySelector("input[role=combobox]")'), 'Person search remains available while personal statistics load');
+        periodsGate = null; releasePeriods(); await ready();
         assert.equal(requests.at(-1).personId, '1'); assert.equal(requests.at(-1).month, '3');
         assert.equal(await evaluate('document.querySelector("input[role=combobox]").value'), 'Олена Тестова · +38 067 000 00 01');
         await click(button('Квартал')); await ready(); assert.equal(requests.at(-1).quarter, '1');
@@ -185,7 +212,7 @@ try {
         await input('067'); await wait('!!document.querySelector("[role=option]")');
         assert.equal(requests.at(-1).search, '067');
         await click('document.querySelector("[role=option]")'); await ready();
-        console.log(`PASS ${width}px: page scrolling with sticky toggle and headers, collapse while scrolled, periods, search, clear, drill-down, layout and axe`);
+        console.log(`PASS ${width}px: initial, period and person skeletons; page scrolling with sticky toggle and headers; collapse, search, clear, drill-down, layout and axe`);
     }
     empty = true;
     await send('Page.navigate', { url: base + '/admin' });
@@ -198,5 +225,6 @@ try {
     assert.deepEqual(errors, []);
     console.log('PASS Empty data offers no invalid period; errors can be retried; no runtime exceptions');
 } finally {
+    releasePeriods?.(); releaseReport?.();
     await send('Page.close'); socket.close(); await new Promise(resolve => server.close(resolve));
 }

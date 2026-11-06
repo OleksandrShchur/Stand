@@ -7,7 +7,7 @@ import PlaceOutlinedIcon from '@mui/icons-material/PlaceOutlined';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutlined';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
-import { EmptyState, ErrorState, LoadingState } from '../../components/StateMessage';
+import { EmptyState, ErrorState } from '../../components/StateMessage';
 import type { StatisticsPeriodType, StatisticsPeriodsDto, StatisticsPersonDto } from '../../api/types';
 import { formatUaPhone } from '../../utils/phone';
 import {
@@ -15,6 +15,7 @@ import {
     type StatisticsPeriod,
 } from './statisticsModel';
 import StatisticsReport from './StatisticsReport';
+import StatisticsSkeleton from './StatisticsSkeleton';
 
 export default function AdminDashboardPage() {
     const [view, setView] = useState<'locations' | 'person'>('locations');
@@ -131,7 +132,7 @@ function StatisticsPanel({ person }: { person: StatisticsPersonDto | null }) {
     }, [personId, attempt]);
 
     if (error) return <ErrorState message={error} onRetry={() => { setError(null); setAttempt(value => value + 1); }} />;
-    if (!catalog) return <LoadingState />;
+    if (!catalog) return <StatisticsSkeleton includeFilters />;
     if (!catalog.months.length) return <EmptyState message={person
         ? 'У цієї людини ще немає нескасованих записів. Статистика з’явиться після першого запису.'
         : 'Ще немає нескасованих записів. Періоди та статистика з’являться після першого запису.'} />;

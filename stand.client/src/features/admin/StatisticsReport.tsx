@@ -7,9 +7,10 @@ import { Link as RouterLink } from 'react-router-dom';
 import { adminApi } from '../../api/adminApi';
 import { ApiError } from '../../api/client';
 import type { StatisticsDto, StatisticsPersonDto, StatisticsTrendDto } from '../../api/types';
-import { ErrorState, LoadingState } from '../../components/StateMessage';
+import { ErrorState } from '../../components/StateMessage';
 import { formatDate } from '../../utils/date';
 import { MONTH_NAMES, periodLabel, type StatisticsPeriod } from './statisticsModel';
+import StatisticsSkeleton from './StatisticsSkeleton';
 
 const number = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 });
 const formatNumber = (value: number) => number.format(value);
@@ -34,7 +35,7 @@ export default function StatisticsReport({ period, person }: { period: Statistic
     }, [type, year, value, personId, attempt]);
 
     if (error) return <ErrorState message={error} onRetry={() => { setError(null); setAttempt(value => value + 1); }} />;
-    if (!data) return <LoadingState label="Завантажуємо статистику…" />;
+    if (!data) return <StatisticsSkeleton />;
 
     const { summary } = data;
     const filters = new URLSearchParams({ dateFrom: data.dateFrom, dateTo: data.dateTo, isBooked: 'true' });
@@ -169,9 +170,24 @@ function TrendChart({ points, daily }: { points: StatisticsTrendDto[]; daily: bo
                 Дані графіка
             </Box>
             <Table stickyHeader size="small" aria-label="Дані динаміки записів" sx={{
+                tableLayout: 'fixed',
+                '& .MuiTableCell-root': {
+                    px: { xs: 1.5, sm: 2 }, py: 1.25, borderColor: 'divider',
+                    fontVariantNumeric: 'tabular-nums',
+                },
+                '& .MuiTableCell-root + .MuiTableCell-root': {
+                    borderLeft: '1px solid', borderLeftColor: 'divider',
+                },
                 '& .MuiTableCell-stickyHeader': {
                     top: 'calc(var(--admin-header-height, 0px) + var(--chart-data-toggle-height))',
-                    zIndex: 2, bgcolor: 'background.paper',
+                    zIndex: 2, bgcolor: '#DFEBE3', color: 'primary.dark', fontWeight: 700,
+                    borderBottom: '2px solid', borderBottomColor: 'primary.light',
+                },
+                '& tbody tr:nth-of-type(odd) > .MuiTableCell-root': { bgcolor: 'background.paper' },
+                '& tbody tr:nth-of-type(even) > .MuiTableCell-root': { bgcolor: '#EDF4EF' },
+                '& tbody td': { fontWeight: 600 },
+                '@media (hover: hover)': {
+                    '& tbody tr:hover > .MuiTableCell-root': { bgcolor: '#DCECDF' },
                 },
             }}>
                 <TableHead><TableRow>
