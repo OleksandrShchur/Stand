@@ -16,22 +16,33 @@ export default function BrandHeader({ onHome, title = 'Головна', showHome
             <AppBar position="sticky" elevation={0}>
                 <Toolbar sx={{ py: 1, display: 'grid', gridTemplateColumns: '1fr auto 1fr' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                        {showFeedback ? <IconButton component={RouterLink} to="/feedback" color="inherit" aria-label="Залишити відгук">
-                            <RateReviewOutlinedIcon sx={{ fontSize: 30 }} />
-                        </IconButton> : showHome && <IconButton
-                            component={RouterLink}
-                            to="/"
-                            color="inherit"
-                            aria-label="На головну"
-                            onClick={(event) => {
-                                if (onHome) {
-                                    event.preventDefault();
-                                    onHome();
-                                }
-                            }}
-                        >
-                            <HomeOutlinedIcon sx={{ fontSize: 30 }} />
-                        </IconButton>}
+                        {showFeedback ? (
+                            <Button
+                                component={RouterLink}
+                                to="/feedback"
+                                color="inherit"
+                                aria-label="Залишити відгук"
+                                sx={{ p: 0.5, minWidth: 44, minHeight: 44, lineHeight: 1, gap: 1 }}
+                            >
+                                <RateReviewOutlinedIcon sx={{ fontSize: { xs: 24, sm: 26 } }} />
+                                <Box component="span">Відгук</Box>
+                            </Button>
+                        ) : showHome && (
+                            <IconButton
+                                component={RouterLink}
+                                to="/"
+                                color="inherit"
+                                aria-label="На головну"
+                                onClick={(event) => {
+                                    if (onHome) {
+                                        event.preventDefault();
+                                        onHome();
+                                    }
+                                }}
+                            >
+                                <HomeOutlinedIcon sx={{ fontSize: 30 }} />
+                            </IconButton>
+                        )}
                     </Box>
                     <Typography variant="h6" component="div" sx={{ fontWeight: 700, textAlign: 'center' }}>
                         {title}
