@@ -1,7 +1,7 @@
 {
-  "sourceSha": "66398f2f537de653c817d1c01a7fde16360b2523",
-  "runNumber": 5,
-  "runUrl": "https://github.com/OleksandrShchur/Stand/actions/runs/42215709120",
+  "sourceSha": "32685ec5302a125a06b1b5ab71055df2d5d119d3",
+  "runNumber": 7,
+  "runUrl": "https://github.com/OleksandrShchur/Stand/actions/runs/42804453923",
   "coverage": {
     "server": {
       "covered": 1937,
